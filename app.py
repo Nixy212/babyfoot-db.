@@ -451,6 +451,16 @@ def handle_reset():
 @socketio.on('arduino_goal')
 def handle_arduino_goal(data): handle_score({'team': data.get('team')})
 
+@socketio.on('unlock_servo')
+def handle_unlock_servo():
+    """Déclenché depuis le site en fin de partie — envoie signal au ESP32"""
+    if not session.get('username'):
+        emit('error', {'message': 'Non authentifié'}); return
+    if current_game.get('active'):
+        emit('error', {'message': 'La partie est encore en cours'}); return
+    emit('servo_unlock', {}, broadcast=True)
+    logger.info(f"Déverrouillage servo demandé par {session.get('username')}")
+
 @socketio.on('ping')
 def handle_ping(): emit('pong')
 
