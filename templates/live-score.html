@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Partie Live — Baby-Foot Club</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+</head>
+<body style="font-family: 'DM Sans', sans-serif;">
+<nav class="nav nav-glass">
+  <div class="nav-inner">
+    <a href="/dashboard" class="nav-brand"><div class="logo-wrapper">
+      <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">Baby-Foot Club
+    </a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a href="/dashboard" class="nav-link">Dashboard</a>
+      <a href="/reservation" class="nav-link">Réserver</a>
+      <a href="/live-score" class="nav-link active">Partie Live</a>
+      <a href="/stats" class="nav-link">Stats</a>
+      <a href="/top" class="nav-link">Top 10</a>
+    </div>
+    <div class="nav-right">
+      <span class="conn-dot off" id="cdot"></span>
+      <span id="ctext" style="font-size:0.75rem;color:var(--text-3);margin-right:8px">…</span>
+      <div class="nav-avatar" id="navAv">?</div>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="container" style="max-width:800px">
+    <div class="page-header fade-up">
+      <h1>Partie en direct</h1>
+      <p>Score en temps réel via WebSocket</p>
+    </div>
+
+    <!-- Setup -->
+    <div id="setup" class="card fade-up" style="animation-delay:.05s">
+      <div class="card-header"><h3>Configuration</h3></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+          <div>
+            <label class="label" style="color:var(--brn-l)">🔵 Équipe 1</label>
+            <div class="drop-wrap" style="margin-bottom:8px">
+              <input type="text" id="t1p1" placeholder="Joueur 1" autocomplete="off">
+              <div id="d-t1p1" class="player-dd"></div>
+            </div>
+            <div class="drop-wrap">
+              <input type="text" id="t1p2" placeholder="Joueur 2 (optionnel)" autocomplete="off">
+              <div id="d-t1p2" class="player-dd"></div>
+            </div>
+          </div>
+          <div>
+            <label class="label" style="color:var(--red)">🔴 Équipe 2</label>
+            <div class="drop-wrap" style="margin-bottom:8px">
+              <input type="text" id="t2p1" placeholder="Joueur 1" autocomplete="off">
+              <div id="d-t2p1" class="player-dd"></div>
+            </div>
+            <div class="drop-wrap">
+              <input type="text" id="t2p2" placeholder="Joueur 2 (optionnel)" autocomplete="off">
+              <div id="d-t2p2" class="player-dd"></div>
+            </div>
+          </div>
+        </div>
+        <button id="startBtn" class="btn btn-primary btn-full btn-lg">🎯 Démarrer la partie</button>
+      </div>
+    </div>
+
+    <!-- Scoreboard -->
+    <div id="board" class="card fade-up" style="display:none;animation-delay:.05s">
+      <div class="scoreboard">
+        <div style="text-align:center">
+          <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);margin-bottom:8px">🔵 Équipe 1</div>
+          <div id="n1" style="font-size:0.875rem;color:var(--text-2);margin-bottom:12px"></div>
+          <div class="score-n" id="s1">0</div>
+          <button class="score-btn" data-team="team1">+1</button>
+        </div>
+        <div style="text-align:center">
+          <div class="score-vs">VS</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);margin-bottom:8px">🔴 Équipe 2</div>
+          <div id="n2" style="font-size:0.875rem;color:var(--text-2);margin-bottom:12px"></div>
+          <div class="score-n" id="s2">0</div>
+          <button class="score-btn" data-team="team2">+1</button>
+        </div>
+      </div>
+      <div style="padding:0 32px 24px;display:flex;gap:8px;justify-content:center">
+        <button id="resetBtn" class="btn btn-danger">🔄 Nouvelle partie</button>
+        <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Arduino sim -->
+<div class="ard-sim" id="ardSim" style="display:none">
+  <div class="ard-badge">Simulation</div>
+  <h4>🤖 Simulateur Arduino</h4>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <button class="btn btn-primary" style="flex:1;font-size:0.78rem" onclick="sg('team1')">But Éq.1</button>
+    <button class="btn btn-danger" style="flex:1;font-size:0.78rem" onclick="sg('team2')">But Éq.2</button>
+  </div>
+</div>
+
+<!-- Winner -->
+<div class="winner-overlay" id="win" style="display:none">
+  <div class="winner-box">
+    <div class="winner-emoji">🏆</div>
+    <div class="winner-ttl" id="wname">Équipe 1 gagne !</div>
+    <p class="winner-sub">Partie terminée — scores enregistrés</p>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-primary btn-lg" onclick="newGame()">Nouvelle partie</button>
+      <a href="/dashboard" class="btn btn-secondary btn-lg">Dashboard</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="tw"></div>
+
+<script>
+let allUsers = [];
+const socket = io();
+
+function toast(msg, type='inf') {
+  const c=document.getElementById('tw'), t=document.createElement('div');
+  t.className=`toast ${type}`; t.textContent=msg; c.appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
+fetch('/current_user').then(r=>r.json()).then(d=>{
+  if(d.username) document.getElementById('navAv').textContent=d.username[0].toUpperCase();
+});
+fetch('/all_users').then(r=>r.json()).then(u=>{ allUsers=u; setupDrops(); });
+
+function setupDrops() {
+  ['t1p1','t1p2','t2p1','t2p2'].forEach(id=>{
+    const inp = document.getElementById(id);
+    const dd  = document.getElementById(`d-${id}`);
+    if(!inp||!dd) return;
+    function show(v) {
+      const f = allUsers.filter(u=>!v||u.toLowerCase().includes(v.toLowerCase()));
+      dd.innerHTML = f.map(u=>`<div class="dd-item" onmousedown="pick('${u}','${id}')">${u}</div>`).join('')||'<div class="dd-empty">Aucun résultat</div>';
+      dd.style.display='block';
+    }
+    inp.addEventListener('focus',()=>show(inp.value));
+    inp.addEventListener('input',()=>show(inp.value));
+    inp.addEventListener('blur', ()=>setTimeout(()=>dd.style.display='none',150));
+  });
+}
+window.pick=(u,id)=>{ document.getElementById(id).value=u; document.getElementById(`d-${id}`).style.display='none'; };
+
+socket.on('connect',()=>{ document.getElementById('cdot').className='conn-dot on'; document.getElementById('ctext').textContent='Connecté'; });
+socket.on('disconnect',()=>{ document.getElementById('cdot').className='conn-dot off'; document.getElementById('ctext').textContent='Déconnecté'; });
+
+socket.on('game_started', d=>{
+  document.getElementById('setup').style.display='none';
+  document.getElementById('board').style.display='block';
+  document.getElementById('n1').textContent=d.team1_players.join(' & ');
+  document.getElementById('n2').textContent=d.team2_players.join(' & ');
+  document.getElementById('s1').textContent='0';
+  document.getElementById('s2').textContent='0';
+});
+
+socket.on('score_updated', d=>{
+  const bump=(el, val)=>{
+    if(parseInt(el.textContent)!==val){ el.textContent=val; el.classList.add('bump'); setTimeout(()=>el.classList.remove('bump'),250); }
+  };
+  bump(document.getElementById('s1'),d.team1_score);
+  bump(document.getElementById('s2'),d.team2_score);
+});
+
+socket.on('game_ended', d=>{
+  document.getElementById('s1').textContent=d.team1_score;
+  document.getElementById('s2').textContent=d.team2_score;
+  document.getElementById('wname').textContent=d.winner==='team1'?'🔵 Équipe 1 gagne !':'🔴 Équipe 2 gagne !';
+  document.getElementById('win').style.display='flex';
+});
+
+socket.on('error', d=>toast(d.message||'Erreur','err'));
+socket.on('game_reset', ()=>newGame());
+
+document.getElementById('startBtn').addEventListener('click',()=>{
+  const team1=[document.getElementById('t1p1').value.trim(),document.getElementById('t1p2').value.trim()].filter(Boolean);
+  const team2=[document.getElementById('t2p1').value.trim(),document.getElementById('t2p2').value.trim()].filter(Boolean);
+  if(!team1.length||!team2.length){toast('Chaque équipe doit avoir au moins un joueur','err');return;}
+  socket.emit('start_game',{team1,team2});
+});
+
+document.querySelectorAll('.score-btn').forEach(b=>b.addEventListener('click',()=>socket.emit('update_score',{team:b.dataset.team})));
+document.getElementById('resetBtn').addEventListener('click',()=>socket.emit('reset_game'));
+
+function newGame(){
+  document.getElementById('win').style.display='none';
+  document.getElementById('board').style.display='none';
+  document.getElementById('setup').style.display='block';
+  ['t1p1','t1p2','t2p1','t2p2'].forEach(id=>document.getElementById(id).value='');
+}
+window.sg=team=>socket.emit('arduino_goal',{team});
+
+fetch('/arduino/status').then(r=>r.json()).then(d=>{ if(d.simulated) document.getElementById('ardSim').style.display='block'; });
+</script>
+</body>
+</html>

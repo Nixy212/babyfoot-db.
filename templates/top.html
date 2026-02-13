@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Top 10 — Baby-Foot Club</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'DM Sans', sans-serif;">
+<nav class="nav nav-glass">
+  <div class="nav-inner">
+    <a href="/dashboard" class="nav-brand">
+      <div class="logo-wrapper">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
+        <div class="logo-pulse"></div>
+      </div>
+      <span class="brand-text">Baby-Foot Club</span>
+    </a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon">🎮</span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon">📊</span><span>Stats</span></a>
+      <a href="/top" class="nav-link active"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
+    </div>
+    <div class="nav-right">
+      <div class="user-profile-mini">
+        <div class="nav-avatar" id="navAv">?</div>
+        <span class="nav-username" id="navUsername"></span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="container" style="max-width:900px">
+    <div class="page-header fade-up">
+      <h1>🏆 Classement général</h1>
+      <p>Les meilleurs joueurs du club</p>
+    </div>
+
+    <div class="card fade-up" style="animation-delay:.05s;padding:0;overflow:hidden">
+      <div class="leaderboard-list" id="leaderboard">
+        <div style="padding:3rem;text-align:center">
+          <div class="loading-spinner" style="margin:0 auto 1rem"></div>
+          <p style="color:var(--text-tertiary)">Chargement du classement...</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:1.5rem">
+      <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const medals = ['🥇', '🥈', '🥉'];
+  
+  fetch('/current_user').then(r=>r.json()).then(d=>{
+    if(d.username) {
+      document.getElementById('navAv').textContent=d.username[0].toUpperCase();
+      document.getElementById('navUsername').textContent=d.username;
+      loadLeaderboard(d.username);
+    }
+  });
+
+  async function loadLeaderboard(currentUser) {
+    try {
+      const lb = await fetch('/leaderboard').then(r=>r.json());
+      const container = document.getElementById('leaderboard');
+      
+      if (!lb || lb.length === 0) {
+        container.innerHTML = `
+          <div style="padding:3rem;text-align:center">
+            <div style="font-size:3rem;margin-bottom:1rem;opacity:0.5">🏆</div>
+            <p style="color:var(--text-tertiary)">Aucun joueur classé pour le moment</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = lb.map((player, index) => {
+        const rank = index + 1;
+        const isCurrentUser = player.username === currentUser;
+        const isTop3 = rank <= 3;
+        const medal = isTop3 ? medals[index] : '';
+        
+        return `
+          <div class="leaderboard-item ${isCurrentUser ? 'highlight' : ''}">
+            <div class="lb-rank ${isTop3 ? 'top3' : ''}">${medal || '#' + rank}</div>
+            <div class="lb-avatar">${player.username[0].toUpperCase()}</div>
+            <div class="lb-info">
+              <div class="lb-name">${player.username}${isCurrentUser ? ' <span style="font-size:0.75rem;color:var(--bronze)">(vous)</span>' : ''}</div>
+              <div class="lb-meta">${player.total_games} partie${player.total_games !== 1 ? 's' : ''} • Ratio: ${player.ratio}</div>
+            </div>
+            <div class="lb-points">${player.total_goals}<span>buts</span></div>
+          </div>
+        `;
+      }).join('');
+    } catch(e) {
+      console.error(e);
+      document.getElementById('leaderboard').innerHTML = `
+        <div style="padding:3rem;text-align:center">
+          <p style="color:var(--text-tertiary)">Erreur de chargement</p>
+        </div>
+      `;
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scores — Baby-Foot Club</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'DM Sans', sans-serif;">
+<nav class="nav nav-glass">
+  <div class="nav-inner">
+    <a href="/dashboard" class="nav-brand">
+      <div class="logo-wrapper">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
+        <div class="logo-pulse"></div>
+      </div>
+      <span class="brand-text">Baby-Foot Club</span>
+    </a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon">🎮</span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon">📊</span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
+    </div>
+    <div class="nav-right">
+      <div class="user-profile-mini">
+        <div class="nav-avatar" id="navAv">?</div>
+        <span class="nav-username" id="navUsername"></span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="container" style="max-width:1000px">
+    <div class="page-header fade-up">
+      <h1>📊 Historique des scores</h1>
+      <p>Toutes les parties jouées</p>
+    </div>
+
+    <div class="scores-grid fade-up" style="animation-delay:.05s" id="scoresGrid">
+      <div style="padding:3rem;text-align:center">
+        <div class="loading-spinner" style="margin:0 auto 1rem"></div>
+        <p style="color:var(--text-tertiary)">Chargement des scores...</p>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:1.5rem">
+      <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  fetch('/current_user').then(r=>r.json()).then(d=>{
+    if(d.username) {
+      document.getElementById('navAv').textContent=d.username[0].toUpperCase();
+      document.getElementById('navUsername').textContent=d.username;
+    }
+  });
+
+  async function loadScores() {
+    try {
+      const scores = await fetch('/all_scores').then(r=>r.json());
+      const container = document.getElementById('scoresGrid');
+      
+      if (!scores || scores.length === 0) {
+        container.innerHTML = `
+          <div style="padding:3rem;text-align:center">
+            <div style="font-size:3rem;margin-bottom:1rem;opacity:0.5">🎮</div>
+            <p style="color:var(--text-tertiary);margin-bottom:1.5rem">Aucune partie jouée pour le moment</p>
+            <a href="/live-score" class="btn btn-primary">Démarrer une partie</a>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = scores.slice().reverse().map(game => {
+        const date = new Date(game.date);
+        const dateStr = date.toLocaleDateString('fr-FR', {day: '2-digit', month: 'long', year: 'numeric'});
+        const timeStr = date.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
+        const team1Win = game.team1_score > game.team2_score;
+        const team2Win = game.team2_score > game.team1_score;
+        
+        return `
+          <div class="score-card">
+            <div class="score-header">
+              <div class="score-date">${dateStr} · ${timeStr}</div>
+              <div class="score-mode">${game.mode || '2v2'}</div>
+            </div>
+            <div class="score-teams">
+              <div class="score-team ${team1Win ? 'winner' : ''}">
+                <div class="score-team-label">🔵 Équipe 1</div>
+                <div class="score-team-players">${game.team1_players.join(' & ')}</div>
+                <div class="score-team-score">${game.team1_score}</div>
+              </div>
+              <div class="score-vs">VS</div>
+              <div class="score-team ${team2Win ? 'winner' : ''}">
+                <div class="score-team-label">🔴 Équipe 2</div>
+                <div class="score-team-players">${game.team2_players.join(' & ')}</div>
+                <div class="score-team-score">${game.team2_score}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch(e) {
+      console.error(e);
+      document.getElementById('scoresGrid').innerHTML = `
+        <div style="padding:3rem;text-align:center">
+          <p style="color:var(--text-tertiary)">Erreur de chargement</p>
+        </div>
+      `;
+    }
+  }
+
+  loadScores();
+</script>
+</body>
+</html>

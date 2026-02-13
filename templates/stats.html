@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stats — Baby-Foot Club</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'DM Sans', sans-serif;">
+<nav class="nav nav-glass">
+  <div class="nav-inner">
+    <a href="/dashboard" class="nav-brand">
+      <div class="logo-wrapper">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
+        <div class="logo-pulse"></div>
+      </div>
+      <span class="brand-text">Baby-Foot Club</span>
+    </a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon">🎮</span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link active"><span class="nav-link-icon">📊</span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
+    </div>
+    <div class="nav-right">
+      <div class="user-profile-mini">
+        <div class="nav-avatar" id="navAv">?</div>
+        <span class="nav-username" id="navUsername"></span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="container" style="max-width:900px">
+    <div class="page-header fade-up">
+      <h1>📊 Statistiques</h1>
+      <p id="subttl">Chargement…</p>
+    </div>
+
+    <div class="stats-row fade-up" style="animation-delay:.05s">
+      <div class="stat-cell">
+        <div class="stat-label">Parties jouées</div>
+        <div class="stat-val" id="sg">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">Total Buts</div>
+        <div class="stat-val gold" id="sp">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">Ratio Buts/Match</div>
+        <div class="stat-val bronze" id="sr">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">Meilleur score</div>
+        <div class="stat-val amber" id="sb">—</div>
+      </div>
+      <div class="stat-cell">
+        <div class="stat-label">Score moyen</div>
+        <div class="stat-val" id="sa">—</div>
+      </div>
+    </div>
+
+    <div class="card fade-up" style="animation-delay:.1s;padding:0;overflow:hidden">
+      <div class="card-header" style="padding:1.5rem 2rem;border-bottom:1px solid var(--border-subtle)">
+        <h3 style="font-size:1.125rem;font-weight:700;display:flex;align-items:center;gap:0.75rem">
+          <span>📈</span>
+          <span>Historique récent</span>
+        </h3>
+      </div>
+      <div id="hist"></div>
+    </div>
+
+    <div style="text-align:center;margin-top:1.5rem">
+      <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  fetch('/current_user').then(r=>r.json()).then(async d=>{
+    const u=d.username; 
+    if(!u) return;
+    
+    document.getElementById('navAv').textContent=u[0].toUpperCase();
+    document.getElementById('navUsername').textContent=u;
+    document.getElementById('subttl').textContent=`Statistiques de ${u}`;
+    
+    const s=await fetch(`/user_stats/${u}`).then(r=>r.json());
+    document.getElementById('sg').textContent=s.total_games??0;
+    document.getElementById('sp').textContent=s.total_goals??0;
+    document.getElementById('sr').textContent=s.ratio??0;
+    document.getElementById('sb').textContent=s.best_score||'—';
+    document.getElementById('sa').textContent=s.average_score||'—';
+    
+    const h=document.getElementById('hist');
+    if(!s.recent_scores?.length){ 
+      h.innerHTML='<p style="padding:3rem;text-align:center;color:var(--text-tertiary);font-size:0.9375rem">Aucune partie jouée</p>'; 
+      return; 
+    }
+    
+    h.innerHTML=s.recent_scores.map((sc,i)=>`
+      <div class="hist-row">
+        <div style="font-size:0.9375rem">
+          <span style="font-weight:600">Partie #${i+1}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:1rem">
+          <span class="hist-date">${new Date(sc.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'})}</span>
+          <span class="hist-score">${sc.score} pts</span>
+        </div>
+      </div>`).join('');
+  });
+</script>
+</body>
+</html>
