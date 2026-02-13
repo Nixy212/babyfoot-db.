@@ -12,55 +12,25 @@
   <style>
     .unlock-btn {
       background: linear-gradient(135deg, #f59e0b, #d97706);
-      color: white;
-      border: none;
-      padding: 14px 32px;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 16px;
-      transition: opacity 0.2s;
+      color: white; border: none; padding: 14px 32px;
+      border-radius: 12px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; width: 100%; margin-top: 16px; transition: opacity 0.2s;
     }
-    .unlock-btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
+    .unlock-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .unlock-btn:not(:disabled):hover { opacity: 0.85; }
-    .reservation-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(16,185,129,0.12);
-      border: 1px solid rgba(16,185,129,0.3);
-      color: #10b981;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 16px;
+    .badge-ok {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.3);
+      color: #10b981; padding: 6px 14px; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 600; margin-bottom: 16px;
     }
-    .no-reservation-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(239,68,68,0.12);
-      border: 1px solid rgba(239,68,68,0.3);
-      color: #ef4444;
-      padding: 6px 14px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-bottom: 16px;
+    .badge-err {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
+      color: #ef4444; padding: 6px 14px; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 600; margin-bottom: 16px;
     }
-    .score-display {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 40px;
-      padding: 32px;
-    }
+    .score-display { display: flex; align-items: center; justify-content: center; gap: 40px; padding: 32px; }
     .team-score { text-align: center; }
     .team-name { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-2); margin-bottom: 8px; }
     .team-players { font-size: 0.875rem; color: var(--text-2); margin-bottom: 12px; }
@@ -99,7 +69,6 @@
       <p>Score en temps réel via Arduino</p>
     </div>
 
-    <!-- Statut réservation -->
     <div id="resStatus" class="fade-up" style="text-align:center;margin-bottom:8px"></div>
 
     <!-- Setup -->
@@ -131,9 +100,7 @@
           </div>
         </div>
         <button id="startBtn" class="btn btn-primary btn-full btn-lg" disabled>🎯 Démarrer la partie</button>
-        <p id="startHint" style="text-align:center;font-size:0.8rem;color:var(--text-3);margin-top:8px">
-          ⏳ Vérification de votre réservation...
-        </p>
+        <p id="startHint" style="text-align:center;font-size:0.8rem;color:var(--text-3);margin-top:8px">⏳ Vérification...</p>
       </div>
     </div>
 
@@ -141,7 +108,7 @@
     <div id="board" class="card fade-up" style="display:none;animation-delay:.05s">
       <div class="card-header">
         <h3>🎮 Partie en cours</h3>
-        <span style="font-size:0.8rem;color:var(--text-3)">Les buts sont détectés automatiquement par l'Arduino</span>
+        <span style="font-size:0.8rem;color:var(--text-3)">Buts détectés automatiquement par l'Arduino</span>
       </div>
       <div class="score-display">
         <div class="team-score">
@@ -174,9 +141,7 @@
       <button class="unlock-btn" id="unlockBtn" onclick="unlockServo()">
         🔓 Déverrouiller la balle
       </button>
-      <p style="font-size:0.75rem;color:var(--text-3);margin-top:8px">
-        Appuyez pour libérer la balle via l'Arduino
-      </p>
+      <p style="font-size:0.75rem;color:var(--text-3);margin-top:8px">Libère la balle via l'Arduino</p>
     </div>
     <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px">
       <button class="btn btn-primary btn-lg" onclick="newGame()">Nouvelle partie</button>
@@ -188,9 +153,10 @@
 <div class="toast-wrap" id="tw"></div>
 
 <script>
-let allUsers = [];
-let hasReservation = false;
-const socket = io();
+let allUsers    = [];
+let hasAccess   = false;
+let currentUser = '';
+const socket    = io();
 
 function toast(msg, type='inf') {
   const c=document.getElementById('tw'), t=document.createElement('div');
@@ -198,40 +164,52 @@ function toast(msg, type='inf') {
   setTimeout(()=>t.remove(),3200);
 }
 
-// Vérifier si l'utilisateur a une réservation active maintenant
-async function checkReservation() {
+async function checkAccess() {
   const resStatus = document.getElementById('resStatus');
   const startBtn  = document.getElementById('startBtn');
   const startHint = document.getElementById('startHint');
 
   try {
-    const [resData, userData] = await Promise.all([
-      fetch('/reservations_all').then(r=>r.json()),
-      fetch('/current_user').then(r=>r.json())
+    const [userData, adminData] = await Promise.all([
+      fetch('/current_user').then(r=>r.json()),
+      fetch('/api/is_admin').then(r=>r.json())
     ]);
 
-    const username = userData.username;
+    currentUser = userData.username;
+    if (currentUser) {
+      document.getElementById('navAv').textContent = currentUser[0].toUpperCase();
+    }
+
+    // Compte admin — accès total sans contrainte
+    if (adminData.is_admin) {
+      hasAccess = true;
+      resStatus.innerHTML = '<span class="badge-ok">👑 Compte admin — Accès total</span>';
+      startBtn.disabled = false;
+      startHint.style.display = 'none';
+      return;
+    }
+
+    // Vérifier réservation active
+    const [resData] = await Promise.all([
+      fetch('/reservations_all').then(r=>r.json())
+    ]);
+
     const now = new Date();
     const days = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
     const todayName = days[now.getDay()];
-    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
     let found = false;
-    // Chercher une réservation active maintenant pour cet utilisateur
     for (const [day, slots] of Object.entries(resData)) {
-      if (!day.toLowerCase().includes(todayName) && !isToday(day)) continue;
+      if (!day.toLowerCase().includes(todayName)) continue;
       for (const [time, slot] of Object.entries(slots)) {
         const allPlayers = [...(slot.team1||[]), ...(slot.team2||[])];
-        if (!allPlayers.includes(username)) continue;
-
-        // Vérifier si le créneau est actif maintenant (créneau de 25 min)
+        if (!allPlayers.includes(currentUser)) continue;
         const [h, m] = time.split(':').map(Number);
         const slotStart = h * 60 + m;
         const slotEnd   = slotStart + 25;
-
-        if (currentTime >= slotStart && currentTime < slotEnd) {
+        if (currentMinutes >= slotStart && currentMinutes < slotEnd) {
           found = true;
-          // Pré-remplir les équipes
           if (slot.team1[0]) document.getElementById('t1p1').value = slot.team1[0];
           if (slot.team1[1]) document.getElementById('t1p2').value = slot.team1[1];
           if (slot.team2[0]) document.getElementById('t2p1').value = slot.team2[0];
@@ -242,15 +220,15 @@ async function checkReservation() {
       if (found) break;
     }
 
-    hasReservation = found;
+    hasAccess = found;
     if (found) {
-      resStatus.innerHTML = '<span class="reservation-badge">✅ Réservation active — Partie disponible</span>';
+      resStatus.innerHTML = '<span class="badge-ok">✅ Réservation active — Partie disponible</span>';
       startBtn.disabled = false;
       startHint.style.display = 'none';
     } else {
-      resStatus.innerHTML = '<span class="no-reservation-badge">❌ Aucune réservation active en ce moment</span>';
+      resStatus.innerHTML = '<span class="badge-err">❌ Aucune réservation active en ce moment</span>';
       startBtn.disabled = true;
-      startHint.textContent = 'Vous devez avoir une réservation active pour démarrer une partie.';
+      startHint.textContent = 'Vous devez avoir une réservation active pour jouer.';
     }
   } catch(e) {
     console.error(e);
@@ -258,31 +236,17 @@ async function checkReservation() {
   }
 }
 
-function isToday(dayStr) {
-  const now = new Date();
-  const days = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
-  return dayStr.toLowerCase().includes(days[now.getDay()]);
-}
-
-// Déverrouiller la balle via le servo
 function unlockServo() {
   const btn = document.getElementById('unlockBtn');
   btn.disabled = true;
   btn.textContent = '⏳ Déverrouillage...';
   socket.emit('unlock_servo');
-  setTimeout(() => {
-    btn.textContent = '✅ Balle libérée !';
-  }, 1500);
+  setTimeout(() => { btn.textContent = '✅ Balle libérée !'; }, 1500);
 }
 
-// Chargement initial
-fetch('/current_user').then(r=>r.json()).then(d=>{
-  if(d.username) document.getElementById('navAv').textContent=d.username[0].toUpperCase();
-});
 fetch('/all_users').then(r=>r.json()).then(u=>{ allUsers=u; setupDrops(); });
-checkReservation();
-// Revérifier toutes les minutes
-setInterval(checkReservation, 60000);
+checkAccess();
+setInterval(checkAccess, 60000);
 
 function setupDrops() {
   ['t1p1','t1p2','t2p1','t2p2'].forEach(id=>{
@@ -314,7 +278,7 @@ socket.on('game_started', d=>{
 });
 
 socket.on('score_updated', d=>{
-  const bump=(el, val)=>{
+  const bump=(el,val)=>{
     if(parseInt(el.textContent)!==val){ el.textContent=val; el.classList.add('bump'); setTimeout(()=>el.classList.remove('bump'),250); }
   };
   bump(document.getElementById('s1'),d.team1_score);
@@ -325,7 +289,6 @@ socket.on('game_ended', d=>{
   document.getElementById('s1').textContent=d.team1_score;
   document.getElementById('s2').textContent=d.team2_score;
   document.getElementById('wname').textContent=d.winner==='team1'?'🔵 Équipe 1 gagne !':'🔴 Équipe 2 gagne !';
-  // Réactiver le bouton déverrouillage
   const btn = document.getElementById('unlockBtn');
   btn.disabled = false;
   btn.textContent = '🔓 Déverrouiller la balle';
@@ -336,7 +299,7 @@ socket.on('error', d=>toast(d.message||'Erreur','err'));
 socket.on('game_reset', ()=>newGame());
 
 document.getElementById('startBtn').addEventListener('click',()=>{
-  if (!hasReservation) { toast('Aucune réservation active', 'err'); return; }
+  if (!hasAccess) { toast('Accès non autorisé', 'err'); return; }
   const team1=[document.getElementById('t1p1').value.trim(),document.getElementById('t1p2').value.trim()].filter(Boolean);
   const team2=[document.getElementById('t2p1').value.trim(),document.getElementById('t2p2').value.trim()].filter(Boolean);
   if(!team1.length||!team2.length){toast('Chaque équipe doit avoir au moins un joueur','err');return;}
@@ -350,7 +313,7 @@ function newGame(){
   document.getElementById('board').style.display='none';
   document.getElementById('setup').style.display='block';
   ['t1p1','t1p2','t2p1','t2p2'].forEach(id=>document.getElementById(id).value='');
-  checkReservation();
+  checkAccess();
 }
 </script>
 </body>
