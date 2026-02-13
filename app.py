@@ -66,13 +66,7 @@ def init_database():
     logger.info(f"✅ DB initialisée ({'PostgreSQL' if USE_POSTGRES else 'SQLite'})")
 
 def seed_test_accounts():
-    """Créer des comptes de test si la DB est vide"""
-    test_accounts = [
-        ("alice", "test123"),
-        ("bob", "test123"),
-        ("charlie", "test123"),
-        ("diana", "test123"),
-    ]
+    test_accounts = [("alice","test123"),("bob","test123"),("charlie","test123"),("diana","test123")]
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -88,9 +82,27 @@ def seed_test_accounts():
     except Exception as e:
         logger.warning(f"Seed test accounts: {e}")
 
+def seed_admin():
+    """Créer le compte admin Imran avec accès total"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        q = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
+        cur.execute(q, ("Imran",))
+        if not cur.fetchone():
+            hashed = bcrypt.hashpw("imran2024".encode(), bcrypt.gensalt()).decode()
+            q2 = "INSERT INTO users (username, password, total_goals, total_games) VALUES (%s, %s, 0, 0)" if USE_POSTGRES else "INSERT INTO users (username, password, total_goals, total_games) VALUES (?, ?, 0, 0)"
+            cur.execute(q2, ("Imran", hashed))
+            conn.commit()
+            logger.info("✅ Compte admin Imran créé")
+        cur.close(); conn.close()
+    except Exception as e:
+        logger.warning(f"seed_admin: {e}")
+
 try:
     init_database()
     seed_test_accounts()
+    seed_admin()
 except Exception as e:
     logger.error(f"Erreur init DB: {e}")
 
@@ -118,6 +130,9 @@ def validate_password(p):
     if not p or not isinstance(p, str): raise ValueError("Mot de passe requis")
     if len(p) < 6: raise ValueError("Minimum 6 caractères")
     return p
+
+def is_admin(username):
+    return username == "Imran"
 
 @app.route("/")
 def index(): return render_template("index.html")
@@ -202,13 +217,18 @@ def api_login():
     if bcrypt.checkpw(password.encode(), user['password'].encode()):
         session["username"] = username
         session.permanent = True
-        return jsonify({"success": True})
+        return jsonify({"success": True, "is_admin": is_admin(username)})
     return jsonify({"success": False, "message": "Identifiants incorrects"}), 401
 
 @app.route("/api/logout", methods=["POST"])
 def logout():
     session.clear()
     return jsonify({"success": True})
+
+@app.route("/api/is_admin")
+def api_is_admin():
+    username = session.get("username", "")
+    return jsonify({"is_admin": is_admin(username)})
 
 @app.route("/all_users")
 @handle_errors
@@ -320,11 +340,11 @@ def user_stats(username):
     total_games = user.get('total_games', 0)
     ratio = round(total_goals / total_games, 2) if total_games > 0 else 0
     return jsonify({
-        "total_games": total_games, 
-        "total_goals": total_goals, 
+        "total_games": total_games,
+        "total_goals": total_goals,
         "ratio": ratio,
-        "best_score": max(vals) if vals else 0, 
-        "average_score": round(sum(vals)/len(vals), 1) if vals else 0, 
+        "best_score": max(vals) if vals else 0,
+        "average_score": round(sum(vals)/len(vals), 1) if vals else 0,
         "recent_scores": [{"score": s['score'], "date": str(s['date'])} for s in score_rows]
     })
 
@@ -341,12 +361,7 @@ def leaderboard():
         total_goals = row_dict.get('total_goals', 0)
         total_games = row_dict.get('total_games', 0)
         ratio = round(total_goals / total_games, 2) if total_games > 0 else 0
-        result.append({
-            'username': row_dict['username'],
-            'total_goals': total_goals,
-            'total_games': total_games,
-            'ratio': ratio
-        })
+        result.append({'username': row_dict['username'], 'total_goals': total_goals, 'total_games': total_games, 'ratio': ratio})
     return jsonify(result)
 
 @app.route("/arduino/unlock", methods=["POST"])
@@ -354,7 +369,7 @@ def leaderboard():
 def arduino_unlock():
     if "username" not in session: return jsonify({"success": False, "message": "Non authentifié"}), 401
     if arduino_simulated:
-        return jsonify({"success": True, "message": "🤖 Simulation: Balle déverrouillée"})
+        return jsonify({"success": True, "message": "Simulation: Balle déverrouillée"})
     return jsonify({"success": False, "message": "Arduino non connecté"}), 500
 
 @app.route("/arduino/status")
@@ -409,18 +424,12 @@ def save_game_results(game):
     cur = conn.cursor()
     wt = game.get('winner')
     if not wt: return
-    
-    # Récupérer les scores des deux équipes
-    team1_score = game.get('team1_score', 0)
-    team2_score = game.get('team2_score', 0)
+    team1_score   = game.get('team1_score', 0)
+    team2_score   = game.get('team2_score', 0)
     team1_players = game.get('team1_players', [])
     team2_players = game.get('team2_players', [])
-    
-    # Calculer les buts par joueur (divisés équitablement dans l'équipe)
     team1_goals_per_player = team1_score / len(team1_players) if team1_players else 0
     team2_goals_per_player = team2_score / len(team2_players) if team2_players else 0
-    
-    # Enregistrer pour l'équipe 1
     for p in team1_players:
         if p and p.strip():
             if USE_POSTGRES:
@@ -429,8 +438,6 @@ def save_game_results(game):
             else:
                 cur.execute("INSERT INTO scores (username, score) VALUES (?, ?)", (p, team1_score))
                 cur.execute("UPDATE users SET total_goals = total_goals + ?, total_games = total_games + 1 WHERE username = ?", (int(team1_goals_per_player), p))
-    
-    # Enregistrer pour l'équipe 2
     for p in team2_players:
         if p and p.strip():
             if USE_POSTGRES:
@@ -439,7 +446,6 @@ def save_game_results(game):
             else:
                 cur.execute("INSERT INTO scores (username, score) VALUES (?, ?)", (p, team2_score))
                 cur.execute("UPDATE users SET total_goals = total_goals + ?, total_games = total_games + 1 WHERE username = ?", (int(team2_goals_per_player), p))
-    
     conn.commit(); cur.close(); conn.close()
 
 @socketio.on('reset_game')
@@ -453,13 +459,12 @@ def handle_arduino_goal(data): handle_score({'team': data.get('team')})
 
 @socketio.on('unlock_servo')
 def handle_unlock_servo():
-    """Déclenché depuis le site en fin de partie — envoie signal au ESP32"""
     if not session.get('username'):
         emit('error', {'message': 'Non authentifié'}); return
     if current_game.get('active'):
         emit('error', {'message': 'La partie est encore en cours'}); return
     emit('servo_unlock', {}, broadcast=True)
-    logger.info(f"Déverrouillage servo demandé par {session.get('username')}")
+    logger.info(f"Déverrouillage servo par {session.get('username')}")
 
 @socketio.on('ping')
 def handle_ping(): emit('pong')
