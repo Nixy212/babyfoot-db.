@@ -233,6 +233,26 @@ def scores():
     if "username" not in session: return redirect(url_for('login_page'))
     return render_template("scores.html")
 
+@app.route("/debug/game")
+def debug_game():
+    """Route de debug pour voir l'état actuel du jeu"""
+    global current_game
+    return jsonify({
+        "current_game": current_game,
+        "timestamp": datetime.now().isoformat()
+    })
+
+@app.route("/debug/test-arduino-goal")
+def debug_test_arduino():
+    """Route de test pour simuler un but Arduino"""
+    global current_game
+    if current_game.get('active'):
+        socketio.emit('arduino_goal', {'team': 'team1'}, broadcast=True)
+        logger.info("🧪 Test arduino_goal envoyé depuis route debug")
+        return jsonify({"success": True, "message": "But de test envoyé"})
+    else:
+        return jsonify({"success": False, "message": "Aucune partie en cours"})
+
 @app.route("/api/register", methods=["POST"])
 @handle_errors
 def api_register():
