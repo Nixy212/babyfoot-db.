@@ -303,7 +303,7 @@ def reserve():
     mode = data.get("mode", "2v2")
     reserved_by = session.get("username", "unknown")
     if not day or not time: return jsonify({"success": False, "message": "Jour et heure requis"}), 400
-    if not team1 or not team2: return jsonify({"success": False, "message": "Chaque équipe doit avoir au moins un joueur"}), 400
+    # Les équipes peuvent être vides (définies lors du lancement)
     conn = get_db_connection()
     cur = conn.cursor()
     if USE_POSTGRES:
