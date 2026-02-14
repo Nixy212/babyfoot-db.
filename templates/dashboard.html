@@ -977,25 +977,19 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
 
       <div class="action-cards-grid">
         <!-- Unlock Card -->
-        <div class="action-card-modern">
+        <div id="unlockCard" class="action-card-modern" style="cursor: not-allowed; opacity: 0.6;">
           <div class="action-card-header">
             <div class="action-icon-wrapper">🔓</div>
+            <div class="action-arrow-icon">
+              <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
+                <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
           </div>
           <div class="action-content">
             <h3 class="action-title">Déverrouiller la balle</h3>
-            <div id="unlockInfo" class="action-description">
-              <div class="action-status status-inactive">
-                <span>⏸</span>
-                <span>Vérification du créneau…</span>
-              </div>
-            </div>
+            <p id="unlockInfo" class="action-description">⏸ Vérification du créneau…</p>
           </div>
-          <button id="unlockBtn" class="btn btn-primary btn-full" disabled>
-            <span>Déverrouiller</span>
-            <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-              <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            </svg>
-          </button>
         </div>
 
         <!-- Start Game -->
@@ -1201,7 +1195,7 @@ async function load() {
 }
 
 async function checkUnlock(res) {
-  const btn  = document.getElementById('unlockBtn');
+  const card = document.getElementById('unlockCard');
   const info = document.getElementById('unlockInfo');
 
   // Vérifier si admin
@@ -1209,11 +1203,10 @@ async function checkUnlock(res) {
 
   if (adminData.is_admin) {
     // Admin : accès total sans restriction
-    info.innerHTML = '<div class="action-status status-active"><span>👑</span><span>Compte admin — Accès total</span></div>';
-    btn.className = 'btn btn-primary btn-full';
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    btn.onclick = () => doUnlock(btn);
+    info.textContent = '👑 Compte admin — Accès total';
+    card.style.cursor = 'pointer';
+    card.style.opacity = '1';
+    card.onclick = () => doUnlock();
     return;
   }
 
@@ -1240,28 +1233,39 @@ async function checkUnlock(res) {
   }
 
   if (canUnlock) {
-    info.innerHTML = `<div class="action-status status-active"><span>✓</span><span>Créneau actif ${slotLabel}</span></div>`;
-    btn.className = 'btn btn-primary btn-full';
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    btn.onclick = () => doUnlock(btn);
+    info.textContent = `✓ Créneau actif ${slotLabel}`;
+    card.style.cursor = 'pointer';
+    card.style.opacity = '1';
+    card.onclick = () => doUnlock();
   } else {
-    info.innerHTML = '<div class="action-status status-inactive"><span>⏸</span><span>Aucun créneau actif</span></div>';
-    btn.disabled = true;
-    btn.style.opacity = '0.5';
+    info.textContent = '⏸ Aucun créneau actif';
+    card.style.cursor = 'not-allowed';
+    card.style.opacity = '0.6';
+    card.onclick = null;
   }
 }
 
-function doUnlock(btn) {
-  btn.disabled = true;
-  btn.innerHTML = '<span>⏳ Déverrouillage…</span>';
+function doUnlock() {
+  const card = document.getElementById('unlockCard');
+  const info = document.getElementById('unlockInfo');
+  const originalText = info.textContent;
+  
+  // Désactiver temporairement la carte
+  card.style.cursor = 'not-allowed';
+  card.onclick = null;
+  info.textContent = '⏳ Déverrouillage…';
+  
   socket.emit('unlock_servo');
+  
   setTimeout(() => {
-    btn.innerHTML = '<span>✅ Balle libérée !</span>';
-    btn.disabled = false;
-    // Réinitialiser le texte après 2 secondes
+    info.textContent = '✅ Balle libérée !';
+    toast('Balle déverrouillée !', 'ok');
+    
+    // Réactiver la carte après 2 secondes
     setTimeout(() => {
-      btn.innerHTML = '<span>Déverrouiller</span><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+      info.textContent = originalText;
+      card.style.cursor = 'pointer';
+      card.onclick = () => doUnlock();
     }, 2000);
   }, 1500);
 }
