@@ -132,7 +132,8 @@ def validate_password(p):
     return p
 
 def is_admin(username):
-    return username == "Imran"
+    ADMIN_USERS = ["Imran", "Apoutou", "Hamara", "MDA"]
+    return username in ADMIN_USERS
 
 @app.route("/")
 def index(): return render_template("index.html")
