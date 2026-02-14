@@ -1,500 +1,297 @@
 /* ========================================
-   RESPONSIVE MOBILE - BABYFOOT VIVANT
+   RESPONSIVE MOBILE - BABYFOOT CLUB
    ======================================== */
 
-/* Tablettes (max-width: 1024px) */
-@media (max-width: 1024px) {
-  /* Navigation */
-  .nav-links {
-    gap: var(--space-xs);
-  }
-  
-  .nav-link {
-    padding: var(--space-xs) var(--space-sm);
-    font-size: 0.875rem;
-  }
-  
-  /* Container */
-  .container {
-    padding: 0 var(--space-md);
-  }
-  
-  /* Stats Grid */
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: var(--space-md);
-  }
-  
-  .stat-card-modern {
-    min-width: auto;
-  }
-  
-  /* Dashboard grid */
-  .dashboard-grid {
-    grid-template-columns: 1fr !important;
-  }
+/* ===== BURGER MENU ===== */
+.burger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  background: none;
+  border: none;
+  z-index: 1001;
+}
+.burger span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--text-1, #fff);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.burger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.burger.open span:nth-child(2) { opacity: 0; }
+.burger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(10,10,10,0.97);
+  z-index: 1000;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 80px 24px 24px;
+}
+.mobile-menu.open { display: flex; }
+.mobile-menu a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  padding: 16px 20px;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-1, #fff);
+  text-decoration: none;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: all 0.2s;
+}
+.mobile-menu a:hover, .mobile-menu a.active {
+  background: rgba(205,127,50,0.15);
+  border-color: rgba(205,127,50,0.4);
+  color: #cd7f32;
+}
+.mobile-menu-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 8px;
 }
 
-/* Mobile (max-width: 768px) */
+/* ===== TABLETTES (max 1024px) ===== */
+@media (max-width: 1024px) {
+  .nav-links { gap: 4px; }
+  .nav-link { padding: 6px 10px; font-size: 0.875rem; }
+  .container { padding: 0 16px; }
+  .stats-row { grid-template-columns: repeat(2, 1fr) !important; }
+  .dashboard-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ===== MOBILE (max 768px) ===== */
 @media (max-width: 768px) {
-  
-  /* ==== NAVIGATION ==== */
-  .nav {
-    height: 60px;
-    padding: 0;
-  }
-  
-  .nav-inner {
-    padding: 0 var(--space-md);
-  }
-  
-  .nav-brand {
-    font-size: 1rem;
-    gap: var(--space-xs);
-  }
-  
-  .nav-brand img {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .nav-links {
-    display: none; /* Masquer les liens sur mobile ou créer un menu burger */
-  }
-  
-  .nav-avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 0.75rem;
-  }
-  
-  /* ==== PAGE ==== */
-  .page {
-    padding-top: 60px;
-  }
-  
-  .container {
-    padding: 0 var(--space-sm);
-  }
-  
-  /* ==== HEADER ==== */
-  .page-header {
-    padding: var(--space-lg) 0 var(--space-md);
-  }
-  
-  .page-header h1 {
-    font-size: 1.5rem;
-  }
-  
-  .page-header p {
-    font-size: 0.875rem;
-  }
-  
-  /* ==== HERO ==== */
+
+  /* Navigation */
+  .nav { height: 60px; }
+  .nav-inner { padding: 0 16px; }
+  .nav-links { display: none !important; }
+  .nav-username { display: none; }
+  .burger { display: flex !important; }
+  .nav-brand { font-size: 0.95rem; gap: 6px; }
+  .nav-brand img { width: 30px; height: 30px; }
+  .nav-avatar { width: 32px; height: 32px; font-size: 0.75rem; }
+  .logo-pulse { display: none; }
+
+  /* Page */
+  .page { padding-top: 60px; }
+  .container { padding: 0 12px; }
+
+  /* Header */
+  .page-header { padding: 20px 0 16px; }
+  .page-header h1 { font-size: 1.4rem; }
+  .page-header p { font-size: 0.875rem; }
+
+  /* Hero */
   .hero {
     min-height: auto;
-    padding: calc(60px + var(--space-xl)) var(--space-md) var(--space-xl);
+    padding: calc(60px + 24px) 16px 32px;
   }
-  
-  .hero-title {
-    font-size: 2.5rem !important;
+  .hero-title { font-size: 2rem !important; }
+  .hero-body { font-size: 0.95rem !important; }
+  .hero-stats { flex-direction: column; gap: 16px; padding: 16px; }
+  .stat-box { width: 100%; }
+  .stat-divider { width: 80%; height: 1px; }
+  .hero-cta { flex-direction: column; gap: 8px; }
+  .hero-cta .btn { width: 100%; }
+
+  /* Cards */
+  .card { margin-bottom: 12px; }
+  .card-header { padding: 14px 16px; }
+  .card-body { padding: 14px 16px; }
+
+  /* Stats */
+  .stats-row { grid-template-columns: 1fr !important; gap: 8px; }
+  .stat-value-modern { font-size: 1.75rem !important; }
+
+  /* Dashboard */
+  .dashboard-grid { grid-template-columns: 1fr !important; gap: 12px; }
+  .dashboard-hero { padding: calc(60px + 16px) 0 16px; }
+
+  /* Buttons */
+  .btn { padding: 10px 16px; font-size: 0.875rem; min-height: 44px; }
+  .btn-lg { padding: 14px 20px; font-size: 1rem; }
+
+  /* Forms & Inputs */
+  input[type="text"],
+  input[type="password"],
+  input[type="email"],
+  select {
+    padding: 14px 12px;
+    font-size: 16px; /* Empêche zoom iOS */
+    min-height: 48px;
   }
-  
-  .hero-body {
-    font-size: 1rem !important;
+
+  /* ===== DROPDOWN JOUEURS MOBILE ===== */
+  .drop-wrap { position: static !important; }
+  .player-dd {
+    position: fixed !important;
+    left: 12px !important;
+    right: 12px !important;
+    top: auto !important;
+    bottom: 0 !important;
+    max-height: 50vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    z-index: 9999 !important;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.5) !important;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
   }
-  
-  .hero-stats {
+  .player-dd::before {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+    margin: 12px auto 8px;
+  }
+  .dd-item {
+    padding: 14px 16px;
+    font-size: 1rem;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  /* ===== GRILLE CRÉNEAUX MOBILE ===== */
+  .slot-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+  }
+  .slot-pill {
+    padding: 10px 4px !important;
+    font-size: 0.8rem !important;
+    min-height: 52px;
+    display: flex;
     flex-direction: column;
-    gap: var(--space-lg);
-    padding: var(--space-lg);
+    align-items: center;
+    justify-content: center;
   }
-  
-  .stat-box {
-    width: 100%;
+
+  /* ===== LIVE SCORE MOBILE ===== */
+  .score-display {
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 16px !important;
   }
-  
-  .stat-value {
-    font-size: 2rem;
-  }
-  
-  .stat-divider {
-    width: 80%;
-    height: 1px;
-  }
-  
-  .hero-cta {
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
-  
-  .hero-cta .btn {
-    width: 100%;
-  }
-  
-  /* ==== STATS ROW ==== */
-  .stats-row {
+  .score-big { font-size: 4rem !important; }
+  .score-vs { font-size: 1rem !important; padding: 4px 0; }
+  .team-score { width: 100%; }
+  .unlock-btn { padding: 16px !important; font-size: 1.1rem !important; }
+
+  /* Reservation grille équipes */
+  .card-body > div[style*="grid-template-columns:1fr 1fr"] {
     grid-template-columns: 1fr !important;
-    gap: var(--space-sm);
   }
-  
-  .stat-card-modern,
-  .stat-cell {
-    padding: var(--space-md);
-  }
-  
-  .stat-value-modern {
-    font-size: 2rem !important;
-  }
-  
-  .stat-label-modern,
-  .stat-label {
-    font-size: 0.875rem;
-  }
-  
-  /* ==== CARDS ==== */
-  .card {
-    margin-bottom: var(--space-md);
-  }
-  
-  .card-header {
-    padding: var(--space-md);
-  }
-  
-  .card-body {
-    padding: var(--space-md);
-  }
-  
-  /* ==== DASHBOARD GRID ==== */
-  .dashboard-grid {
-    grid-template-columns: 1fr !important;
-    gap: var(--space-md);
-  }
-  
-  .dashboard-section {
-    padding: var(--space-md);
-  }
-  
-  /* ==== PODIUM / LEADERBOARD ==== */
+
+  /* Leaderboard */
   .podium-item-modern {
-    padding: var(--space-md);
-    flex-direction: column;
-    text-align: center;
-    gap: var(--space-sm);
+    padding: 12px;
+    flex-direction: row;
+    gap: 12px;
   }
-  
-  .podium-rank-modern {
-    font-size: 1.5rem;
+  .lb-rank { min-width: 28px; font-size: 0.9rem; }
+  .lb-avatar { width: 36px; height: 36px; font-size: 0.9rem; }
+  .lb-name { font-size: 0.9rem; }
+  .lb-meta { font-size: 0.7rem; }
+  .lb-points { font-size: 1rem; }
+
+  /* Tables */
+  .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { font-size: 0.825rem; }
+  th, td { padding: 8px 6px; }
+
+  /* Modals */
+  .modal-content {
+    width: 96%;
+    max-width: 96%;
+    margin: 8px;
+    padding: 20px 16px;
+    border-radius: 20px;
   }
-  
-  .podium-avatar-modern {
-    width: 48px;
-    height: 48px;
-    font-size: 1.25rem;
+
+  /* Winner overlay */
+  .winner-box {
+    padding: 24px 16px !important;
+    margin: 16px;
+    border-radius: 20px;
   }
-  
-  .podium-points-modern {
-    font-size: 1.25rem;
-  }
-  
-  .podium-games-modern {
-    font-size: 0.75rem;
-  }
-  
-  /* Leaderboard items */
-  .leaderboard-item {
-    padding: var(--space-md);
-    gap: var(--space-sm);
-  }
-  
-  .lb-rank {
-    font-size: 1rem;
-    min-width: 32px;
-  }
-  
-  .lb-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 1rem;
-  }
-  
-  .lb-name {
-    font-size: 0.9375rem;
-  }
-  
-  .lb-meta {
-    font-size: 0.75rem;
-  }
-  
-  .lb-points {
-    font-size: 1.125rem;
-  }
-  
-  .lb-points span {
-    font-size: 0.75rem;
-  }
-  
-  /* ==== FEATURES GRID ==== */
-  .feat-grid {
-    grid-template-columns: 1fr !important;
-    gap: var(--space-md);
-  }
-  
+  .winner-emoji { font-size: 3rem !important; }
+  .winner-ttl { font-size: 1.4rem !important; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+
+  /* Features */
+  .feat-grid { grid-template-columns: 1fr !important; }
   .feat-cell {
-    padding: var(--space-lg);
+    padding: 20px 16px;
     border-right: none !important;
     border-bottom: 1px solid var(--border-subtle);
   }
-  
-  .feat-cell:last-child {
-    border-bottom: none;
-  }
-  
-  .feat-icon {
-    font-size: 2rem;
-  }
-  
-  .feat-cell h3 {
-    font-size: 1.125rem;
-  }
-  
-  .feat-cell p {
-    font-size: 0.9375rem;
-  }
-  
-  /* ==== BUTTONS ==== */
-  .btn {
-    padding: var(--space-sm) var(--space-md);
-    font-size: 0.875rem;
-  }
-  
-  .btn-lg {
-    padding: var(--space-md) var(--space-lg);
-    font-size: 1rem;
-  }
-  
-  /* ==== FORMS ==== */
-  input[type="text"],
-  input[type="password"],
-  input[type="email"],
-  select {
-    padding: var(--space-md);
-    font-size: 1rem; /* Plus grand pour mobile */
-  }
-  
-  .label {
-    font-size: 0.875rem;
-  }
-  
-  /* ==== LIVE SCORE ==== */
-  .score-board {
-    flex-direction: column;
-    gap: var(--space-md);
-  }
-  
-  .team-section {
-    width: 100%;
-    padding: var(--space-lg);
-  }
-  
-  .score-display {
-    font-size: 3rem !important;
-  }
-  
-  .team-name {
-    font-size: 1.125rem;
-  }
-  
-  .player-list {
-    gap: var(--space-xs);
-  }
-  
-  /* ==== RESERVATIONS ==== */
-  .time-slots {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: var(--space-xs);
-  }
-  
-  .time-slot {
-    padding: var(--space-sm);
-    font-size: 0.875rem;
-  }
-  
-  .reservation-card {
-    padding: var(--space-md);
-  }
-  
-  /* ==== TABLES ==== */
-  .table-container {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  table {
-    font-size: 0.875rem;
-  }
-  
-  th, td {
-    padding: var(--space-sm);
-  }
-  
-  /* ==== MODALS ==== */
-  .modal-content {
-    width: 95%;
-    max-width: 95%;
-    margin: var(--space-md);
-    padding: var(--space-lg);
-  }
-  
-  .modal-header h2 {
-    font-size: 1.25rem;
-  }
-  
-  /* ==== FOOTER ==== */
-  footer {
-    padding: var(--space-lg) var(--space-md);
-    font-size: 0.8125rem;
-  }
-  
-  /* ==== SCROLLBAR MOBILE ==== */
-  ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
+  .feat-cell:last-child { border-bottom: none; }
 }
 
-/* Petits mobiles (max-width: 480px) */
+/* ===== PETITS MOBILES (max 480px) ===== */
 @media (max-width: 480px) {
-  
-  /* Navigation encore plus compacte */
-  .nav-brand {
-    font-size: 0.875rem;
-  }
-  
-  .nav-brand img {
-    width: 28px;
-    height: 28px;
-  }
-  
-  /* Titres plus petits */
-  .hero-title {
-    font-size: 2rem !important;
-  }
-  
-  .section-title {
-    font-size: 1.75rem !important;
-  }
-  
-  .page-header h1 {
-    font-size: 1.25rem;
-  }
-  
-  /* Stats en colonne unique */
-  .stat-value {
-    font-size: 1.75rem;
-  }
-  
-  .stat-value-modern {
-    font-size: 1.75rem !important;
-  }
-  
-  /* Buttons pleine largeur */
-  .btn,
-  .btn-lg {
-    width: 100%;
-  }
-  
-  /* Time slots en 1 colonne */
-  .time-slots {
-    grid-template-columns: 1fr !important;
-  }
-  
-  /* Podium items plus compacts */
-  .podium-points-modern {
-    font-size: 1rem;
-  }
-  
-  .lb-points {
-    font-size: 1rem;
-  }
-  
-  /* Cards plus compactes */
-  .card-header,
-  .card-body {
-    padding: var(--space-sm);
-  }
+  .page-header h1 { font-size: 1.2rem; }
+  .hero-title { font-size: 1.75rem !important; }
+  .score-big { font-size: 3.5rem !important; }
+  .slot-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .btn, .btn-lg { width: 100%; justify-content: center; }
+  .card-header, .card-body { padding: 12px; }
+  .score-display { padding: 12px !important; }
 }
 
-/* Mode paysage mobile */
-@media (max-height: 600px) and (orientation: landscape) {
-  .hero {
-    min-height: auto;
-    padding: calc(60px + var(--space-md)) var(--space-md) var(--space-md);
-  }
-  
-  .hero-stats {
-    flex-direction: row;
-    padding: var(--space-md);
-  }
-  
-  .stat-divider {
-    width: 1px;
-    height: 40px;
-  }
-}
-
-/* Optimisations tactiles */
+/* ===== TACTILE ===== */
 @media (hover: none) and (pointer: coarse) {
-  /* Augmenter la zone de touch */
-  .btn,
-  .nav-link,
-  .nav-avatar {
-    min-height: 44px; /* Recommandation Apple pour les zones tactiles */
+  .btn, .nav-link, .nav-avatar, .slot-pill, .dd-item {
+    min-height: 44px;
   }
-  
-  .time-slot,
-  .leaderboard-item,
-  .podium-item-modern {
-    min-height: 48px;
-  }
-  
-  /* Désactiver les effets hover sur mobile */
-  .btn:hover,
-  .card:hover,
-  .feat-cell:hover,
-  .nav-link:hover {
-    transform: none;
-  }
-  
-  /* Active states pour feedback tactile */
-  .btn:active {
-    transform: scale(0.98);
-    opacity: 0.9;
-  }
+  .btn:active { transform: scale(0.97); opacity: 0.9; }
+  .btn:hover, .card:hover, .nav-link:hover { transform: none; }
 }
 
-/* Dark mode adjustments pour mobile */
-@media (prefers-color-scheme: dark) and (max-width: 768px) {
-  /* Augmenter le contraste sur mobile */
-  .card {
-    border-color: var(--border-normal);
-  }
-  
-  input[type="text"],
-  input[type="password"],
-  input[type="email"],
-  select {
-    background: var(--bg-primary);
-  }
+/* ===== PAYSAGE MOBILE ===== */
+@media (max-height: 600px) and (orientation: landscape) {
+  .hero { padding: calc(60px + 12px) 16px 16px; }
+  .mobile-menu { padding-top: 60px; }
+  .mobile-menu a { padding: 10px 16px; font-size: 0.95rem; }
 }
 
-/* Animations réduites pour économiser batterie */
+/* ===== ANIMATIONS RÉDUITES ===== */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ===== SAFE AREA (iPhone X+) ===== */
+@supports (padding: max(0px)) {
+  .nav-inner { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  .mobile-menu { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
 }
