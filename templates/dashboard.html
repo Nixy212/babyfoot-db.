@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <style>
     /* Dashboard Specific Styles - IONOS Inspired */
     :root {
@@ -1108,6 +1109,18 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
 const username = document.body.dataset.username;
 if (username) document.getElementById('navAv').textContent = username[0].toUpperCase();
 
+// Initialisation Socket.IO
+const socket = io();
+socket.on('connect', () => {
+  console.log('Socket.IO connecté');
+});
+socket.on('disconnect', () => {
+  console.log('Socket.IO déconnecté');
+});
+socket.on('servo_unlock', () => {
+  toast('Balle déverrouillée !', 'ok');
+});
+
 function toast(msg, type='inf') {
   const c=document.getElementById('tw'), t=document.createElement('div');
   t.className=`toast ${type}`; t.textContent=msg; c.appendChild(t);
@@ -1239,23 +1252,18 @@ async function checkUnlock(res) {
   }
 }
 
-async function doUnlock(btn) {
+function doUnlock(btn) {
   btn.disabled = true;
   const originalHTML = btn.innerHTML;
-  btn.innerHTML = '<span>Déverrouillage…</span>';
-  try {
-    const r = await fetch('/arduino/unlock',{method:'POST'}).then(x=>x.json());
-    toast(r.message||'Balle déverrouillée !', 'ok');
-    btn.innerHTML = '<span>✓ Déverrouillé</span>';
+  btn.innerHTML = '<span>⏳ Déverrouillage…</span>';
+  socket.emit('unlock_servo');
+  setTimeout(() => {
+    btn.innerHTML = '<span>✅ Balle libérée !</span>';
     setTimeout(() => {
       btn.innerHTML = originalHTML;
       btn.disabled = false;
-    }, 2000);
-  } catch {
-    toast('Erreur déverrouillage','err');
-    btn.innerHTML = originalHTML;
-    btn.disabled = false;
-  }
+    }, 1500);
+  }, 1500);
 }
 
 load();
