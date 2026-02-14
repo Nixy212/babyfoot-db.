@@ -6,980 +6,72 @@
   <title>Dashboard — Baby-Foot Club</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
   <style>
-    /* Dashboard Specific Styles - IONOS Inspired */
-    :root {
-      --dashboard-spacing: 2rem;
-      --card-radius: 20px;
-      --micro-radius: 12px;
-    }
-
-    .dashboard-body {
-      background: linear-gradient(135deg, 
-        #0a0a0a 0%, 
-        #121212 25%,
-        #0f0f0f 50%,
-        #121212 75%,
-        #0a0a0a 100%
-      );
-      background-size: 400% 400%;
-      animation: gradient-shift 15s ease infinite;
-      font-family: 'DM Sans', -apple-system, sans-serif;
-    }
-
-    @keyframes gradient-shift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-    }
-
-    /* Enhanced Navigation */
-    .nav-glass {
-      background: rgba(10, 10, 10, 0.7);
-      backdrop-filter: blur(40px) saturate(180%);
-      border-bottom: 1px solid rgba(205, 127, 50, 0.1);
-    }
-
-    .logo-wrapper {
-      position: relative;
-      width: 40px;
-      height: 40px;
-    }
-
-    .logo-pulse {
-      position: absolute;
-      inset: -4px;
-      background: var(--gradient-bronze);
-      border-radius: 50%;
-      opacity: 0.3;
-      animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes pulse-ring {
-      0%, 100% { transform: scale(1); opacity: 0.3; }
-      50% { transform: scale(1.2); opacity: 0; }
-    }
-
-    .brand-text {
-      font-weight: 700;
-      background: var(--gradient-warm);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .nav-link {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.625rem 1rem;
-      border-radius: var(--micro-radius);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .nav-link-icon {
-      font-size: 1.125rem;
-      transition: transform 0.3s;
-    }
-
-    .nav-link:hover .nav-link-icon {
-      transform: scale(1.2) rotate(5deg);
-    }
-
-    .user-profile-mini {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.5rem 1rem;
-      background: rgba(205, 127, 50, 0.05);
-      border: 1px solid rgba(205, 127, 50, 0.15);
-      border-radius: var(--radius-full);
-      transition: all 0.3s;
-    }
-
-    .user-profile-mini:hover {
-      background: rgba(205, 127, 50, 0.1);
-      border-color: rgba(205, 127, 50, 0.3);
-    }
-
-    .nav-username {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--bronze);
-    }
-
-    .btn-logout {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.875rem;
-    }
-
-    /* Hero Section - FOND VIVANT AMÉLIORÉ */
-    .dashboard-hero {
-      position: relative;
-      padding: calc(80px + 3rem) 0 3rem;
-      overflow: hidden;
-      background: linear-gradient(180deg, 
-        rgba(205, 127, 50, 0.05) 0%, 
-        transparent 100%
-      );
-    }
-
-    .dashboard-hero::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 400px;
-      background: radial-gradient(
-        ellipse at top center,
-        rgba(205, 127, 50, 0.2) 0%,
-        transparent 70%
-      );
-      animation: pulse-glow 4s ease-in-out infinite;
-      pointer-events: none;
-    }
-
-    @keyframes pulse-glow {
-      0%, 100% { opacity: 0.5; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.1); }
-    }
-
-    .hero-floating-shapes {
-      position: absolute;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-    }
-
-    /* Ajouter des particules scintillantes */
-    .hero-floating-shapes::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background-image: 
-        radial-gradient(2px 2px at 20% 30%, rgba(255, 191, 0, 0.8), transparent),
-        radial-gradient(2px 2px at 60% 70%, rgba(205, 127, 50, 0.8), transparent),
-        radial-gradient(1px 1px at 50% 50%, rgba(255, 215, 0, 0.9), transparent),
-        radial-gradient(1px 1px at 80% 10%, rgba(205, 127, 50, 0.9), transparent),
-        radial-gradient(2px 2px at 90% 60%, rgba(255, 191, 0, 0.7), transparent),
-        radial-gradient(1px 1px at 33% 80%, rgba(255, 215, 0, 0.8), transparent),
-        radial-gradient(1px 1px at 15% 90%, rgba(205, 127, 50, 0.8), transparent);
-      background-size: 200% 200%;
-      animation: sparkle 20s linear infinite;
-      opacity: 0.5;
-    }
-
-    @keyframes sparkle {
-      0% { background-position: 0% 0%, 100% 0%, 50% 50%, 0% 100%, 100% 100%, 25% 25%, 75% 75%; }
-      100% { background-position: 100% 100%, 0% 100%, 100% 0%, 50% 0%, 0% 0%, 75% 75%, 25% 25%; }
-    }
-
-    .floating-shape {
-      position: absolute;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(205, 127, 50, 0.3), rgba(255, 191, 0, 0.1));
-      filter: blur(40px);
-      animation: float-random 15s ease-in-out infinite;
-    }
-
-    .shape-1 { 
-      width: 400px; 
-      height: 400px; 
-      top: 5%; 
-      left: 5%; 
-      animation-delay: 0s;
-      animation-duration: 20s;
-    }
-    .shape-2 { 
-      width: 350px; 
-      height: 350px; 
-      top: 30%; 
-      right: 5%; 
-      animation-delay: -7s;
-      animation-duration: 25s;
-    }
-    .shape-3 { 
-      width: 300px; 
-      height: 300px; 
-      bottom: 10%; 
-      left: 40%; 
-      animation-delay: -14s;
-      animation-duration: 18s;
-    }
-    .shape-4 { 
-      width: 280px; 
-      height: 280px; 
-      top: 50%; 
-      left: 70%; 
-      animation-delay: -3s;
-      animation-duration: 22s;
-      background: radial-gradient(circle, rgba(255, 191, 0, 0.25), rgba(205, 127, 50, 0.1));
-    }
-    .shape-5 { 
-      width: 320px; 
-      height: 320px; 
-      bottom: 30%; 
-      right: 20%; 
-      animation-delay: -10s;
-      animation-duration: 28s;
-      background: radial-gradient(circle, rgba(205, 127, 50, 0.2), rgba(255, 215, 0, 0.08));
-    }
-
-    @keyframes float-random {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.6; }
-      25% { transform: translate(50px, -50px) rotate(90deg); opacity: 0.8; }
-      50% { transform: translate(-30px, 30px) rotate(180deg); opacity: 1; }
-      75% { transform: translate(40px, -20px) rotate(270deg); opacity: 0.7; }
-    }
-
-    .welcome-section {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      margin-bottom: 3rem;
-    }
-
-    .welcome-eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1.25rem;
-      background: linear-gradient(135deg, 
-        rgba(205, 127, 50, 0.15) 0%, 
-        rgba(255, 191, 0, 0.1) 100%
-      );
-      border: 1px solid rgba(205, 127, 50, 0.3);
-      border-radius: var(--radius-full);
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--bronze);
-      margin-bottom: 1.5rem;
-      backdrop-filter: blur(10px);
-    }
-
-    .welcome-title {
-      font-size: clamp(2.5rem, 5vw, 4rem);
-      font-weight: 800;
-      line-height: 1.1;
-      letter-spacing: -0.03em;
-      margin-bottom: 1rem;
-    }
-
-    .welcome-username {
-      background: var(--gradient-warm);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      font-style: italic;
-    }
-
-    .welcome-subtitle {
-      font-size: 1.25rem;
-      color: var(--text-secondary);
-      font-weight: 500;
-    }
-
-    /* Modern Stats Grid */
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 4rem;
-    }
-
-    .stat-card-modern {
-      position: relative;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-normal);
-      border-radius: var(--card-radius);
-      padding: 2rem;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow: hidden;
-    }
-
-    .stat-card-modern::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: var(--gradient-bronze);
-      transform: scaleX(0);
-      transform-origin: left;
-      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .stat-card-modern:hover::before {
-      transform: scaleX(1);
-    }
-
-    .stat-card-modern:hover {
-      transform: translateY(-8px);
-      border-color: var(--border-accent);
-      box-shadow: 
-        0 20px 40px rgba(0, 0, 0, 0.3),
-        0 0 0 1px rgba(205, 127, 50, 0.1);
-    }
-
-    .stat-card-modern.stat-featured {
-      background: linear-gradient(135deg, 
-        rgba(205, 127, 50, 0.1) 0%,
-        rgba(255, 191, 0, 0.05) 100%
-      );
-      border-color: rgba(205, 127, 50, 0.3);
-    }
-
-    .stat-card-modern.stat-featured::before {
-      height: 100%;
-      background: linear-gradient(135deg, 
-        rgba(205, 127, 50, 0.05) 0%,
-        transparent 100%
-      );
-      transform: scaleX(1);
-    }
-
-    .stat-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1.5rem;
-    }
-
-    .stat-icon-modern {
-      width: 48px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, 
-        rgba(205, 127, 50, 0.15) 0%,
-        rgba(255, 191, 0, 0.1) 100%
-      );
-      border-radius: var(--micro-radius);
-      font-size: 1.5rem;
-      transition: transform 0.3s;
-    }
-
-    .stat-card-modern:hover .stat-icon-modern {
-      transform: scale(1.1) rotate(5deg);
-    }
-
-    .stat-trend {
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
-      padding: 0.25rem 0.75rem;
-      background: rgba(74, 222, 128, 0.1);
-      border-radius: var(--radius-full);
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #4ade80;
-    }
-
-    .stat-body {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .stat-label-modern {
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--text-tertiary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .stat-value-modern {
-      font-size: 2.5rem;
-      font-weight: 800;
-      font-family: 'Space Mono', monospace;
-      line-height: 1;
-      background: var(--gradient-gold);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .stat-description {
-      font-size: 0.875rem;
-      color: var(--text-muted);
-      margin-top: 0.5rem;
-    }
-
-    /* Action Cards Section */
-    .action-section {
-      margin-bottom: 4rem;
-    }
-
-    .section-header-modern {
-      margin-bottom: 2rem;
-    }
-
-    .section-title-modern {
-      font-size: 1.75rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      letter-spacing: -0.02em;
-    }
-
-    .section-subtitle-modern {
-      font-size: 1rem;
-      color: var(--text-tertiary);
-    }
-
-    .action-cards-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 1.5rem;
-    }
-
-    .action-card-modern {
-      position: relative;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-normal);
-      border-radius: var(--card-radius);
-      padding: 2rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      transition: all 0.3s;
-      text-decoration: none;
-      color: inherit;
-      overflow: hidden;
-    }
-
-    .action-card-modern::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 0;
-      background: linear-gradient(to top, 
-        rgba(205, 127, 50, 0.05) 0%,
-        transparent 100%
-      );
-      transition: height 0.4s;
-    }
-
-    .action-card-modern:hover {
-      transform: translateY(-4px);
-      border-color: var(--border-accent);
-      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
-    }
-
-    .action-card-modern:hover::after {
-      height: 100%;
-    }
-
-    .action-card-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      position: relative;
-      z-index: 1;
-    }
-
-    .action-icon-wrapper {
-      width: 56px;
-      height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, 
-        rgba(205, 127, 50, 0.2) 0%,
-        rgba(255, 191, 0, 0.1) 100%
-      );
-      border: 1px solid rgba(205, 127, 50, 0.3);
-      border-radius: var(--micro-radius);
-      font-size: 1.75rem;
-      transition: all 0.3s;
-    }
-
-    .action-card-modern:hover .action-icon-wrapper {
-      transform: scale(1.1) rotate(-5deg);
-      box-shadow: 0 8px 16px rgba(205, 127, 50, 0.2);
-    }
-
-    .action-arrow-icon {
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(205, 127, 50, 0.1);
-      border-radius: 50%;
-      transition: all 0.3s;
-    }
-
-    .action-card-modern:hover .action-arrow-icon {
-      background: var(--bronze);
-      color: white;
-      transform: translateX(4px);
-    }
-
-    .action-content {
-      position: relative;
-      z-index: 1;
-    }
-
-    .action-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      color: var(--text-primary);
-    }
-
-    .action-description {
-      font-size: 0.9375rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
-    }
-
-    .action-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: rgba(205, 127, 50, 0.1);
-      border: 1px solid rgba(205, 127, 50, 0.2);
-      border-radius: var(--radius-full);
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--bronze);
-    }
-
-    .action-status.status-active {
-      background: rgba(74, 222, 128, 0.1);
-      border-color: rgba(74, 222, 128, 0.3);
-      color: #4ade80;
-    }
-
-    .action-status.status-inactive {
-      background: rgba(148, 163, 184, 0.1);
-      border-color: rgba(148, 163, 184, 0.2);
-      color: var(--text-muted);
-    }
-
-    /* Dashboard Grid */
-    .dashboard-grid-modern {
-      display: grid;
-      grid-template-columns: repeat(12, 1fr);
-      gap: 1.5rem;
-      margin-bottom: 4rem;
-    }
-
-    .grid-col-4 { grid-column: span 4; }
-    .grid-col-8 { grid-column: span 8; }
-    .grid-col-12 { grid-column: span 12; }
-
-    @media (max-width: 1024px) {
-      .grid-col-4, .grid-col-8 { grid-column: span 12; }
-    }
-
-    .dash-card-modern {
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-normal);
-      border-radius: var(--card-radius);
-      overflow: hidden;
-      transition: all 0.3s;
-    }
-
-    .dash-card-modern:hover {
-      border-color: var(--border-strong);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    }
-
-    .dash-card-header-modern {
-      padding: 1.5rem 2rem;
-      border-bottom: 1px solid var(--border-subtle);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: linear-gradient(to bottom, 
-        rgba(205, 127, 50, 0.02) 0%,
-        transparent 100%
-      );
-    }
-
-    .dash-card-title-modern {
-      font-size: 1.125rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .dash-card-subtitle-modern {
-      font-size: 0.875rem;
-      color: var(--text-tertiary);
-      margin-top: 0.25rem;
-    }
-
-    .dash-card-body-modern {
-      padding: 2rem;
-    }
-
-    /* Reservations List */
-    .reservation-item-modern {
-      display: flex;
-      align-items: center;
-      gap: 1.25rem;
-      padding: 1.25rem;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--micro-radius);
-      margin-bottom: 1rem;
-      transition: all 0.3s;
-    }
-
-    .reservation-item-modern:last-child {
-      margin-bottom: 0;
-    }
-
-    .reservation-item-modern:hover {
-      background: var(--bg-elevated);
-      border-color: var(--border-accent);
-      transform: translateX(4px);
-    }
-
-    .reservation-icon-modern {
-      width: 48px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: linear-gradient(135deg, 
-        rgba(205, 127, 50, 0.15) 0%,
-        rgba(255, 191, 0, 0.1) 100%
-      );
-      border-radius: var(--radius-md);
-      font-size: 1.5rem;
-      flex-shrink: 0;
-    }
-
-    .reservation-info-modern {
-      flex: 1;
-    }
-
-    .reservation-day-modern {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 0.25rem;
-    }
-
-    .reservation-time-modern {
-      font-size: 0.875rem;
-      color: var(--text-tertiary);
-      font-family: 'Space Mono', monospace;
-    }
-
-    .reservation-badge-modern {
-      padding: 0.375rem 0.875rem;
-      background: rgba(205, 127, 50, 0.1);
-      border: 1px solid rgba(205, 127, 50, 0.2);
-      border-radius: var(--radius-full);
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--bronze);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    /* Podium/Leaderboard */
-    .podium-item-modern {
-      display: flex;
-      align-items: center;
-      gap: 1.25rem;
-      padding: 1.25rem;
-      background: var(--bg-tertiary);
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--micro-radius);
-      margin-bottom: 1rem;
-      transition: all 0.3s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .podium-item-modern::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: var(--gradient-bronze);
-      transform: scaleY(0);
-      transition: transform 0.3s;
-    }
-
-    .podium-item-modern:hover {
-      background: var(--bg-elevated);
-      border-color: var(--border-accent);
-      transform: scale(1.02);
-    }
-
-    .podium-item-modern:hover::before {
-      transform: scaleY(1);
-    }
-
-    .podium-item-modern.podium-highlight {
-      background: linear-gradient(135deg, 
-        rgba(205, 127, 50, 0.1) 0%,
-        rgba(255, 191, 0, 0.05) 100%
-      );
-      border-color: rgba(205, 127, 50, 0.3);
-    }
-
-    .podium-rank-modern {
-      font-size: 2rem;
-      line-height: 1;
-    }
-
-    .podium-avatar-modern {
-      width: 48px;
-      height: 48px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--gradient-bronze);
-      border-radius: 50%;
-      font-size: 1.125rem;
-      font-weight: 700;
-      color: white;
-      box-shadow: 0 4px 12px rgba(205, 127, 50, 0.3);
-    }
-
-    .podium-info-modern {
-      flex: 1;
-    }
-
-    .podium-name-modern {
-      font-size: 1rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      margin-bottom: 0.25rem;
-    }
-
-    .podium-games-modern {
-      font-size: 0.875rem;
-      color: var(--text-tertiary);
-    }
-
-    .podium-points-modern {
-      font-size: 1.5rem;
-      font-weight: 800;
-      font-family: 'Space Mono', monospace;
-      color: var(--bronze);
-    }
-
-    .podium-points-modern span {
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: var(--text-muted);
-      margin-left: 0.25rem;
-    }
-
-    /* Empty States */
-    .empty-state-modern {
-      text-align: center;
-      padding: 3rem 2rem;
-    }
-
-    .empty-icon-modern {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      opacity: 0.5;
-    }
-
-    .empty-state-modern p {
-      color: var(--text-tertiary);
-      margin-bottom: 1.5rem;
-    }
-
-    /* Loading State */
-    .loading-state-modern {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      padding: 2rem;
-    }
-
-    .loading-spinner {
-      width: 24px;
-      height: 24px;
-      border: 3px solid rgba(205, 127, 50, 0.2);
-      border-top-color: var(--bronze);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    /* Toast Notifications */
-    .toast-wrap {
+    .invitation-popup {
+      display: none;
       position: fixed;
-      bottom: 2rem;
-      right: 2rem;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
       z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    .invitation-popup.show {
       display: flex;
-      flex-direction: column;
+    }
+    .invitation-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+    .invitation-buttons {
+      display: flex;
       gap: 1rem;
+      margin-top: 1.5rem;
     }
-
-    .toast {
-      padding: 1rem 1.5rem;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border-normal);
-      border-radius: var(--micro-radius);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-      font-size: 0.9375rem;
-      font-weight: 500;
-      animation: slideInRight 0.3s ease;
-      min-width: 280px;
+    .invitation-buttons button {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
     }
-
-    .toast.ok {
-      border-color: rgba(74, 222, 128, 0.5);
-      background: rgba(74, 222, 128, 0.1);
-      color: #4ade80;
+    .btn-accept {
+      background: #27ae60;
+      color: white;
     }
-
-    .toast.err {
-      border-color: rgba(239, 68, 68, 0.5);
-      background: rgba(239, 68, 68, 0.1);
-      color: #ef4444;
+    .btn-decline {
+      background: #e74c3c;
+      color: white;
     }
-
-    /* Responsive Mobile */
-    @media (max-width: 768px) {
-      .dashboard-hero {
-        padding: calc(60px + 1.5rem) 0 1.5rem;
-      }
-
-      .welcome-title {
-        font-size: 2rem !important;
-      }
-
-      .welcome-subtitle {
-        font-size: 1rem;
-      }
-
-      .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-      }
-
-      .stat-card-modern {
-        padding: 1.5rem;
-      }
-
-      .action-cards-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-      }
-
-      .dashboard-grid-modern {
-        gap: 1rem;
-      }
-
-      .dash-card-modern {
-        padding: 1.25rem;
-      }
-
-      /* Navigation Mobile */
-      .nav-links {
-        display: none;
-      }
-
-      /* CACHER LE LOGO SUR MOBILE */
-      .nav-brand .logo-wrapper,
-      .nav-brand .brand-text {
-        display: none !important;
-      }
-
-      .nav-sep {
-        display: none;
-      }
-
-      /* Rendre le burger visible et plus gros */
-      .burger {
-        display: flex !important;
-        width: 44px;
-        height: 44px;
-        margin-right: auto;
-      }
-
-      .user-profile-mini .nav-username {
-        display: none;
-      }
-
-      .user-profile-mini {
-        padding: 0.4rem 0.8rem;
-      }
-
-      /* Réduire les formes flottantes sur mobile */
-      .shape-1, .shape-2, .shape-3 {
-        width: 200px !important;
-        height: 200px !important;
-        filter: blur(30px);
-      }
-
-      /* Ajuster la grille du dashboard */
-      .grid-col-4 {
-        grid-column: span 1 !important;
-      }
+    #invitation-section {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      background: #f8f9fa;
+      border-radius: 12px;
+      display: none;
     }
-
-    /* Petit écran */
-    @media (max-width: 480px) {
-      .welcome-title {
-        font-size: 1.75rem !important;
-      }
-
-      .stat-card-modern {
-        padding: 1.25rem;
-      }
-
-      .stat-value {
-        font-size: 2rem !important;
-      }
-
-      .action-icon-wrapper {
-        width: 50px;
-        height: 50px;
-        font-size: 1.5rem;
-      }
-
-      .dashboard-hero {
-        padding: calc(60px + 1rem) 0 1rem;
-      }
+    #servo-controls {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      background: #fff3cd;
+      border-radius: 12px;
+      display: none;
     }
-
-    /* Animations */
-    .fade-in-up {
-      animation: fadeInUp 0.6s ease both;
-    }
-
-    .fade-in-up-delay-1 { animation-delay: 0.1s; }
-    .fade-in-up-delay-2 { animation-delay: 0.2s; }
-    .fade-in-up-delay-3 { animation-delay: 0.3s; }
-    .fade-in-up-delay-4 { animation-delay: 0.4s; }
   </style>
 </head>
-<body data-username="{{ username }}" class="dashboard-body">
-
-<!-- Navigation -->
+<body style="font-family: 'DM Sans', sans-serif;">
 <nav class="nav nav-glass">
   <div class="nav-inner">
     <a href="/dashboard" class="nav-brand">
@@ -991,47 +83,24 @@
     </a>
     <div class="nav-sep"></div>
     <div class="nav-links">
-      <a href="/dashboard" class="nav-link active">
-        <span class="nav-link-icon">🏠</span>
-        <span>Dashboard</span>
-      </a>
-      <a href="/reservation" class="nav-link">
-        <span class="nav-link-icon">📅</span>
-        <span>Réserver</span>
-      </a>
-      <a href="/live-score" class="nav-link">
-        <span class="nav-link-icon">🎮</span>
-        <span>Partie Live</span>
-      </a>
-      <a href="/stats" class="nav-link">
-        <span class="nav-link-icon">📊</span>
-        <span>Stats</span>
-      </a>
-      <a href="/top" class="nav-link">
-        <span class="nav-link-icon">🏆</span>
-        <span>Top 10</span>
-      </a>
+      <a href="/dashboard" class="nav-link active"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon">🎮</span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon">📊</span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
     </div>
-        <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
+    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
     <div class="nav-right">
       <div class="user-profile-mini">
         <div class="nav-avatar" id="navAv">?</div>
-        <span class="nav-username">{{ username }}</span>
+        <span class="nav-username" id="navUsername"></span>
       </div>
-      <button onclick="logout()" class="btn btn-ghost btn-logout">
-        <span>Déconnexion</span>
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <path d="M6 14H3C2.46957 14 1.96086 13.7893 1.58579 13.4142C1.21071 13.0391 1 12.5304 1 12V4C1 3.46957 1.21071 2.96086 1.58579 2.58579C1.96086 2.21071 2.46957 2 3 2H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M11 11L15 8L11 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M15 8H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
     </div>
   </div>
 </nav>
-<!-- Mobile Menu -->
+
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
   <a href="/dashboard">🏠 Dashboard</a>
@@ -1039,405 +108,271 @@
   <a href="/live-score">🎮 Partie Live</a>
   <a href="/stats">📊 Stats</a>
   <a href="/top">🏆 Top 10</a>
-  <a href="#" onclick="fetch(\`/api/logout\`,{method:\`POST\`}).then(()=>location.href=\`/\`)">🚪 Déconnexion</a>
+  <a href="#" onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.href='/')">🚪 Déconnexion</a>
 </div>
-<script id="burger-script">
+
+<script>
 function toggleMenu() {
   document.getElementById("burger").classList.toggle("open");
   document.getElementById("mobileMenu").classList.toggle("open");
   document.body.style.overflow = document.getElementById("mobileMenu").classList.contains("open") ? "hidden" : "";
 }
-document.querySelectorAll(".mobile-menu a").forEach(a => a.addEventListener("click", () => {
-  if (!a.getAttribute("onclick")) toggleMenu();
-}));
-const path = window.location.pathname;
-document.querySelectorAll(".mobile-menu a").forEach(a => {
-  if (a.getAttribute("href") === path) a.classList.add("active");
-});
 </script>
 
-<!-- Hero Dashboard -->
-<div class="dashboard-hero">
-  <div class="hero-floating-shapes">
-    <div class="floating-shape shape-1"></div>
-    <div class="floating-shape shape-2"></div>
-    <div class="floating-shape shape-3"></div>
-    <div class="floating-shape shape-4"></div>
-    <div class="floating-shape shape-5"></div>
-  </div>
-
-  <div class="container">
-    <div class="welcome-section fade-in-up">
-      <div class="welcome-eyebrow">
-        <span>⚽</span>
-        <span>Tableau de bord</span>
-      </div>
-      <h1 class="welcome-title">
-        Bonjour, <span class="welcome-username">{{ username }}</span>
-      </h1>
-      <p class="welcome-subtitle">Prêt à dominer le classement ?</p>
+<div class="page">
+  <div class="container" style="max-width:1200px">
+    <div class="page-header fade-up">
+      <h1>🏠 Dashboard</h1>
+      <p>Bienvenue sur votre espace Baby-Foot</p>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="stats-grid fade-in-up fade-in-up-delay-1">
-      <div class="stat-card-modern stat-featured">
-        <div class="stat-header">
-          <div class="stat-icon-modern">✨</div>
-          <div class="stat-trend">
-            <span>↗</span>
-            <span>+12%</span>
-          </div>
-        </div>
-        <div class="stat-body">
-          <div class="stat-label-modern">Total Buts</div>
-          <div class="stat-value-modern" id="sPts">—</div>
-          <div class="stat-description">Vos buts marqués !</div>
+    <div class="grid-3 fade-up" style="animation-delay:.05s">
+      <div class="card card-hover">
+        <div class="card-header"><h3>📅 Réserver</h3></div>
+        <div class="card-body">
+          <p>Réservez votre créneau pour jouer</p>
+          <a href="/reservation" class="btn btn-primary btn-full">Réserver</a>
         </div>
       </div>
 
-      <div class="stat-card-modern">
-        <div class="stat-header">
-          <div class="stat-icon-modern">🎮</div>
-        </div>
-        <div class="stat-body">
-          <div class="stat-label-modern">Parties jouées</div>
-          <div class="stat-value-modern" id="sGames">—</div>
-          <div class="stat-description">Total de vos matchs</div>
+      <div class="card card-hover">
+        <div class="card-header"><h3>🎮 Jouer</h3></div>
+        <div class="card-body">
+          <p>Lancez une partie en direct</p>
+          <a href="/live-score" class="btn btn-primary btn-full">Partie Live</a>
         </div>
       </div>
 
-      <div class="stat-card-modern">
-        <div class="stat-header">
-          <div class="stat-icon-modern">🔥</div>
-        </div>
-        <div class="stat-body">
-          <div class="stat-label-modern">Meilleur score</div>
-          <div class="stat-value-modern" id="sBest">—</div>
-          <div class="stat-description">Votre record personnel</div>
+      <div class="card card-hover">
+        <div class="card-header"><h3>📊 Stats</h3></div>
+        <div class="card-body">
+          <p>Consultez vos statistiques</p>
+          <a href="/stats" class="btn btn-primary btn-full">Voir Stats</a>
         </div>
       </div>
+    </div>
 
-      <div class="stat-card-modern">
-        <div class="stat-header">
-          <div class="stat-icon-modern">🏆</div>
-        </div>
-        <div class="stat-body">
-          <div class="stat-label-modern">Classement</div>
-          <div class="stat-value-modern" id="sRank">—</div>
-          <div class="stat-description">Position actuelle</div>
-        </div>
+    <div id="invitation-section" class="fade-up" style="animation-delay:.1s">
+      <h3>👥 Inviter un joueur</h3>
+      <p>Invitez quelqu'un à jouer avec vous</p>
+      <select id="player-select" class="input" style="margin-bottom:1rem">
+        <option value="">-- Sélectionner un joueur --</option>
+      </select>
+      <button class="btn btn-primary btn-full" onclick="sendInvitation()">📤 Envoyer invitation</button>
+    </div>
+
+    <div id="servo-controls" class="fade-up" style="animation-delay:.15s">
+      <h3>🎮 Contrôles Servo</h3>
+      <p>Débloquez le servo pour lancer une balle</p>
+      <button class="btn btn-primary btn-full" onclick="unlockServo()">🔓 Débloquer Servo</button>
+    </div>
+
+    <div class="card fade-up" style="animation-delay:.2s;margin-top:1.5rem">
+      <div class="card-header"><h3>🏆 Top 10 Joueurs</h3></div>
+      <div class="card-body">
+        <div id="leaderboard"></div>
+      </div>
+    </div>
+
+    <div class="card fade-up" style="animation-delay:.25s;margin-top:1.5rem">
+      <div class="card-header"><h3>📅 Réservations à venir</h3></div>
+      <div class="card-body">
+        <div id="reservations"></div>
+      </div>
+    </div>
+
+    <div class="card fade-up" style="animation-delay:.3s;margin-top:1.5rem">
+      <div class="card-header"><h3>👤 Mes Statistiques</h3></div>
+      <div class="card-body">
+        <div id="userStats"></div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Main Content -->
-<div class="dashboard-content">
-  <div class="container">
-    
-    <!-- Quick Actions -->
-    <div class="action-section fade-in-up fade-in-up-delay-2">
-      <div class="section-header-modern">
-        <h2 class="section-title-modern">Actions rapides</h2>
-        <p class="section-subtitle-modern">Accédez rapidement à vos fonctionnalités</p>
-      </div>
-
-      <div class="action-cards-grid">
-        <!-- Unlock Card -->
-        <div id="unlockCard" class="action-card-modern" style="cursor: not-allowed; opacity: 0.6;">
-          <div class="action-card-header">
-            <div class="action-icon-wrapper">🔓</div>
-            <div class="action-arrow-icon">
-              <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
-                <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </div>
-          </div>
-          <div class="action-content">
-            <h3 class="action-title">Déverrouiller la balle</h3>
-            <p id="unlockInfo" class="action-description">⏸ Vérification du créneau…</p>
-          </div>
-        </div>
-
-        <!-- Start Game -->
-        <a href="/live-score" class="action-card-modern">
-          <div class="action-card-header">
-            <div class="action-icon-wrapper">🎯</div>
-            <div class="action-arrow-icon">
-              <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
-                <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </div>
-          </div>
-          <div class="action-content">
-            <h3 class="action-title">Démarrer une partie</h3>
-            <p class="action-description">Scores en temps réel via WebSocket</p>
-          </div>
-        </a>
-
-        <!-- Reserve -->
-        <a href="/reservation" class="action-card-modern">
-          <div class="action-card-header">
-            <div class="action-icon-wrapper">📅</div>
-            <div class="action-arrow-icon">
-              <svg width="20" height="20" viewBox="0 0 16 16" fill="none">
-                <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-            </div>
-          </div>
-          <div class="action-content">
-            <h3 class="action-title">Réserver un créneau</h3>
-            <p class="action-description">Créneaux de 25 minutes disponibles</p>
-          </div>
-        </a>
-      </div>
-    </div>
-
-    <!-- Dashboard Grid -->
-    <div class="dashboard-grid-modern fade-in-up fade-in-up-delay-3">
-      
-      <!-- Mes Réservations -->
-      <div class="dash-card-modern grid-col-4">
-        <div class="dash-card-header-modern">
-          <div>
-            <h3 class="dash-card-title-modern">
-              <span>📅</span>
-              <span>Mes réservations</span>
-            </h3>
-            <p class="dash-card-subtitle-modern">Vos créneaux à venir</p>
-          </div>
-          <a href="/reservation" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-            <span>+ Réserver</span>
-          </a>
-        </div>
-        <div class="dash-card-body-modern">
-          <div id="myRes">
-            <div class="loading-state-modern">
-              <div class="loading-spinner"></div>
-              <span>Chargement…</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Top 3 Players -->
-      <div class="dash-card-modern grid-col-4">
-        <div class="dash-card-header-modern">
-          <div>
-            <h3 class="dash-card-title-modern">
-              <span>🏆</span>
-              <span>Top Joueurs</span>
-            </h3>
-            <p class="dash-card-subtitle-modern">Les meilleurs du classement</p>
-          </div>
-          <a href="/top" class="btn btn-ghost" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Voir tout</a>
-        </div>
-        <div class="dash-card-body-modern">
-          <div id="topPreview"></div>
-        </div>
-      </div>
-
-      <!-- Recent Activity -->
-      <div class="dash-card-modern grid-col-4">
-        <div class="dash-card-header-modern">
-          <div>
-            <h3 class="dash-card-title-modern">
-              <span>📊</span>
-              <span>Activité récente</span>
-            </h3>
-            <p class="dash-card-subtitle-modern">Vos dernières performances</p>
-          </div>
-          <a href="/scores" class="btn btn-ghost" style="padding: 0.5rem 1rem; font-size: 0.875rem;">Historique</a>
-        </div>
-        <div class="dash-card-body-modern">
-          <div class="activity-list">
-            <div class="empty-state-modern">
-              <div class="empty-icon-modern">🎮</div>
-              <p>Aucune partie récente</p>
-              <a href="/live-score" class="btn btn-primary" style="display: inline-flex;">Commencer à jouer</a>
-            </div>
-          </div>
-        </div>
-      </div>
-
+<div id="invitationPopup" class="invitation-popup">
+  <div class="invitation-content">
+    <h2>🎮 Invitation à jouer</h2>
+    <p id="invitationMessage"></p>
+    <div class="invitation-buttons">
+      <button class="btn-accept" onclick="acceptInvitation()">✅ Accepter</button>
+      <button class="btn-decline" onclick="declineInvitation()">❌ Refuser</button>
     </div>
   </div>
 </div>
-
-<div class="toast-wrap" id="tw"></div>
 
 <script>
-const username = document.body.dataset.username;
-if (username) document.getElementById('navAv').textContent = username[0].toUpperCase();
-
-// Initialisation Socket.IO
 const socket = io();
-socket.on('connect', () => {
-  console.log('Socket.IO connecté');
-});
-socket.on('disconnect', () => {
-  console.log('Socket.IO déconnecté');
-});
-socket.on('servo_unlock', () => {
-  toast('Balle déverrouillée !', 'ok');
-});
+let currentUsername = null;
+let currentInvitationId = null;
+let isAdmin = false;
+let hasReservation = false;
 
-function toast(msg, type='inf') {
-  const c=document.getElementById('tw'), t=document.createElement('div');
-  t.className=`toast ${type}`; t.textContent=msg; c.appendChild(t);
-  setTimeout(()=>t.remove(), 3200);
-}
-
-async function logout() {
-  await fetch('/api/logout',{method:'POST'});
-  window.location.href='/';
-}
-
-async function load() {
+async function loadCurrentUser() {
   try {
-    const [stats, lb, res] = await Promise.all([
-      fetch(`/user_stats/${username}`).then(r=>r.json()),
-      fetch('/leaderboard').then(r=>r.json()),
-      fetch('/reservations_all').then(r=>r.json())
-    ]);
-
-    // Update stats
-    document.getElementById('sPts').textContent   = stats.total_goals ?? 0;
-    document.getElementById('sGames').textContent = stats.total_games ?? 0;
-    document.getElementById('sBest').textContent  = stats.best_score || '—';
-    const rank = lb.findIndex(p=>p.username===username)+1;
-    document.getElementById('sRank').textContent  = rank > 0 ? `#${rank}` : '—';
-
-    // Top 3 leaderboard
-    const tp = document.getElementById('topPreview');
-    const medals = ['🥇','🥈','🥉'];
-    tp.innerHTML = lb.slice(0,3).map((p,i)=>`
-      <div class="podium-item-modern ${p.username===username ? 'podium-highlight' : ''}">
-        <div class="podium-rank-modern">${medals[i]}</div>
-        <div class="podium-avatar-modern">${p.username[0].toUpperCase()}</div>
-        <div class="podium-info-modern">
-          <div class="podium-name-modern">${p.username}</div>
-          <div class="podium-games-modern">${p.total_games} partie${p.total_games!==1?'s':''} • Ratio: ${p.ratio}</div>
-        </div>
-        <div class="podium-points-modern">${p.total_goals}<span>buts</span></div>
-      </div>
-    `).join('') || '<div class="empty-state-modern"><p>Aucun joueur classé</p></div>';
-
-    // Reservations
-    const myR = document.getElementById('myRes');
-    const slots = [];
-    for (const [day, times] of Object.entries(res)) {
-      for (const [time, s] of Object.entries(times)) {
-        if (s.reserved_by === username) slots.push({day, time, ...s});
+    const res = await fetch('/current_user');
+    if (res.ok) {
+      const user = await res.json();
+      currentUsername = user.username;
+      isAdmin = user.is_admin;
+      hasReservation = user.has_reservation;
+      
+      document.getElementById('navUsername').textContent = user.username;
+      document.getElementById('navAv').textContent = user.username[0].toUpperCase();
+      
+      if (isAdmin || hasReservation) {
+        document.getElementById('invitation-section').style.display = 'block';
+        document.getElementById('servo-controls').style.display = 'block';
       }
+      
+      loadUserStats(user.username);
     }
-    
-    if (slots.length === 0) {
-      myR.innerHTML = `
-        <div class="empty-state-modern">
-          <div class="empty-icon-modern">📅</div>
-          <p>Aucune réservation</p>
-          <a href="/reservation" class="btn btn-primary" style="display: inline-flex;">Réserver maintenant</a>
-        </div>
-      `;
-    } else {
-      myR.innerHTML = slots.slice(0,3).map(s=>`
-        <div class="reservation-item-modern">
-          <div class="reservation-icon-modern">📅</div>
-          <div class="reservation-info-modern">
-            <div class="reservation-day-modern">${s.day}</div>
-            <div class="reservation-time-modern">${s.time} · 25 minutes</div>
-          </div>
-          <div class="reservation-badge-modern">${s.mode||'2v2'}</div>
-        </div>
-      `).join('');
-    }
-
-    // Unlock check
-    checkUnlock(res);
-  } catch(e) { 
-    console.error(e);
-    toast('Erreur de chargement', 'err');
+  } catch (e) {
+    console.error('Erreur chargement user:', e);
   }
 }
 
-async function checkUnlock(res) {
-  const card = document.getElementById('unlockCard');
-  const info = document.getElementById('unlockInfo');
+async function loadPlayers() {
+  try {
+    const res = await fetch('/users_list');
+    const users = await res.json();
+    const select = document.getElementById('player-select');
+    
+    users.forEach(u => {
+      if (u !== currentUsername) {
+        const opt = document.createElement('option');
+        opt.value = u;
+        opt.textContent = u;
+        select.appendChild(opt);
+      }
+    });
+  } catch (e) {
+    console.error('Erreur chargement joueurs:', e);
+  }
+}
 
-  // Vérifier si admin
-  const adminData = await fetch('/api/is_admin').then(r=>r.json());
+async function loadLeaderboard() {
+  try {
+    const res = await fetch('/leaderboard');
+    const data = await res.json();
+    const div = document.getElementById('leaderboard');
+    
+    if (data.length === 0) {
+      div.innerHTML = '<p style="color:#999">Aucun joueur pour le moment</p>';
+      return;
+    }
+    
+    let html = '<table class="table"><thead><tr><th>Rang</th><th>Joueur</th><th>Buts</th><th>Parties</th></tr></thead><tbody>';
+    data.forEach((p, i) => {
+      html += `<tr><td>${i+1}</td><td>${p.username}</td><td>${p.total_goals}</td><td>${p.total_games}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    div.innerHTML = html;
+  } catch (e) {
+    console.error('Erreur leaderboard:', e);
+  }
+}
 
-  if (adminData.is_admin) {
-    // Admin : accès total sans restriction
-    info.textContent = '👑 Compte admin — Accès total';
-    card.style.cursor = 'pointer';
-    card.style.opacity = '1';
-    card.onclick = () => doUnlock();
+async function loadReservations() {
+  try {
+    const res = await fetch('/reservations_all');
+    const data = await res.json();
+    const div = document.getElementById('reservations');
+    
+    if (data.length === 0) {
+      div.innerHTML = '<p style="color:#999">Aucune réservation</p>';
+      return;
+    }
+    
+    let html = '<table class="table"><thead><tr><th>Jour</th><th>Heure</th><th>Réservé par</th></tr></thead><tbody>';
+    data.slice(0, 5).forEach(r => {
+      html += `<tr><td>${r.day}</td><td>${r.time}</td><td>${r.reserved_by}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    div.innerHTML = html;
+  } catch (e) {
+    console.error('Erreur réservations:', e);
+  }
+}
+
+async function loadUserStats(username) {
+  try {
+    const res = await fetch(`/user_stats/${username}`);
+    const data = await res.json();
+    const div = document.getElementById('userStats');
+    
+    div.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem">
+        <div style="text-align:center">
+          <div style="font-size:2rem;font-weight:700">${data.total_goals || 0}</div>
+          <div style="color:#666">Buts marqués</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:2rem;font-weight:700">${data.total_games || 0}</div>
+          <div style="color:#666">Parties jouées</div>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    console.error('Erreur stats user:', e);
+  }
+}
+
+function sendInvitation() {
+  const toUser = document.getElementById('player-select').value;
+  
+  if (!toUser) {
+    alert('Veuillez sélectionner un joueur');
     return;
   }
-
-  // Utilisateur normal : vérifier créneau actif
-  const now = new Date();
-  const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
-  const today = days[now.getDay()];
-  const nowMins = now.getHours()*60 + now.getMinutes();
-  let canUnlock = false, slotLabel = '';
-
-  if (res[today]) {
-    for (const [time, s] of Object.entries(res[today])) {
-      const players = [...(s.team1||[]), ...(s.team2||[])];
-      if (s.reserved_by===username || players.includes(username)) {
-        const [h,m] = time.split(':').map(Number);
-        const start = h*60+m, end = start+25;
-        if (nowMins >= start && nowMins < end) {
-          canUnlock = true;
-          slotLabel = `${time} – ${String(Math.floor(end/60)).padStart(2,'0')}:${String(end%60).padStart(2,'0')}`;
-          break;
-        }
-      }
-    }
-  }
-
-  if (canUnlock) {
-    info.textContent = `✓ Créneau actif ${slotLabel}`;
-    card.style.cursor = 'pointer';
-    card.style.opacity = '1';
-    card.onclick = () => doUnlock();
-  } else {
-    info.textContent = '⏸ Aucun créneau actif';
-    card.style.cursor = 'not-allowed';
-    card.style.opacity = '0.6';
-    card.onclick = null;
-  }
+  
+  socket.emit('send_invitation', { to_user: toUser });
+  alert('✅ Invitation envoyée à ' + toUser);
+  document.getElementById('player-select').value = '';
 }
 
-function doUnlock() {
-  const card = document.getElementById('unlockCard');
-  const info = document.getElementById('unlockInfo');
-  const originalText = info.textContent;
-  
-  // Désactiver temporairement la carte
-  card.style.cursor = 'not-allowed';
-  card.onclick = null;
-  info.textContent = '⏳ Déverrouillage…';
-  
+function unlockServo() {
   socket.emit('unlock_servo');
-  
-  setTimeout(() => {
-    info.textContent = '✅ Balle libérée !';
-    toast('Balle déverrouillée !', 'ok');
-    
-    // Réactiver la carte après 2 secondes
-    setTimeout(() => {
-      info.textContent = originalText;
-      card.style.cursor = 'pointer';
-      card.onclick = () => doUnlock();
-    }, 2000);
-  }, 1500);
+  alert('✅ Servo déverrouillé !');
 }
 
-load();
+function acceptInvitation() {
+  socket.emit('accept_invitation', { invitation_id: currentInvitationId });
+  document.getElementById('invitationPopup').classList.remove('show');
+  setTimeout(() => location.href = '/live-score', 500);
+}
+
+function declineInvitation() {
+  socket.emit('decline_invitation', { invitation_id: currentInvitationId });
+  document.getElementById('invitationPopup').classList.remove('show');
+}
+
+socket.on('invitation_received', (data) => {
+  if (data.to === currentUsername) {
+    currentInvitationId = data.invitation_id;
+    document.getElementById('invitationMessage').textContent = 
+      `${data.from} vous invite à jouer !`;
+    document.getElementById('invitationPopup').classList.add('show');
+  }
+});
+
+socket.on('invitation_accepted', (data) => {
+  if (data.player1 === currentUsername || data.player2 === currentUsername) {
+    alert(`🎮 Partie acceptée ! Redirection...`);
+    setTimeout(() => location.href = '/live-score', 1000);
+  }
+});
+
+socket.on('invitation_declined', (data) => {
+  if (data.from === currentUsername) {
+    alert(`❌ ${data.to} a refusé votre invitation`);
+  }
+});
+
+loadCurrentUser();
+loadPlayers();
+loadLeaderboard();
+loadReservations();
 </script>
 </body>
 </html>
