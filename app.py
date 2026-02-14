@@ -368,9 +368,11 @@ def leaderboard():
 @handle_errors
 def arduino_unlock():
     if "username" not in session: return jsonify({"success": False, "message": "Non authentifié"}), 401
-    if arduino_simulated:
-        return jsonify({"success": True, "message": "Simulation: Balle déverrouillée"})
-    return jsonify({"success": False, "message": "Arduino non connecté"}), 500
+    username = session.get("username")
+    # Émet le signal SocketIO vers l'ESP32
+    socketio.emit('servo_unlock', {})
+    logger.info(f"Déverrouillage servo via HTTP par {username}")
+    return jsonify({"success": True, "message": "Balle déverrouillée !"})
 
 @app.route("/arduino/status")
 def arduino_status(): return jsonify({"simulated": arduino_simulated})
