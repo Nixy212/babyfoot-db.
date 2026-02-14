@@ -158,6 +158,24 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
   </div>
 </div>
 
+<!-- Panneau admin toujours visible -->
+<div id="adminPanel" style="display:none;margin-top:16px">
+  <div class="card fade-up">
+    <div class="card-header">
+      <h3>👑 Panneau Admin</h3>
+    </div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+      <button class="unlock-btn" id="unlockBtnAdmin" onclick="unlockServo()" style="margin-top:0">
+        🔓 Déverrouiller la balle
+      </button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-danger" style="flex:1" onclick="forceReset()">⛔ Forcer reset partie</button>
+        <button class="btn btn-primary" style="flex:1" onclick="startGameAdmin()">🎯 Démarrer sans réservation</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Winner + bouton déverrouillage -->
 <div class="winner-overlay" id="win" style="display:none">
   <div class="winner-box">
@@ -213,6 +231,7 @@ async function checkAccess() {
       resStatus.innerHTML = '<span class="badge-ok">👑 Compte admin — Accès total</span>';
       startBtn.disabled = false;
       startHint.style.display = 'none';
+      document.getElementById('adminPanel').style.display = 'block';
       return;
     }
 
@@ -265,10 +284,14 @@ async function checkAccess() {
 
 function unlockServo() {
   const btn = document.getElementById('unlockBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Déverrouillage...';
+  const btnAdmin = document.getElementById('unlockBtnAdmin');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Déverrouillage...'; }
+  if (btnAdmin) { btnAdmin.disabled = true; btnAdmin.textContent = '⏳ Déverrouillage...'; }
   socket.emit('unlock_servo');
-  setTimeout(() => { btn.textContent = '✅ Balle libérée !'; }, 1500);
+  setTimeout(() => {
+    if (btn) btn.textContent = '✅ Balle libérée !';
+    if (btnAdmin) { btnAdmin.textContent = '✅ Balle libérée !'; btnAdmin.disabled = false; }
+  }, 1500);
 }
 
 fetch('/all_users').then(r=>r.json()).then(u=>{ allUsers=u; setupDrops(); });
@@ -320,6 +343,9 @@ socket.on('game_ended', d=>{
   const btn = document.getElementById('unlockBtn');
   btn.disabled = false;
   btn.textContent = '🔓 Déverrouiller la balle';
+  // Réactiver aussi le bouton admin
+  const btnAdmin = document.getElementById('unlockBtnAdmin');
+  if (btnAdmin) { btnAdmin.disabled = false; btnAdmin.textContent = '🔓 Déverrouiller la balle'; }
   document.getElementById('win').style.display='flex';
 });
 
@@ -355,6 +381,20 @@ async function checkActiveGame() {
       toast('Partie en cours récupérée !', 'inf');
     }
   } catch(e) { console.error(e); }
+}
+
+async function forceReset() {
+  if (!confirm('Forcer la réinitialisation de la partie en cours ?')) return;
+  await fetch('/api/force_reset', {method: 'POST'});
+  toast('Partie réinitialisée !', 'inf');
+  newGame();
+}
+
+function startGameAdmin() {
+  // Fait défiler vers le setup pour remplir les équipes
+  document.getElementById('setup').scrollIntoView({behavior: 'smooth'});
+  document.getElementById('t1p1').focus();
+  toast('Remplissez les équipes et démarrez !', 'inf');
 }
 
 function abandonGame() {
