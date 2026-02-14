@@ -254,7 +254,7 @@ def debug_test_arduino():
     """Route de test pour simuler un but Arduino"""
     global current_game
     if current_game.get('active'):
-        socketio.emit('arduino_goal', {'team': 'team1'}, broadcast=True)
+        socketio.emit('arduino_goal', {'team': 'team1'}, namespace='/')
         logger.info("🧪 Test arduino_goal envoyé depuis route debug")
         return jsonify({"success": True, "message": "But de test envoyé"})
     else:
@@ -506,7 +506,7 @@ def handle_start_game(data):
         if current_game.get('active'):
             emit('error', {'message': 'Une partie est déjà en cours'}); return
         current_game = {"team1_score": 0, "team2_score": 0, "team1_players": team1, "team2_players": team2, "active": True, "started_at": datetime.now().isoformat()}
-        emit('game_started', current_game, broadcast=True)
+        emit('game_started', current_game, namespace='/')
     except Exception as e:
         emit('error', {'message': str(e)})
 
@@ -525,17 +525,17 @@ def handle_score(data):
             current_game['active'] = False
             try: save_game_results(current_game)
             except Exception as e: logger.error(f"Save error: {e}")
-            emit('game_ended', current_game, broadcast=True)
+            emit('game_ended', current_game, namespace='/')
             # Fermer le servo automatiquement après 3 secondes
             import threading
             def close_servo():
                 import time
                 time.sleep(3)
-                socketio.emit('servo_lock', {}, broadcast=True)
+                socketio.emit('servo_lock', {}, namespace='/')
                 logger.info("Servo fermé automatiquement à la fin de la partie")
             threading.Thread(target=close_servo, daemon=True).start()
         else:
-            emit('score_updated', current_game, broadcast=True)
+            emit('score_updated', current_game, namespace='/')
     except Exception as e:
         emit('error', {'message': str(e)})
 
@@ -572,7 +572,7 @@ def save_game_results(game):
 def handle_reset():
     global current_game
     current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False}
-    emit('game_reset', current_game, broadcast=True)
+    emit('game_reset', current_game, namespace='/')
 
 @socketio.on('abandon_game')
 def handle_abandon():
@@ -580,7 +580,7 @@ def handle_abandon():
     if not session.get('username'):
         emit('error', {'message': 'Non authentifié'}); return
     current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False}
-    emit('game_abandoned', {}, broadcast=True)
+    emit('game_abandoned', {}, namespace='/')
     logger.info(f"Partie abandonnée par {session.get('username')}")
 
 @app.route('/api/game_status')
@@ -630,18 +630,18 @@ def handle_arduino_goal(data):
                 save_game_results(current_game)
             except Exception as e:
                 logger.error(f"Save error: {e}")
-            emit('game_ended', current_game, broadcast=True)
+            emit('game_ended', current_game, namespace='/')
             
             # Fermer le servo après 3 secondes
             import threading
             def close_servo():
                 import time
                 time.sleep(3)
-                socketio.emit('servo_lock', {}, broadcast=True)
+                socketio.emit('servo_lock', {}, namespace='/')
                 logger.info("🔒 Servo fermé automatiquement")
             threading.Thread(target=close_servo, daemon=True).start()
         else:
-            emit('score_updated', current_game, broadcast=True)
+            emit('score_updated', current_game, namespace='/')
             logger.info("✅ Score mis à jour et diffusé")
     
     except Exception as e:
@@ -651,7 +651,7 @@ def handle_arduino_goal(data):
 @socketio.on('arduino_ping')
 def handle_arduino_ping(data):
     logger.info(f"🏓 Arduino ping reçu: {data}")
-    emit('arduino_pong', {'status': 'ok', 'message': 'Serveur reçoit bien les messages'}, broadcast=True)
+    emit('arduino_pong', {'status': 'ok', 'message': 'Serveur reçoit bien les messages'}, namespace='/')
 
 @socketio.on('unlock_servo')
 def handle_unlock_servo():
@@ -661,7 +661,7 @@ def handle_unlock_servo():
     # Admin peut déverrouiller à tout moment
     if not is_admin(username) and current_game.get('active'):
         emit('error', {'message': 'La partie est encore en cours'}); return
-    emit('servo_unlock', {}, broadcast=True)
+    emit('servo_unlock', {}, namespace='/')
     logger.info(f"Déverrouillage servo par {username}")
 
 @socketio.on('ping')
