@@ -30,7 +30,7 @@ if USE_POSTGRES:
     from psycopg2.extras import RealDictCursor
 else:
     import sqlite3
-    DB_PATH = os.environ.get('DB_PATH', '/tmp/babyfoot.db')
+    DB_PATH = os.environ.get('DB_PATH', 'babyfoot.db')
     logger.info(f"Mode SQLite: {DB_PATH}")
 
 current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False}
@@ -99,10 +99,35 @@ def seed_admin():
     except Exception as e:
         logger.warning(f"seed_admin: {e}")
 
+def seed_admin_accounts():
+    """Créer les comptes admin : Apoutou, Hamara, MDA avec mot de passe par défaut"""
+    admin_accounts = [
+        ("Apoutou", "admin123"),
+        ("Hamara", "admin123"),
+        ("MDA", "admin123")
+    ]
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        for username, password in admin_accounts:
+            q = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
+            cur.execute(q, (username,))
+            if not cur.fetchone():
+                hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+                q2 = "INSERT INTO users (username, password, total_goals, total_games) VALUES (%s, %s, 0, 0)" if USE_POSTGRES else "INSERT INTO users (username, password, total_goals, total_games) VALUES (?, ?, 0, 0)"
+                cur.execute(q2, (username, hashed))
+                logger.info(f"✅ Compte admin créé: {username}")
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        logger.warning(f"seed_admin_accounts: {e}")
+
 try:
     init_database()
     seed_test_accounts()
     seed_admin()
+    seed_admin_accounts()  # Créer les nouveaux comptes admin
 except Exception as e:
     logger.error(f"Erreur init DB: {e}")
 
