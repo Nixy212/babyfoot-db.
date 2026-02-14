@@ -5,7 +5,7 @@ import multiprocessing
 
 # Workers
 workers = 2  # Nombre de workers (2 pour le plan gratuit)
-worker_class = 'eventlet'  # Nécessaire pour Socket.IO
+worker_class = 'gevent'  # Nécessaire pour Socket.IO
 worker_connections = 1000  # Connexions simultanées par worker
 
 # Timeouts
