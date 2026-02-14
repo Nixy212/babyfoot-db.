@@ -454,6 +454,29 @@ def handle_reset():
     current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False}
     emit('game_reset', current_game, broadcast=True)
 
+@socketio.on('abandon_game')
+def handle_abandon():
+    global current_game
+    if not session.get('username'):
+        emit('error', {'message': 'Non authentifié'}); return
+    current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False}
+    emit('game_abandoned', {}, broadcast=True)
+    logger.info(f"Partie abandonnée par {session.get('username')}")
+
+@app.route('/api/game_status')
+def game_status():
+    return jsonify(current_game)
+
+@app.route('/api/force_reset', methods=['POST'])
+def force_reset():
+    global current_game
+    if 'username' not in session:
+        return jsonify({'success': False, 'message': 'Non authentifié'}), 401
+    current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False}
+    socketio.emit('game_abandoned', {})
+    logger.info(f"Force reset par {session.get('username')}")
+    return jsonify({'success': True})
+
 @socketio.on('arduino_goal')
 def handle_arduino_goal(data): handle_score({'team': data.get('team')})
 
