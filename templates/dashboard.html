@@ -1187,13 +1187,28 @@ async function load() {
   }
 }
 
-function checkUnlock(res) {
+async function checkUnlock(res) {
+  const btn  = document.getElementById('unlockBtn');
+  const info = document.getElementById('unlockInfo');
+
+  // Vérifier si admin
+  const adminData = await fetch('/api/is_admin').then(r=>r.json());
+
+  if (adminData.is_admin) {
+    // Admin : accès total sans restriction
+    info.innerHTML = '<div class="action-status status-active"><span>👑</span><span>Compte admin — Accès total</span></div>';
+    btn.className = 'btn btn-primary btn-full';
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.onclick = () => doUnlock(btn);
+    return;
+  }
+
+  // Utilisateur normal : vérifier créneau actif
   const now = new Date();
   const days = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
   const today = days[now.getDay()];
   const nowMins = now.getHours()*60 + now.getMinutes();
-  const btn = document.getElementById('unlockBtn');
-  const info = document.getElementById('unlockInfo');
   let canUnlock = false, slotLabel = '';
 
   if (res[today]) {
@@ -1203,7 +1218,7 @@ function checkUnlock(res) {
         const [h,m] = time.split(':').map(Number);
         const start = h*60+m, end = start+25;
         if (nowMins >= start && nowMins < end) {
-          canUnlock = true; 
+          canUnlock = true;
           slotLabel = `${time} – ${String(Math.floor(end/60)).padStart(2,'0')}:${String(end%60).padStart(2,'0')}`;
           break;
         }
@@ -1215,28 +1230,31 @@ function checkUnlock(res) {
     info.innerHTML = `<div class="action-status status-active"><span>✓</span><span>Créneau actif ${slotLabel}</span></div>`;
     btn.className = 'btn btn-primary btn-full';
     btn.disabled = false;
-    btn.onclick = async () => {
-      btn.disabled = true;
-      const originalHTML = btn.innerHTML;
-      btn.innerHTML = '<span>Déverrouillage…</span>';
-      try {
-        const r = await fetch('/arduino/unlock',{method:'POST'}).then(x=>x.json());
-        toast(r.message||'Balle déverrouillée !', 'ok');
-        btn.innerHTML = '<span>✓ Déverrouillé</span>';
-        setTimeout(() => {
-          btn.innerHTML = originalHTML;
-          btn.disabled = false;
-        }, 2000);
-      } catch { 
-        toast('Erreur déverrouillage','err');
-        btn.innerHTML = originalHTML;
-        btn.disabled = false;
-      }
-    };
+    btn.style.opacity = '1';
+    btn.onclick = () => doUnlock(btn);
   } else {
     info.innerHTML = '<div class="action-status status-inactive"><span>⏸</span><span>Aucun créneau actif</span></div>';
     btn.disabled = true;
     btn.style.opacity = '0.5';
+  }
+}
+
+async function doUnlock(btn) {
+  btn.disabled = true;
+  const originalHTML = btn.innerHTML;
+  btn.innerHTML = '<span>Déverrouillage…</span>';
+  try {
+    const r = await fetch('/arduino/unlock',{method:'POST'}).then(x=>x.json());
+    toast(r.message||'Balle déverrouillée !', 'ok');
+    btn.innerHTML = '<span>✓ Déverrouillé</span>';
+    setTimeout(() => {
+      btn.innerHTML = originalHTML;
+      btn.disabled = false;
+    }, 2000);
+  } catch {
+    toast('Erreur déverrouillage','err');
+    btn.innerHTML = originalHTML;
+    btn.disabled = false;
   }
 }
 
