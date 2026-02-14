@@ -1,12 +1,10 @@
 # Configuration Gunicorn pour Render
-# Optimisé pour WebSockets (Socket.IO)
-
-import multiprocessing
+# Configuration simple compatible avec tous les déploiements
 
 # Workers
-workers = 2  # Nombre de workers (2 pour le plan gratuit)
-worker_class = 'eventlet'  # Nécessaire pour Socket.IO
-worker_connections = 1000  # Connexions simultanées par worker
+workers = 1  # Un seul worker pour le plan gratuit
+worker_class = 'sync'  # Worker synchrone standard
+threads = 4  # 4 threads par worker pour gérer les connexions
 
 # Timeouts
 timeout = 120  # Timeout de 2 minutes
@@ -19,7 +17,6 @@ loglevel = 'info'
 
 # Server mechanics
 bind = '0.0.0.0:10000'  # Port par défaut Render
-preload_app = True  # Charger l'app avant de forker
 
 # Performance
 max_requests = 1000  # Redémarrer worker après 1000 requêtes
