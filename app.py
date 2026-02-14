@@ -8,7 +8,10 @@ import os
 import logging
 import traceback
 
-logging.basicConfig(level=logging.INFO, format=’%(asctime)s - %(levelname)s - %(message)s’, handlers=[logging.StreamHandler()])
+# Logging simplifié sans guillemets
+
+import sys
+logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 logger = logging.getLogger(**name**)
 
 app = Flask(**name**)
