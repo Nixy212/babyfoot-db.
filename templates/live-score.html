@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Réservation — Baby-Foot Club</title>
+  <title>Partie Live — Baby-Foot Club</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
 </head>
@@ -26,12 +25,12 @@
     <div class="nav-sep"></div>
     <div class="nav-links">
       <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
-      <a href="/reservation" class="nav-link active"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
-      <a href="/live-score" class="nav-link"><span class="nav-link-icon">🎮</span><span>Partie Live</span></a>
+      <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link active"><span class="nav-link-icon">🎮</span><span>Partie Live</span></a>
       <a href="/stats" class="nav-link"><span class="nav-link-icon">📊</span><span>Stats</span></a>
       <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
     </div>
-        <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
+    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
     <div class="nav-right">
@@ -42,7 +41,7 @@
     </div>
   </div>
 </nav>
-<!-- Mobile Menu -->
+
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
   <a href="/dashboard">🏠 Dashboard</a>
@@ -50,92 +49,91 @@
   <a href="/live-score">🎮 Partie Live</a>
   <a href="/stats">📊 Stats</a>
   <a href="/top">🏆 Top 10</a>
-  <a href="#" onclick="fetch(\`/api/logout\`,{method:\`POST\`}).then(()=>location.href=\`/\`)">🚪 Déconnexion</a>
+  <a href="#" onclick="fetch(`/api/logout`,{method:`POST`}).then(()=>location.href=`/`)">🚪 Déconnexion</a>
 </div>
-<script id="burger-script">
+
+<script>
 function toggleMenu() {
   document.getElementById("burger").classList.toggle("open");
   document.getElementById("mobileMenu").classList.toggle("open");
   document.body.style.overflow = document.getElementById("mobileMenu").classList.contains("open") ? "hidden" : "";
 }
-document.querySelectorAll(".mobile-menu a").forEach(a => a.addEventListener("click", () => {
-  if (!a.getAttribute("onclick")) toggleMenu();
-}));
-const path = window.location.pathname;
-document.querySelectorAll(".mobile-menu a").forEach(a => {
-  if (a.getAttribute("href") === path) a.classList.add("active");
-});
 </script>
 
 <div class="page">
-  <div class="container" style="max-width:900px">
+  <div class="container" style="max-width:1000px">
     <div class="page-header fade-up">
-      <h1>📅 Réserver un créneau</h1>
-      <p>Créneaux de 25 minutes — Aujourd'hui et demain uniquement</p>
+      <h1>🎮 Partie en direct</h1>
+      <p>Scores en temps réel via WebSocket</p>
     </div>
 
-    <!-- Sélection du jour -->
-    <div class="card fade-up" style="animation-delay:.05s;margin-bottom:1.5rem">
-      <div class="card-header"><h3>01 — Choisir le jour</h3></div>
-      <div class="card-body" style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
-        <button id="btnToday" class="btn btn-primary" onclick="selectDay(0)">Aujourd'hui</button>
-        <button id="btnTomorrow" class="btn btn-secondary" onclick="selectDay(1)">Demain</button>
-        <span id="dayLabel" style="display:flex;align-items:center;font-size:0.9375rem;color:var(--text-secondary);margin-left:0.5rem;font-weight:600"></span>
-      </div>
-    </div>
-
-    <!-- Créneaux -->
-    <div class="card fade-up" style="animation-delay:.08s;margin-bottom:1.5rem">
-      <div class="card-header">
-        <h3>02 — Choisir l'horaire <small style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-tertiary);font-size:0.8125rem">(créneaux 25 min)</small></h3>
-        <span id="selectedBadge" style="display:none" class="tag tag-brn"></span>
-      </div>
+    <!-- Formulaire de démarrage -->
+    <div id="startForm" class="card fade-up" style="animation-delay:.05s;margin-bottom:1.5rem">
+      <div class="card-header"><h3>Composer les équipes</h3></div>
       <div class="card-body">
-        <div class="slot-grid" id="slotsGrid"></div>
-        <div id="slotHelp" style="margin-top:1rem;font-size:0.8125rem;color:var(--text-tertiary);display:flex;flex-wrap:wrap;gap:1rem">
-          <span style="display:inline-flex;align-items:center;gap:0.375rem">
-            <span style="width:12px;height:12px;background:var(--bg-tertiary);border:1px solid var(--border-normal);border-radius:4px"></span>
-            Disponible
-          </span>
-          <span style="display:inline-flex;align-items:center;gap:0.375rem">
-            <span style="width:12px;height:12px;background:linear-gradient(135deg, rgba(205, 127, 50, 0.2) 0%, rgba(255, 191, 0, 0.1) 100%);border:1px solid var(--bronze);border-radius:4px"></span>
-            Sélectionné
-          </span>
-          <span style="display:inline-flex;align-items:center;gap:0.375rem">
-            <span style="width:12px;height:12px;background:linear-gradient(135deg, rgba(205, 127, 50, 0.15) 0%, rgba(255, 191, 0, 0.08) 100%);border:2px solid rgba(205, 127, 50, 0.4);border-radius:4px"></span>
-            Mon créneau
-          </span>
-          <span style="display:inline-flex;align-items:center;gap:0.375rem">
-            <span style="width:12px;height:12px;background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:4px;opacity:0.5"></span>
-            Occupé
-          </span>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
+          <div>
+            <label class="label">🔴 Équipe 1</label>
+            <select id="t1p1" class="input" style="margin-bottom:0.5rem">
+              <option value="">Joueur 1</option>
+            </select>
+            <select id="t1p2" class="input">
+              <option value="">Joueur 2 (optionnel)</option>
+            </select>
+          </div>
+          <div>
+            <label class="label">🔵 Équipe 2</label>
+            <select id="t2p1" class="input" style="margin-bottom:0.5rem">
+              <option value="">Joueur 1</option>
+            </select>
+            <select id="t2p2" class="input">
+              <option value="">Joueur 2 (optionnel)</option>
+            </select>
+          </div>
         </div>
+        <button id="btnStart" class="btn btn-primary btn-full btn-lg">Lancer la partie</button>
       </div>
     </div>
 
-    <!-- Config partie -->
-    <div class="card fade-up" style="animation-delay:.1s;margin-bottom:1.5rem">
-      <div class="card-header"><h3>03 — Mode de jeu</h3></div>
-      <div class="card-body">
-        <div style="margin-bottom:0.5rem">
-          <label class="label">Choisir le mode</label>
-          <p style="font-size:0.875rem;color:var(--text-3);margin-bottom:1rem">
-            Les équipes seront définies lors du lancement de la partie
-          </p>
-          <div style="display:flex;gap:0.75rem">
-            <button id="m1v1" class="btn btn-primary" onclick="setMode('1v1')">1 vs 1</button>
-            <button id="m2v2" class="btn btn-secondary" onclick="setMode('2v2')">2 vs 2</button>
+    <!-- Partie en cours -->
+    <div id="gameArea" style="display:none">
+      <div class="card fade-up" style="margin-bottom:1.5rem">
+        <div class="card-body" style="text-align:center;padding:3rem 1rem">
+          <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:2rem;align-items:center;max-width:600px;margin:0 auto">
+            <div>
+              <div style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.5rem">🔴 Équipe 1</div>
+              <div id="team1Names" style="font-weight:600;margin-bottom:1rem;color:var(--text-primary)">—</div>
+              <div id="score1" style="font-size:4rem;font-weight:700;color:var(--bronze);font-family:'Space Mono',monospace">0</div>
+              <button id="btnScore1" class="btn btn-primary" style="margin-top:1rem">+1 Point</button>
+            </div>
+            <div style="font-size:2rem;color:var(--text-tertiary)">vs</div>
+            <div>
+              <div style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.5rem">🔵 Équipe 2</div>
+              <div id="team2Names" style="font-weight:600;margin-bottom:1rem;color:var(--text-primary)">—</div>
+              <div id="score2" style="font-size:4rem;font-weight:700;color:var(--bronze);font-family:'Space Mono',monospace">0</div>
+              <button id="btnScore2" class="btn btn-primary" style="margin-top:1rem">+1 Point</button>
+            </div>
           </div>
         </div>
       </div>
+
+      <div class="card fade-up">
+        <div class="card-body" style="text-align:center">
+          <button id="btnReset" class="btn btn-secondary">Réinitialiser la partie</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Bouton confirm -->
-    <button id="confirmBtn" class="btn btn-primary btn-full btn-lg fade-up" style="animation-delay:.12s">
-      Confirmer la réservation
-    </button>
-    <div style="text-align:center;margin-top:1rem">
-      <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
+    <!-- Partie terminée -->
+    <div id="endArea" style="display:none">
+      <div class="card fade-up">
+        <div class="card-body" style="text-align:center;padding:3rem 1rem">
+          <div style="font-size:3rem;margin-bottom:1rem">🏆</div>
+          <h2 id="winnerText" style="margin-bottom:1rem">—</h2>
+          <div id="finalScores" style="font-size:1.25rem;margin-bottom:2rem;color:var(--text-secondary)">—</div>
+          <button id="btnNewGame" class="btn btn-primary btn-lg">Nouvelle partie</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -143,11 +141,9 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
 <div class="toast-wrap" id="tw"></div>
 
 <script>
-let allUsers = [], currentUser = '', reservations = {};
-let selectedDayOffset = 0, selectedSlot = null, mode = '1v1';
-
-const DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
-const MONTHS = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+const socket = io();
+let allUsers = [];
+let currentUser = null;
 
 function toast(msg, type='inf') {
   const c=document.getElementById('tw'), t=document.createElement('div');
@@ -155,105 +151,98 @@ function toast(msg, type='inf') {
   setTimeout(()=>t.remove(), 3200);
 }
 
-function getDate(offset) {
-  const d = new Date(); d.setDate(d.getDate()+offset); return d;
-}
-function getDayName(offset) {
-  const d = getDate(offset);
-  const name = DAYS[d.getDay()];
-  return `${name} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
-}
-function getDayKey(offset) { return DAYS[getDate(offset).getDay()]; }
+socket.on('error', d => toast(d.message, 'err'));
 
-function selectDay(offset) {
-  selectedDayOffset = offset; selectedSlot = null;
-  document.getElementById('selectedBadge').style.display = 'none';
-  document.getElementById('btnToday').className = offset===0?'btn btn-primary':'btn btn-secondary';
-  document.getElementById('btnTomorrow').className = offset===1?'btn btn-primary':'btn btn-secondary';
-  document.getElementById('dayLabel').textContent = getDayName(offset);
-  renderSlots();
-}
+socket.on('game_started', game => {
+  document.getElementById('startForm').style.display = 'none';
+  document.getElementById('gameArea').style.display = 'block';
+  document.getElementById('endArea').style.display = 'none';
+  document.getElementById('team1Names').textContent = game.team1_players.join(' + ');
+  document.getElementById('team2Names').textContent = game.team2_players.join(' + ');
+  document.getElementById('score1').textContent = game.team1_score;
+  document.getElementById('score2').textContent = game.team2_score;
+  toast('Partie lancée !', 'ok');
+});
 
-// Génère créneaux de 25 min de 8h à 21h (vrais intervalles 25min)
-function genSlots() {
-  const slots = [];
-  let t = 8 * 60; // 8h00 en minutes
-  while (t < 21 * 60) {
-    const h = Math.floor(t / 60), m = t % 60;
-    slots.push(String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0'));
-    t += 25;
+socket.on('score_updated', game => {
+  document.getElementById('score1').textContent = game.team1_score;
+  document.getElementById('score2').textContent = game.team2_score;
+});
+
+socket.on('game_ended', game => {
+  document.getElementById('gameArea').style.display = 'none';
+  document.getElementById('endArea').style.display = 'block';
+  const winner = game.winner === 'team1' ? game.team1_players : game.team2_players;
+  document.getElementById('winnerText').textContent = `${winner.join(' + ')} remporte la partie !`;
+  document.getElementById('finalScores').textContent = `Score final : ${game.team1_score} - ${game.team2_score}`;
+  toast('Partie terminée !', 'ok');
+});
+
+socket.on('game_reset', () => {
+  document.getElementById('startForm').style.display = 'block';
+  document.getElementById('gameArea').style.display = 'none';
+  document.getElementById('endArea').style.display = 'none';
+  ['t1p1','t1p2','t2p1','t2p2'].forEach(id => document.getElementById(id).value = '');
+  toast('Partie réinitialisée', 'inf');
+});
+
+document.getElementById('btnStart').addEventListener('click', () => {
+  const t1p1 = document.getElementById('t1p1').value;
+  const t1p2 = document.getElementById('t1p2').value;
+  const t2p1 = document.getElementById('t2p1').value;
+  const t2p2 = document.getElementById('t2p2').value;
+  const team1 = [t1p1, t1p2].filter(p => p);
+  const team2 = [t2p1, t2p2].filter(p => p);
+  if (team1.length === 0 || team2.length === 0) {
+    toast('Chaque équipe doit avoir au moins un joueur', 'err');
+    return;
   }
-  return slots;
-}
+  socket.emit('start_game', {team1, team2});
+});
 
-function renderSlots() {
-  const dayKey = getDayKey(selectedDayOffset);
-  const dayRes = (reservations[dayKey]) || {};
-  const slots = genSlots();
-  const grid = document.getElementById('slotsGrid');
+document.getElementById('btnScore1').addEventListener('click', () => {
+  socket.emit('update_score', {team: 'team1'});
+});
 
-  grid.innerHTML = slots.map(s => {
-    const taken = dayRes[s];
-    const isMine = taken && taken.reserved_by === currentUser;
-    const isSelected = selectedSlot === s;
-    if (isMine) {
-      return `<div class="slot-pill mine" title="Votre réservation">${s}<br><span style="font-size:0.7rem;opacity:0.8">à vous</span></div>`;
-    }
-    if (taken) {
-      return `<div class="slot-pill taken">${s}<br><span style="font-size:0.7rem;opacity:0.6">occupé</span></div>`;
-    }
-    return `<div class="slot-pill ${isSelected?'selected':''}" onclick="pickSlot('${s}')">${s}</div>`;
-  }).join('');
-}
+document.getElementById('btnScore2').addEventListener('click', () => {
+  socket.emit('update_score', {team: 'team2'});
+});
 
-function pickSlot(s) {
-  selectedSlot = s;
-  const badge = document.getElementById('selectedBadge');
-  badge.textContent = `${getDayName(selectedDayOffset)} · ${s}`;
-  badge.style.display = 'inline-flex';
-  renderSlots();
-}
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (confirm('Réinitialiser la partie en cours ?')) {
+    socket.emit('reset_game');
+  }
+});
 
-function setMode(m) {
-  mode = m;
-  document.getElementById('m1v1').className = m==='1v1'?'btn btn-primary':'btn btn-secondary';
-  document.getElementById('m2v2').className = m==='2v2'?'btn btn-primary':'btn btn-secondary';
-}
-
-document.getElementById('confirmBtn').addEventListener('click', async () => {
-  if (!selectedSlot) { toast('Sélectionnez un créneau', 'err'); return; }
-  const dayKey = getDayKey(selectedDayOffset);
-  const btn = document.getElementById('confirmBtn');
-  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Réservation…';
-  try {
-    const r = await fetch('/reserve_slot',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({day:dayKey, time:selectedSlot, team1:[], team2:[], mode})
-    }).then(x=>x.json());
-    if (r.success) {
-      toast(`✓ Réservé : ${getDayName(selectedDayOffset)} à ${selectedSlot}`, 'ok');
-      setTimeout(()=>window.location.href='/dashboard', 1200);
-    } else {
-      toast(r.message||'Erreur', 'err');
-      btn.disabled=false; btn.textContent='Confirmer la réservation';
-    }
-  } catch { toast('Erreur serveur','err'); btn.disabled=false; btn.textContent='Confirmer la réservation'; }
+document.getElementById('btnNewGame').addEventListener('click', () => {
+  socket.emit('reset_game');
 });
 
 async function init() {
-  const [ud, res] = await Promise.all([
+  const [ud, users] = await Promise.all([
     fetch('/current_user').then(r=>r.json()),
-    fetch('/reservations_all').then(r=>r.json())
+    fetch('/users_list').then(r=>r.json())
   ]);
-  currentUser = ud.username;
-  reservations = res;
-  if (currentUser) {
-    document.getElementById('navAv').textContent = currentUser[0].toUpperCase();
-    document.getElementById('navUsername').textContent = currentUser;
+  
+  currentUser = ud;
+  allUsers = users;
+  
+  if (currentUser.username) {
+    document.getElementById('navAv').textContent = currentUser.username[0].toUpperCase();
+    document.getElementById('navUsername').textContent = currentUser.username;
   }
-  ['t1p1','t1p2','t2p1','t2p2'].forEach(setupDropdown);
-  selectDay(0);
+  
+  ['t1p1','t1p2','t2p1','t2p2'].forEach(id => {
+    const sel = document.getElementById(id);
+    allUsers.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u;
+      opt.textContent = u;
+      sel.appendChild(opt);
+    });
+  });
 }
+
 init();
 </script>
 </body>
