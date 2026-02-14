@@ -482,12 +482,14 @@ def handle_arduino_goal(data): handle_score({'team': data.get('team')})
 
 @socketio.on('unlock_servo')
 def handle_unlock_servo():
-    if not session.get('username'):
+    username = session.get('username')
+    if not username:
         emit('error', {'message': 'Non authentifié'}); return
-    if current_game.get('active'):
+    # Admin peut déverrouiller à tout moment
+    if not is_admin(username) and current_game.get('active'):
         emit('error', {'message': 'La partie est encore en cours'}); return
     emit('servo_unlock', {}, broadcast=True)
-    logger.info(f"Déverrouillage servo par {session.get('username')}")
+    logger.info(f"Déverrouillage servo par {username}")
 
 @socketio.on('ping')
 def handle_ping(): emit('pong')
