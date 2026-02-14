@@ -442,6 +442,14 @@ def handle_score(data):
             try: save_game_results(current_game)
             except Exception as e: logger.error(f"Save error: {e}")
             emit('game_ended', current_game, broadcast=True)
+            # Fermer le servo automatiquement après 3 secondes
+            import threading
+            def close_servo():
+                import time
+                time.sleep(3)
+                socketio.emit('servo_lock', {}, broadcast=True)
+                logger.info("Servo fermé automatiquement à la fin de la partie")
+            threading.Thread(target=close_servo, daemon=True).start()
         else:
             emit('score_updated', current_game, broadcast=True)
     except Exception as e:
