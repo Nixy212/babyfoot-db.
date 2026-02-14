@@ -571,7 +571,60 @@ def force_reset():
     return jsonify({'success': True})
 
 @socketio.on('arduino_goal')
-def handle_arduino_goal(data): handle_score({'team': data.get('team')})
+def handle_arduino_goal(data):
+    global current_game
+    logger.info(f"🤖 Arduino goal reçu - Data: {data}")
+    logger.info(f"🎮 Match actif: {current_game.get('active', False)}")
+    
+    try:
+        if not current_game.get('active'):
+            logger.warning("❌ Arduino goal ignoré - Aucune partie en cours")
+            emit('error', {'message': 'Aucune partie en cours'})
+            return
+        
+        team = data.get('team')
+        logger.info(f"⚽ But pour équipe: {team}")
+        
+        if team not in ['team1', 'team2']:
+            logger.warning(f"❌ Équipe invalide: {team}")
+            emit('error', {'message': 'Équipe invalide'})
+            return
+        
+        # Incrémenter le score
+        current_game[f"{team}_score"] += 1
+        logger.info(f"📊 Score: Team1={current_game['team1_score']} Team2={current_game['team2_score']}")
+        
+        # Vérifier si quelqu'un a gagné
+        if current_game[f"{team}_score"] >= 10:
+            current_game['winner'] = team
+            current_game['active'] = False
+            logger.info(f"🏆 Victoire de {team} !")
+            try:
+                save_game_results(current_game)
+            except Exception as e:
+                logger.error(f"Save error: {e}")
+            emit('game_ended', current_game, broadcast=True)
+            
+            # Fermer le servo après 3 secondes
+            import threading
+            def close_servo():
+                import time
+                time.sleep(3)
+                socketio.emit('servo_lock', {}, broadcast=True)
+                logger.info("🔒 Servo fermé automatiquement")
+            threading.Thread(target=close_servo, daemon=True).start()
+        else:
+            emit('score_updated', current_game, broadcast=True)
+            logger.info("✅ Score mis à jour et diffusé")
+    
+    except Exception as e:
+        logger.error(f"❌ Erreur arduino_goal: {e}\n{traceback.format_exc()}")
+        emit('error', {'message': str(e)})
+
+@socketio.on('arduino_ping')
+def handle_arduino_ping(data):
+    logger.info(f"🏓 Arduino ping reçu: {data}")
+    emit('arduino_pong', {'status': 'ok', 'message': 'Serveur reçoit bien les messages'}, broadcast=True)
 
 @socketio.on('unlock_servo')
 def handle_unlock_servo():
