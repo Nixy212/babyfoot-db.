@@ -111,37 +111,16 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
 
     <!-- Config partie -->
     <div class="card fade-up" style="animation-delay:.1s;margin-bottom:1.5rem">
-      <div class="card-header"><h3>03 — Configurer l'équipe</h3></div>
+      <div class="card-header"><h3>03 — Mode de jeu</h3></div>
       <div class="card-body">
-        <div style="margin-bottom:1.5rem">
-          <label class="label">Mode de jeu</label>
+        <div style="margin-bottom:0.5rem">
+          <label class="label">Choisir le mode</label>
+          <p style="font-size:0.875rem;color:var(--text-3);margin-bottom:1rem">
+            Les équipes seront définies lors du lancement de la partie
+          </p>
           <div style="display:flex;gap:0.75rem">
             <button id="m1v1" class="btn btn-primary" onclick="setMode('1v1')">1 vs 1</button>
             <button id="m2v2" class="btn btn-secondary" onclick="setMode('2v2')">2 vs 2</button>
-          </div>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
-          <div>
-            <label class="label" style="color:var(--bronze)">🔵 Équipe 1</label>
-            <div class="drop-wrap" style="margin-bottom:0.75rem">
-              <input type="text" id="t1p1" placeholder="Joueur 1" autocomplete="off">
-              <div id="d-t1p1" class="player-dd"></div>
-            </div>
-            <div class="drop-wrap" id="t1p2w" style="display:none">
-              <input type="text" id="t1p2" placeholder="Joueur 2" autocomplete="off">
-              <div id="d-t1p2" class="player-dd"></div>
-            </div>
-          </div>
-          <div>
-            <label class="label" style="color:#ef4444">🔴 Équipe 2</label>
-            <div class="drop-wrap" style="margin-bottom:0.75rem">
-              <input type="text" id="t2p1" placeholder="Joueur 1" autocomplete="off">
-              <div id="d-t2p1" class="player-dd"></div>
-            </div>
-            <div class="drop-wrap" id="t2p2w" style="display:none">
-              <input type="text" id="t2p2" placeholder="Joueur 2" autocomplete="off">
-              <div id="d-t2p2" class="player-dd"></div>
-            </div>
           </div>
         </div>
       </div>
@@ -235,45 +214,17 @@ function setMode(m) {
   mode = m;
   document.getElementById('m1v1').className = m==='1v1'?'btn btn-primary':'btn btn-secondary';
   document.getElementById('m2v2').className = m==='2v2'?'btn btn-primary':'btn btn-secondary';
-  document.getElementById('t1p2w').style.display = m==='2v2'?'block':'none';
-  document.getElementById('t2p2w').style.display = m==='2v2'?'block':'none';
 }
-
-function setupDropdown(id) {
-  const input = document.getElementById(id);
-  const drop  = document.getElementById(`d-${id}`);
-  if (!input || !drop) return;
-  function show(val) {
-    const f = allUsers.filter(u => !val || u.toLowerCase().includes(val.toLowerCase()));
-    drop.innerHTML = f.length
-      ? f.map(u=>`<div class="dd-item" onmousedown="pick('${u}','${id}')">${u}</div>`).join('')
-      : '<div class="dd-empty">Aucun résultat</div>';
-    drop.style.display = 'block';
-  }
-  input.addEventListener('focus', ()=>show(input.value));
-  input.addEventListener('input', ()=>show(input.value));
-  input.addEventListener('blur',  ()=>setTimeout(()=>drop.style.display='none', 150));
-}
-
-window.pick = (u, id) => {
-  document.getElementById(id).value = u;
-  document.getElementById(`d-${id}`).style.display = 'none';
-};
 
 document.getElementById('confirmBtn').addEventListener('click', async () => {
   if (!selectedSlot) { toast('Sélectionnez un créneau', 'err'); return; }
-  const t1p1 = document.getElementById('t1p1').value.trim();
-  const t2p1 = document.getElementById('t2p1').value.trim();
-  if (!t1p1 || !t2p1) { toast('Chaque équipe doit avoir au moins un joueur', 'err'); return; }
-  const team1 = [t1p1, mode==='2v2'?document.getElementById('t1p2').value.trim():''].filter(Boolean);
-  const team2 = [t2p1, mode==='2v2'?document.getElementById('t2p2').value.trim():''].filter(Boolean);
   const dayKey = getDayKey(selectedDayOffset);
   const btn = document.getElementById('confirmBtn');
   btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Réservation…';
   try {
     const r = await fetch('/reserve_slot',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({day:dayKey, time:selectedSlot, team1, team2, mode})
+      body: JSON.stringify({day:dayKey, time:selectedSlot, team1:[], team2:[], mode})
     }).then(x=>x.json());
     if (r.success) {
       toast(`✓ Réservé : ${getDayName(selectedDayOffset)} à ${selectedSlot}`, 'ok');
@@ -286,18 +237,15 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
 });
 
 async function init() {
-  const [ud, us, res] = await Promise.all([
+  const [ud, res] = await Promise.all([
     fetch('/current_user').then(r=>r.json()),
-    fetch('/all_users').then(r=>r.json()),
     fetch('/reservations_all').then(r=>r.json())
   ]);
   currentUser = ud.username;
-  allUsers = us;
   reservations = res;
   if (currentUser) {
     document.getElementById('navAv').textContent = currentUser[0].toUpperCase();
     document.getElementById('navUsername').textContent = currentUser;
-    document.getElementById('t1p1').value = currentUser;
   }
   ['t1p1','t1p2','t2p1','t2p2'].forEach(setupDropdown);
   selectDay(0);
