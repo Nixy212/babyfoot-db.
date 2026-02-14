@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Socket.IO - Baby-Foot</title>
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: #0a0a0a;
+      color: #00ff00;
+      padding: 20px;
+      margin: 0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #00ff00;
+      border-bottom: 2px solid #00ff00;
+      padding-bottom: 10px;
+    }
+    .status {
+      padding: 15px;
+      background: #1a1a1a;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      border-left: 4px solid #00ff00;
+    }
+    .status.disconnected {
+      border-left-color: #ff0000;
+      color: #ff0000;
+    }
+    .log {
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 5px;
+      height: 500px;
+      overflow-y: auto;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .log-entry {
+      margin-bottom: 10px;
+      padding: 8px;
+      border-left: 3px solid #333;
+    }
+    .log-entry.event {
+      border-left-color: #00ff00;
+    }
+    .log-entry.error {
+      border-left-color: #ff0000;
+      color: #ff0000;
+    }
+    .log-entry.info {
+      border-left-color: #00aaff;
+      color: #00aaff;
+    }
+    .timestamp {
+      color: #666;
+      font-size: 12px;
+    }
+    .score-display {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 20px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    .score {
+      font-size: 4rem;
+      font-weight: bold;
+      color: #00ff00;
+      background: #1a1a1a;
+      padding: 20px;
+      border-radius: 10px;
+    }
+    .vs {
+      font-size: 2rem;
+      align-self: center;
+      color: #666;
+    }
+    button {
+      background: #00ff00;
+      color: #0a0a0a;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+      border-radius: 5px;
+    }
+    button:hover {
+      background: #00cc00;
+    }
+    .controls {
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 DEBUG SOCKET.IO - BABY-FOOT</h1>
+    
+    <div id="status" class="status disconnected">
+      ❌ DÉCONNECTÉ
+    </div>
+
+    <div class="score-display">
+      <div>
+        <div style="margin-bottom: 10px;">🔴 ÉQUIPE 1</div>
+        <div id="score1" class="score">0</div>
+      </div>
+      <div class="vs">VS</div>
+      <div>
+        <div style="margin-bottom: 10px;">🔵 ÉQUIPE 2</div>
+        <div id="score2" class="score">0</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button onclick="testArduinoGoal()">🧪 Simuler BUT Arduino (Team 1)</button>
+      <button onclick="manualScore('team1')">+1 Team 1</button>
+      <button onclick="manualScore('team2')">+1 Team 2</button>
+      <button onclick="clearLog()">🗑️ Effacer logs</button>
+    </div>
+
+    <h2>📋 LOGS EN TEMPS RÉEL</h2>
+    <div id="log" class="log"></div>
+  </div>
+
+  <script>
+    const socket = io('https://baby-foot-zjry.onrender.com');
+    const logEl = document.getElementById('log');
+    const statusEl = document.getElementById('status');
+    const score1El = document.getElementById('score1');
+    const score2El = document.getElementById('score2');
+
+    let currentGame = {team1_score: 0, team2_score: 0};
+
+    function addLog(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      const time = new Date().toLocaleTimeString();
+      entry.innerHTML = `<span class="timestamp">[${time}]</span> ${message}`;
+      logEl.insertBefore(entry, logEl.firstChild);
+    }
+
+    socket.on('connect', () => {
+      statusEl.textContent = '✅ CONNECTÉ';
+      statusEl.className = 'status';
+      addLog('✅ Connecté au serveur Socket.IO', 'event');
+    });
+
+    socket.on('disconnect', () => {
+      statusEl.textContent = '❌ DÉCONNECTÉ';
+      statusEl.className = 'status disconnected';
+      addLog('❌ Déconnecté du serveur', 'error');
+    });
+
+    socket.on('game_started', (data) => {
+      addLog(`🎮 PARTIE DÉMARRÉE: ${JSON.stringify(data)}`, 'event');
+      currentGame = data;
+      updateScores();
+    });
+
+    socket.on('score_updated', (data) => {
+      addLog(`📊 SCORE MIS À JOUR: Team1=${data.team1_score} Team2=${data.team2_score}`, 'event');
+      currentGame = data;
+      updateScores();
+    });
+
+    socket.on('game_ended', (data) => {
+      addLog(`🏁 PARTIE TERMINÉE: Gagnant=${data.winner}`, 'event');
+      currentGame = data;
+      updateScores();
+    });
+
+    socket.on('game_reset', () => {
+      addLog('🔄 PARTIE RÉINITIALISÉE', 'event');
+      currentGame = {team1_score: 0, team2_score: 0};
+      updateScores();
+    });
+
+    socket.on('error', (data) => {
+      addLog(`⚠️ ERREUR: ${data.message}`, 'error');
+    });
+
+    socket.on('arduino_pong', (data) => {
+      addLog(`🏓 PONG reçu: ${JSON.stringify(data)}`, 'event');
+    });
+
+    socket.onAny((eventName, ...args) => {
+      addLog(`📨 Event "${eventName}": ${JSON.stringify(args)}`, 'info');
+    });
+
+    function updateScores() {
+      score1El.textContent = currentGame.team1_score || 0;
+      score2El.textContent = currentGame.team2_score || 0;
+    }
+
+    function testArduinoGoal() {
+      addLog('🧪 Envoi arduino_goal simulé...', 'info');
+      socket.emit('arduino_goal', {team: 'team1'});
+    }
+
+    function manualScore(team) {
+      addLog(`🎯 Envoi update_score pour ${team}...`, 'info');
+      socket.emit('update_score', {team: team});
+    }
+
+    function clearLog() {
+      logEl.innerHTML = '';
+      addLog('🗑️ Logs effacés', 'info');
+    }
+
+    // Log initial
+    addLog('🚀 Page de debug chargée', 'info');
+  </script>
+</body>
+</html>
