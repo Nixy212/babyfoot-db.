@@ -150,8 +150,8 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
           <div class="score-big" id="s2">0</div>
         </div>
       </div>
-      <div style="padding:0 32px 24px;display:flex;gap:8px;justify-content:center">
-        <button id="resetBtn" class="btn btn-danger">🔄 Nouvelle partie</button>
+      <div style="padding:0 32px 24px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button id="abandonBtn" class="btn btn-danger" onclick="abandonGame()">⛔ Abandonner</button>
         <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
       </div>
     </div>
@@ -273,6 +273,7 @@ function unlockServo() {
 
 fetch('/all_users').then(r=>r.json()).then(u=>{ allUsers=u; setupDrops(); });
 checkAccess();
+checkActiveGame();
 setInterval(checkAccess, 60000);
 
 function setupDrops() {
@@ -324,6 +325,10 @@ socket.on('game_ended', d=>{
 
 socket.on('error', d=>toast(d.message||'Erreur','err'));
 socket.on('game_reset', ()=>newGame());
+socket.on('game_abandoned', ()=>{
+  toast('Partie abandonnée', 'err');
+  newGame();
+});
 
 document.getElementById('startBtn').addEventListener('click',()=>{
   if (!hasAccess) { toast('Accès non autorisé', 'err'); return; }
@@ -334,6 +339,28 @@ document.getElementById('startBtn').addEventListener('click',()=>{
 });
 
 document.getElementById('resetBtn').addEventListener('click',()=>socket.emit('reset_game'));
+
+async function checkActiveGame() {
+  // Vérifie si une partie est déjà en cours au chargement
+  try {
+    const res = await fetch('/api/game_status').then(r=>r.json());
+    if (res.active) {
+      // Partie en cours — afficher le scoreboard directement
+      document.getElementById('setup').style.display='none';
+      document.getElementById('board').style.display='block';
+      document.getElementById('n1').textContent = res.team1_players.join(' & ');
+      document.getElementById('n2').textContent = res.team2_players.join(' & ');
+      document.getElementById('s1').textContent = res.team1_score;
+      document.getElementById('s2').textContent = res.team2_score;
+      toast('Partie en cours récupérée !', 'inf');
+    }
+  } catch(e) { console.error(e); }
+}
+
+function abandonGame() {
+  if (!confirm('Abandonner la partie en cours ? Les scores ne seront pas enregistrés.')) return;
+  socket.emit('abandon_game');
+}
 
 function newGame(){
   document.getElementById('win').style.display='none';
