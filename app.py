@@ -123,6 +123,40 @@ def seed_admin_accounts():
     except Exception as e:
         logger.warning(f"seed_admin_accounts: {e}")
 
+def is_admin(username):
+    """Vérifie si un utilisateur est admin"""
+    admin_list = ["Imran", "Apoutou", "Hamara", "MDA"]
+    return username in admin_list
+
+def has_active_reservation(username):
+    """Vérifie si l'utilisateur a une réservation active aujourd'hui"""
+    from datetime import datetime
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # Obtenir le jour actuel
+        today = datetime.now().strftime('%A')  # Ex: 'Monday', 'Tuesday', etc.
+        days_fr = {
+            'Monday': 'Lundi',
+            'Tuesday': 'Mardi', 
+            'Wednesday': 'Mercredi',
+            'Thursday': 'Jeudi',
+            'Friday': 'Vendredi',
+            'Saturday': 'Samedi',
+            'Sunday': 'Dimanche'
+        }
+        day_fr = days_fr.get(today, today)
+        
+        q = "SELECT * FROM reservations WHERE reserved_by = %s AND day = %s" if USE_POSTGRES else "SELECT * FROM reservations WHERE reserved_by = ? AND day = ?"
+        cur.execute(q, (username, day_fr))
+        result = cur.fetchone()
+        cur.close()
+        conn.close()
+        return result is not None
+    except Exception as e:
+        logger.error(f"Erreur has_active_reservation: {e}")
+        return False
+
 try:
     init_database()
     seed_test_accounts()
@@ -155,10 +189,6 @@ def validate_password(p):
     if not p or not isinstance(p, str): raise ValueError("Mot de passe requis")
     if len(p) < 6: raise ValueError("Minimum 6 caractères")
     return p
-
-def is_admin(username):
-    ADMIN_USERS = ["Imran", "Apoutou", "Hamara", "MDA"]
-    return username in ADMIN_USERS
 
 @app.route("/")
 def index(): return render_template("index.html")
@@ -267,7 +297,13 @@ def get_users():
     return jsonify(users)
 
 @app.route("/current_user")
-def get_current(): return jsonify({"username": session.get("username", "")})
+def get_current(): 
+    username = session.get("username", "")
+    return jsonify({
+        "username": username,
+        "is_admin": is_admin(username),
+        "has_reservation": has_active_reservation(username) if username else False
+    })
 
 @app.route("/reservations_all")
 @handle_errors
@@ -329,6 +365,17 @@ def cancel_reservation():
     deleted = cur.rowcount
     conn.commit(); cur.close(); conn.close()
     return jsonify({"success": bool(deleted)})
+
+@app.route("/users_list")
+@handle_errors
+def users_list():
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT username FROM users ORDER BY username ASC")
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+    users = [row_to_dict(r)['username'] for r in rows]
+    return jsonify(users)
 
 @app.route("/scores_all")
 @handle_errors
@@ -415,6 +462,16 @@ def handle_disconnect():
 def handle_start_game(data):
     global current_game
     try:
+        # Vérifier si l'utilisateur a le droit de lancer une partie
+        username = session.get('username', '')
+        
+        # Les admins peuvent toujours lancer une partie
+        if not is_admin(username):
+            # Les utilisateurs normaux doivent avoir une réservation active
+            if not has_active_reservation(username):
+                emit('error', {'message': 'Vous devez avoir une réservation active pour lancer une partie. Réservez un créneau d\'abord !'})
+                return
+        
         team1 = [p for p in data.get('team1', []) if p and p.strip()]
         team2 = [p for p in data.get('team2', []) if p and p.strip()]
         if not team1 or not team2:
