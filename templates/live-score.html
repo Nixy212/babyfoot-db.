@@ -200,6 +200,22 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
   </div>
 </div>
 
+<!-- Modal déverrouillage au début de partie -->
+<div class="winner-overlay" id="startUnlock" style="display:none">
+  <div class="winner-box">
+    <div class="winner-emoji">⚽</div>
+    <div class="winner-ttl">Partie lancée !</div>
+    <p class="winner-sub">Déverrouillez la balle pour commencer à jouer</p>
+    <div style="margin:24px 0">
+      <button class="unlock-btn" onclick="unlockAndStart()">
+        🔓 Déverrouiller la balle
+      </button>
+      <p style="font-size:0.75rem;color:var(--text-3);margin-top:8px">Le servo restera ouvert pendant toute la partie</p>
+    </div>
+    <button class="btn btn-ghost" onclick="skipUnlock()">Passer</button>
+  </div>
+</div>
+
 <div class="toast-wrap" id="tw"></div>
 
 <script>
@@ -299,6 +315,17 @@ function unlockServo() {
   }, 1500);
 }
 
+function unlockAndStart() {
+  socket.emit('unlock_servo');
+  document.getElementById('startUnlock').style.display='none';
+  toast('🔓 Balle déverrouillée — Bonne partie !', 'ok');
+}
+
+function skipUnlock() {
+  document.getElementById('startUnlock').style.display='none';
+  toast('Partie démarrée sans déverrouillage', 'inf');
+}
+
 fetch('/all_users').then(r=>r.json()).then(u=>{ allUsers=u; setupDrops(); });
 checkAccess();
 checkActiveGame();
@@ -335,6 +362,8 @@ socket.on('game_started', d=>{
   fetch('/api/is_admin').then(r=>r.json()).then(data=>{
     if(data.is_admin) document.getElementById('adminButBtns').style.display='flex';
   });
+  // Proposer de déverrouiller la balle
+  document.getElementById('startUnlock').style.display='flex';
 });
 
 socket.on('score_updated', d=>{
