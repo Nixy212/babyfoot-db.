@@ -150,6 +150,11 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
           <div class="score-big" id="s2">0</div>
         </div>
       </div>
+      <!-- Boutons +1 But visibles uniquement admin -->
+      <div id="adminButBtns" style="display:none;padding:0 32px 8px;display:none;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="socket.emit('update_score',{team:'team1'})">+1 But 🔵 Équipe 1</button>
+        <button class="btn btn-secondary" onclick="socket.emit('update_score',{team:'team2'})">+1 But 🔴 Équipe 2</button>
+      </div>
       <div style="padding:0 32px 24px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
         <button id="abandonBtn" class="btn btn-danger" onclick="abandonGame()">⛔ Abandonner</button>
         <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
@@ -326,6 +331,10 @@ socket.on('game_started', d=>{
   document.getElementById('n2').textContent=d.team2_players.join(' & ');
   document.getElementById('s1').textContent='0';
   document.getElementById('s2').textContent='0';
+  // Afficher boutons +1 But pour admin
+  fetch('/api/is_admin').then(r=>r.json()).then(data=>{
+    if(data.is_admin) document.getElementById('adminButBtns').style.display='flex';
+  });
 });
 
 socket.on('score_updated', d=>{
@@ -349,7 +358,14 @@ socket.on('game_ended', d=>{
   document.getElementById('win').style.display='flex';
 });
 
-socket.on('error', d=>toast(d.message||'Erreur','err'));
+socket.on('error', d=>{
+  console.error('SocketIO error:', d);
+  toast(d.message||'Erreur','err');
+  // Si partie déjà en cours, proposer le reset
+  if (d.message && d.message.includes('déjà en cours')) {
+    setTimeout(()=>toast('Utilisez ⛔ Forcer reset dans le panneau admin','err'), 500);
+  }
+});
 socket.on('game_reset', ()=>newGame());
 socket.on('game_abandoned', ()=>{
   toast('Partie abandonnée', 'err');
@@ -358,10 +374,27 @@ socket.on('game_abandoned', ()=>{
 
 document.getElementById('startBtn').addEventListener('click',()=>{
   if (!hasAccess) { toast('Accès non autorisé', 'err'); return; }
-  const team1=[document.getElementById('t1p1').value.trim(),document.getElementById('t1p2').value.trim()].filter(Boolean);
-  const team2=[document.getElementById('t2p1').value.trim(),document.getElementById('t2p2').value.trim()].filter(Boolean);
-  if(!team1.length||!team2.length){toast('Chaque équipe doit avoir au moins un joueur','err');return;}
+  const t1p1 = document.getElementById('t1p1').value.trim();
+  const t1p2 = document.getElementById('t1p2').value.trim();
+  const t2p1 = document.getElementById('t2p1').value.trim();
+  const t2p2 = document.getElementById('t2p2').value.trim();
+  // Si champs vides, mettre des valeurs par défaut pour admin
+  const team1 = [t1p1||'Équipe 1', t1p2].filter(Boolean);
+  const team2 = [t2p1||'Équipe 2', t2p2].filter(Boolean);
+  if(!t1p1 && !t2p1){
+    toast('Remplissez au moins le joueur 1 de chaque équipe','err');
+    return;
+  }
+  if(!team1.length||!team2.length){
+    toast('Chaque équipe doit avoir au moins un joueur','err');
+    return;
+  }
   socket.emit('start_game',{team1,team2});
+  const timeout = setTimeout(()=>{
+    toast('Pas de réponse du serveur — vérifiez la connexion','err');
+  }, 3000);
+  socket.once('game_started', ()=> clearTimeout(timeout));
+  socket.once('error', ()=> clearTimeout(timeout));
 });
 
 document.getElementById('resetBtn').addEventListener('click',()=>socket.emit('reset_game'));
