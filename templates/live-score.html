@@ -11,6 +11,78 @@
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
+  <style>
+    .popup-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    .popup-overlay.show {
+      display: flex;
+    }
+    .popup-content {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+    .popup-content h2 {
+      margin-top: 0;
+    }
+    .popup-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .popup-buttons button {
+      flex: 1;
+    }
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-success {
+      background: #27ae60;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    #admin-controls {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #fff3cd;
+      border-radius: 8px;
+      display: none;
+    }
+    #servo-unlock-btn {
+      margin-top: 1rem;
+      background: #f39c12;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      display: none;
+    }
+  </style>
 </head>
 <body style="font-family: 'DM Sans', sans-serif;">
 <nav class="nav nav-glass">
@@ -49,7 +121,7 @@
   <a href="/live-score">🎮 Partie Live</a>
   <a href="/stats">📊 Stats</a>
   <a href="/top">🏆 Top 10</a>
-  <a href="#" onclick="fetch(`/api/logout`,{method:`POST`}).then(()=>location.href=`/`)">🚪 Déconnexion</a>
+  <a href="#" onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.href='/')">🚪 Déconnexion</a>
 </div>
 
 <script>
@@ -67,7 +139,6 @@ function toggleMenu() {
       <p>Scores en temps réel via WebSocket</p>
     </div>
 
-    <!-- Formulaire de démarrage -->
     <div id="startForm" class="card fade-up" style="animation-delay:.05s;margin-bottom:1.5rem">
       <div class="card-header"><h3>Composer les équipes</h3></div>
       <div class="card-body">
@@ -92,158 +163,251 @@ function toggleMenu() {
           </div>
         </div>
         <button id="btnStart" class="btn btn-primary btn-full btn-lg">Lancer la partie</button>
+        
+        <button id="servo-unlock-btn" onclick="unlockServo()">🔓 Débloquer Servo</button>
       </div>
     </div>
 
-    <!-- Partie en cours -->
     <div id="gameArea" style="display:none">
       <div class="card fade-up" style="margin-bottom:1.5rem">
-        <div class="card-body" style="text-align:center;padding:3rem 1rem">
-          <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:2rem;align-items:center;max-width:600px;margin:0 auto">
+        <div class="card-header"><h3>Partie en cours</h3></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:2rem;align-items:center;text-align:center">
             <div>
-              <div style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.5rem">🔴 Équipe 1</div>
-              <div id="team1Names" style="font-weight:600;margin-bottom:1rem;color:var(--text-primary)">—</div>
-              <div id="score1" style="font-size:4rem;font-weight:700;color:var(--bronze);font-family:'Space Mono',monospace">0</div>
-              <button id="btnScore1" class="btn btn-primary" style="margin-top:1rem">+1 Point</button>
+              <div style="font-size:4rem;font-weight:700;color:#e74c3c" id="score1">0</div>
+              <div style="font-weight:600;margin-top:0.5rem">🔴 Équipe 1</div>
+              <div id="team1Players" style="font-size:0.9rem;color:#666;margin-top:0.5rem"></div>
+              <button class="btn btn-primary" style="margin-top:1rem" onclick="addPoint('team1')">+1 Point</button>
             </div>
-            <div style="font-size:2rem;color:var(--text-tertiary)">vs</div>
+            <div style="font-size:2rem;color:#95a5a6">VS</div>
             <div>
-              <div style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.5rem">🔵 Équipe 2</div>
-              <div id="team2Names" style="font-weight:600;margin-bottom:1rem;color:var(--text-primary)">—</div>
-              <div id="score2" style="font-size:4rem;font-weight:700;color:var(--bronze);font-family:'Space Mono',monospace">0</div>
-              <button id="btnScore2" class="btn btn-primary" style="margin-top:1rem">+1 Point</button>
+              <div style="font-size:4rem;font-weight:700;color:#3498db" id="score2">0</div>
+              <div style="font-weight:600;margin-top:0.5rem">🔵 Équipe 2</div>
+              <div id="team2Players" style="font-size:0.9rem;color:#666;margin-top:0.5rem"></div>
+              <button class="btn btn-primary" style="margin-top:1rem" onclick="addPoint('team2')">+1 Point</button>
             </div>
+          </div>
+
+          <div id="admin-controls">
+            <button class="btn-danger btn-full" onclick="stopGame()">🛑 ARRÊTER LA PARTIE (ADMIN)</button>
           </div>
         </div>
       </div>
-
-      <div class="card fade-up">
-        <div class="card-body" style="text-align:center">
-          <button id="btnReset" class="btn btn-secondary">Réinitialiser la partie</button>
-        </div>
-      </div>
     </div>
 
-    <!-- Partie terminée -->
-    <div id="endArea" style="display:none">
+    <div id="winnerArea" style="display:none">
       <div class="card fade-up">
-        <div class="card-body" style="text-align:center;padding:3rem 1rem">
-          <div style="font-size:3rem;margin-bottom:1rem">🏆</div>
-          <h2 id="winnerText" style="margin-bottom:1rem">—</h2>
-          <div id="finalScores" style="font-size:1.25rem;margin-bottom:2rem;color:var(--text-secondary)">—</div>
-          <button id="btnNewGame" class="btn btn-primary btn-lg">Nouvelle partie</button>
+        <div class="card-header"><h3>🏆 Partie terminée !</h3></div>
+        <div class="card-body" style="text-align:center">
+          <div style="font-size:3rem;margin:2rem 0" id="winnerText"></div>
+          <div style="font-size:2rem;color:#666;margin-bottom:2rem" id="finalScore"></div>
+          <button class="btn btn-primary btn-lg" onclick="location.href='/dashboard'">Retour au Dashboard</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<div class="toast-wrap" id="tw"></div>
+<div id="rematchPopup" class="popup-overlay">
+  <div class="popup-content">
+    <h2>🔄 Rejouer ?</h2>
+    <p>Voulez-vous refaire une partie avec les mêmes équipes ?</p>
+    <div class="popup-buttons">
+      <button class="btn-success" onclick="voteRematch('yes')">✅ OUI</button>
+      <button class="btn-danger" onclick="voteRematch('no')">❌ NON</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const socket = io();
-let allUsers = [];
-let currentUser = null;
+let currentGame = null;
+let currentUsername = null;
+let isAdmin = false;
+let canUnlockServo = false;
 
-function toast(msg, type='inf') {
-  const c=document.getElementById('tw'), t=document.createElement('div');
-  t.className=`toast ${type}`; t.textContent=msg; c.appendChild(t);
-  setTimeout(()=>t.remove(), 3200);
+async function loadCurrentUser() {
+  try {
+    const res = await fetch('/current_user');
+    if (res.ok) {
+      const user = await res.json();
+      currentUsername = user.username;
+      isAdmin = user.is_admin;
+      canUnlockServo = user.is_admin || user.has_reservation;
+      
+      document.getElementById('navUsername').textContent = user.username;
+      document.getElementById('navAv').textContent = user.username[0].toUpperCase();
+      
+      if (canUnlockServo) {
+        document.getElementById('servo-unlock-btn').style.display = 'block';
+      }
+      
+      if (isAdmin) {
+        document.getElementById('admin-controls').style.display = 'block';
+      }
+    }
+  } catch (e) {
+    console.error('Erreur chargement user:', e);
+  }
 }
 
-socket.on('error', d => toast(d.message, 'err'));
+async function loadUsers() {
+  try {
+    const res = await fetch('/users_list');
+    const users = await res.json();
+    
+    const selects = [
+      document.getElementById('t1p1'),
+      document.getElementById('t1p2'),
+      document.getElementById('t2p1'),
+      document.getElementById('t2p2')
+    ];
+    
+    selects.forEach(select => {
+      users.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u;
+        opt.textContent = u;
+        select.appendChild(opt);
+      });
+    });
+  } catch (e) {
+    console.error('Erreur chargement users:', e);
+  }
+}
 
-socket.on('game_started', game => {
-  document.getElementById('startForm').style.display = 'none';
-  document.getElementById('gameArea').style.display = 'block';
-  document.getElementById('endArea').style.display = 'none';
-  document.getElementById('team1Names').textContent = game.team1_players.join(' + ');
-  document.getElementById('team2Names').textContent = game.team2_players.join(' + ');
-  document.getElementById('score1').textContent = game.team1_score;
-  document.getElementById('score2').textContent = game.team2_score;
-  toast('Partie lancée !', 'ok');
-});
+async function checkActiveGame() {
+  try {
+    const res = await fetch('/api/has_active_game');
+    const data = await res.json();
+    
+    if (data.has_active_game && data.game_data) {
+      console.log('📥 Partie récupérée');
+      currentGame = data.game_data;
+      showGame();
+      updateScores();
+    }
+  } catch (e) {
+    console.error('Erreur récupération partie:', e);
+  }
+}
 
-socket.on('score_updated', game => {
-  document.getElementById('score1').textContent = game.team1_score;
-  document.getElementById('score2').textContent = game.team2_score;
-});
-
-socket.on('game_ended', game => {
-  document.getElementById('gameArea').style.display = 'none';
-  document.getElementById('endArea').style.display = 'block';
-  const winner = game.winner === 'team1' ? game.team1_players : game.team2_players;
-  document.getElementById('winnerText').textContent = `${winner.join(' + ')} remporte la partie !`;
-  document.getElementById('finalScores').textContent = `Score final : ${game.team1_score} - ${game.team2_score}`;
-  toast('Partie terminée !', 'ok');
-});
-
-socket.on('game_reset', () => {
-  document.getElementById('startForm').style.display = 'block';
-  document.getElementById('gameArea').style.display = 'none';
-  document.getElementById('endArea').style.display = 'none';
-  ['t1p1','t1p2','t2p1','t2p2'].forEach(id => document.getElementById(id).value = '');
-  toast('Partie réinitialisée', 'inf');
-});
-
-document.getElementById('btnStart').addEventListener('click', () => {
-  const t1p1 = document.getElementById('t1p1').value;
-  const t1p2 = document.getElementById('t1p2').value;
-  const t2p1 = document.getElementById('t2p1').value;
-  const t2p2 = document.getElementById('t2p2').value;
-  const team1 = [t1p1, t1p2].filter(p => p);
-  const team2 = [t2p1, t2p2].filter(p => p);
+function startGame() {
+  const team1 = [
+    document.getElementById('t1p1').value,
+    document.getElementById('t1p2').value
+  ].filter(p => p);
+  
+  const team2 = [
+    document.getElementById('t2p1').value,
+    document.getElementById('t2p2').value
+  ].filter(p => p);
+  
   if (team1.length === 0 || team2.length === 0) {
-    toast('Chaque équipe doit avoir au moins un joueur', 'err');
+    alert('Chaque équipe doit avoir au moins un joueur');
     return;
   }
-  socket.emit('start_game', {team1, team2});
-});
-
-document.getElementById('btnScore1').addEventListener('click', () => {
-  socket.emit('update_score', {team: 'team1'});
-});
-
-document.getElementById('btnScore2').addEventListener('click', () => {
-  socket.emit('update_score', {team: 'team2'});
-});
-
-document.getElementById('btnReset').addEventListener('click', () => {
-  if (confirm('Réinitialiser la partie en cours ?')) {
-    socket.emit('reset_game');
-  }
-});
-
-document.getElementById('btnNewGame').addEventListener('click', () => {
-  socket.emit('reset_game');
-});
-
-async function init() {
-  const [ud, users] = await Promise.all([
-    fetch('/current_user').then(r=>r.json()),
-    fetch('/users_list').then(r=>r.json())
-  ]);
   
-  currentUser = ud;
-  allUsers = users;
-  
-  if (currentUser.username) {
-    document.getElementById('navAv').textContent = currentUser.username[0].toUpperCase();
-    document.getElementById('navUsername').textContent = currentUser.username;
-  }
-  
-  ['t1p1','t1p2','t2p1','t2p2'].forEach(id => {
-    const sel = document.getElementById(id);
-    allUsers.forEach(u => {
-      const opt = document.createElement('option');
-      opt.value = u;
-      opt.textContent = u;
-      sel.appendChild(opt);
-    });
-  });
+  socket.emit('start_game', { team1, team2 });
 }
 
-init();
+function addPoint(team) {
+  socket.emit('update_score', { team });
+}
+
+function showGame() {
+  document.getElementById('startForm').style.display = 'none';
+  document.getElementById('gameArea').style.display = 'block';
+  document.getElementById('winnerArea').style.display = 'none';
+  
+  if (currentGame) {
+    document.getElementById('team1Players').textContent = currentGame.team1_players.join(', ');
+    document.getElementById('team2Players').textContent = currentGame.team2_players.join(', ');
+  }
+}
+
+function updateScores() {
+  if (!currentGame) return;
+  document.getElementById('score1').textContent = currentGame.team1_score;
+  document.getElementById('score2').textContent = currentGame.team2_score;
+}
+
+function showWinner() {
+  document.getElementById('startForm').style.display = 'none';
+  document.getElementById('gameArea').style.display = 'none';
+  document.getElementById('winnerArea').style.display = 'block';
+  
+  const winner = currentGame.winner === 'team1' ? 'Équipe 1' : 'Équipe 2';
+  document.getElementById('winnerText').textContent = `${winner} a gagné !`;
+  document.getElementById('finalScore').textContent = `${currentGame.team1_score} - ${currentGame.team2_score}`;
+}
+
+function unlockServo() {
+  socket.emit('unlock_servo');
+  alert('✅ Servo déverrouillé !');
+}
+
+function stopGame() {
+  if (confirm('⚠️ Êtes-vous sûr de vouloir arrêter cette partie ?')) {
+    socket.emit('stop_game');
+  }
+}
+
+function voteRematch(vote) {
+  socket.emit('vote_rematch', { vote });
+  document.getElementById('rematchPopup').classList.remove('show');
+}
+
+socket.on('game_started', (game) => {
+  console.log('🎮 Partie démarrée');
+  currentGame = game;
+  showGame();
+  updateScores();
+});
+
+socket.on('game_recovery', (game) => {
+  console.log('📥 Partie récupérée via Socket');
+  currentGame = game;
+  showGame();
+  updateScores();
+});
+
+socket.on('score_updated', (game) => {
+  console.log('📊 Score mis à jour');
+  currentGame = game;
+  updateScores();
+});
+
+socket.on('game_ended', (game) => {
+  console.log('🏁 Partie terminée');
+  currentGame = game;
+  updateScores();
+  showWinner();
+});
+
+socket.on('game_stopped', () => {
+  alert('🛑 Partie arrêtée par un admin');
+  location.href = '/dashboard';
+});
+
+socket.on('rematch_prompt', () => {
+  document.getElementById('rematchPopup').classList.add('show');
+});
+
+socket.on('rematch_cancelled', () => {
+  alert('❌ Rematch annulé - Un joueur a refusé');
+  setTimeout(() => location.href = '/dashboard', 2000);
+});
+
+socket.on('error', (data) => {
+  alert('❌ ' + data.message);
+});
+
+document.getElementById('btnStart').addEventListener('click', startGame);
+
+loadCurrentUser();
+loadUsers();
+checkActiveGame();
 </script>
 </body>
 </html>
