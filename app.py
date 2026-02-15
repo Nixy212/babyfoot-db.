@@ -67,7 +67,7 @@ active_lobby = {
 
 team_swap_requests = {}
 rematch_votes = {"team1": [], "team2": []}
-servo_commands = {"servo1": "none", "servo2": "none"}
+servo_commands = {"servo1": [], "servo2": []}  # Queue de commandes (liste)
 
 # ── DB ───────────────────────────────────────────────────────
 def get_db_connection():
@@ -459,11 +459,13 @@ def api_arduino_status():
 
 @app.route("/api/arduino/commands", methods=["GET"])
 def api_arduino_commands():
-    """ESP32 poll toutes les 500ms - commandes servo one-shot"""
+    """ESP32 poll 300ms - retourne la dernière commande et vide la queue"""
     global servo_commands
-    cmds = dict(servo_commands)
-    servo_commands = {"servo1": "none", "servo2": "none"}
-    return jsonify(cmds)
+    cmd1 = servo_commands["servo1"].pop() if servo_commands["servo1"] else "none"
+    cmd2 = servo_commands["servo2"].pop() if servo_commands["servo2"] else "none"
+    servo_commands["servo1"] = []
+    servo_commands["servo2"] = []
+    return jsonify({"servo1": cmd1, "servo2": cmd2})
 
 @app.route("/api/arduino/servo", methods=["POST"])
 def api_arduino_servo():
@@ -503,13 +505,13 @@ def api_arduino_goal():
     logger.info(f"✅ BUT ARDUINO - {team} : T1={current_game['team1_score']} T2={current_game['team2_score']}")
     if current_game[f"{team}_score"] == 9:
         servo_adverse = 'servo1' if team == 'team2' else 'servo2'
-        servo_commands[servo_adverse] = 'close'
+        servo_commands[servo_adverse].append('close')
         socketio.emit(f"{servo_adverse}_lock", {}, namespace="/")
     if current_game[f"{team}_score"] >= 10:
         current_game["winner"] = team
         current_game["active"] = False
-        servo_commands["servo1"] = "close"
-        servo_commands["servo2"] = "close"
+        servo_commands["servo1"].append("close")
+        servo_commands["servo2"].append("close")
         try: save_game_results(current_game)
         except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
         socketio.emit("game_ended", current_game, namespace="/")
@@ -665,8 +667,8 @@ def handle_start_game_from_lobby():
     }
     active_lobby = {"host": None, "invited": [], "accepted": [], "declined": [], "team1": [], "team2": [], "active": False}
     rematch_votes = {"team1": [], "team2": []}
-    servo_commands["servo1"] = "open"
-    servo_commands["servo2"] = "open"
+    servo_commands["servo1"].append("open")
+    servo_commands["servo2"].append("open")
     socketio.emit('game_started', current_game, namespace='/')
     socketio.emit('servo1_unlock', {}, namespace='/')
     socketio.emit('servo2_unlock', {}, namespace='/')
@@ -692,8 +694,8 @@ def handle_start_game(data):
             "started_at": datetime.now().isoformat()
         }
         rematch_votes = {"team1": [], "team2": []}
-        servo_commands["servo1"] = "open"
-        servo_commands["servo2"] = "open"
+        servo_commands["servo1"].append("open")
+        servo_commands["servo2"].append("open")
         socketio.emit('game_started', current_game, namespace='/')
         socketio.emit('servo1_unlock', {}, namespace='/')
         socketio.emit('servo2_unlock', {}, namespace='/')
@@ -707,13 +709,13 @@ def handle_unlock_servo1():
     username = session.get('username')
     if not is_admin(username):
         emit('error', {'message': 'Admin requis'}); return
-    servo_commands["servo1"] = "open"
+    servo_commands["servo1"].append("open")
     socketio.emit('servo1_unlock', {}, namespace='/')
     logger.info(f"🔓 SERVO1 déverrouillé par {username}")
     import threading
     def relock():
         import time; time.sleep(5)
-        servo_commands["servo1"] = "close"
+        servo_commands["servo1"].append("close")
         socketio.emit('servo1_lock', {}, namespace='/')
     threading.Thread(target=relock, daemon=True).start()
 
@@ -723,13 +725,13 @@ def handle_unlock_servo2():
     username = session.get('username')
     if not is_admin(username):
         emit('error', {'message': 'Admin requis'}); return
-    servo_commands["servo2"] = "open"
+    servo_commands["servo2"].append("open")
     socketio.emit('servo2_unlock', {}, namespace='/')
     logger.info(f"🔓 SERVO2 déverrouillé par {username}")
     import threading
     def relock():
         import time; time.sleep(5)
-        servo_commands["servo2"] = "close"
+        servo_commands["servo2"].append("close")
         socketio.emit('servo2_lock', {}, namespace='/')
     threading.Thread(target=relock, daemon=True).start()
 
@@ -741,8 +743,8 @@ def handle_stop_game():
         emit('error', {'message': 'Admin requis'}); return
     current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False, "started_by": None, "reserved_by": None}
     rematch_votes = {"team1": [], "team2": []}
-    servo_commands["servo1"] = "close"
-    servo_commands["servo2"] = "close"
+    servo_commands["servo1"].append("close")
+    servo_commands["servo2"].append("close")
     socketio.emit('game_stopped', {}, namespace='/')
     socketio.emit('servo1_lock', {}, namespace='/')
     socketio.emit('servo2_lock', {}, namespace='/')
@@ -796,8 +798,8 @@ def handle_vote_rematch(data):
             "reserved_by": current_game.get('reserved_by'), "started_at": datetime.now().isoformat()
         }
         rematch_votes = {"team1": [], "team2": []}
-        servo_commands["servo1"] = "open"
-        servo_commands["servo2"] = "open"
+        servo_commands["servo1"].append("open")
+        servo_commands["servo2"].append("open")
         socketio.emit('game_started', current_game, namespace='/')
         socketio.emit('servo1_unlock', {}, namespace='/')
         socketio.emit('servo2_unlock', {}, namespace='/')
@@ -810,8 +812,8 @@ def handle_reset():
         emit('error', {'message': 'Admin requis'}); return
     current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False}
     rematch_votes = {"team1": [], "team2": []}
-    servo_commands["servo1"] = "close"
-    servo_commands["servo2"] = "close"
+    servo_commands["servo1"].append("close")
+    servo_commands["servo2"].append("close")
     socketio.emit('game_reset', current_game, namespace='/')
 
 @socketio.on('arduino_goal')
@@ -832,13 +834,13 @@ def handle_arduino_goal(data):
     current_game[f"{team}_score"] += 1
     if current_game[f"{team}_score"] == 9:
         servo_adverse = 'servo1' if team == 'team2' else 'servo2'
-        servo_commands[servo_adverse] = 'close'
+        servo_commands[servo_adverse].append('close')
         socketio.emit(f'{servo_adverse}_lock', {}, namespace='/')
     if current_game[f"{team}_score"] >= 10:
         current_game['winner'] = team
         current_game['active'] = False
-        servo_commands["servo1"] = "close"
-        servo_commands["servo2"] = "close"
+        servo_commands["servo1"].append("close")
+        servo_commands["servo2"].append("close")
         try: save_game_results(current_game)
         except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
         socketio.emit('game_ended', current_game, namespace='/')
