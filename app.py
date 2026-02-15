@@ -135,6 +135,29 @@ def seed_admin_accounts():
     except Exception as e:
         logger.warning(f"Seed admin accounts: {e}")
 
+def seed_guest_players():
+    """Créer des joueurs invités pour jouer sans compte - LEURS STATS NE SONT PAS SAUVEGARDÉES"""
+    guest_players = [("Joueur1","guest"),("Joueur2","guest"),("Joueur3","guest"),("Joueur4","guest")]
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        for username, password in guest_players:
+            q = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
+            cur.execute(q, (username,))
+            if not cur.fetchone():
+                hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+                q2 = "INSERT INTO users (username, password, total_goals, total_games) VALUES (%s, %s, 0, 0)" if USE_POSTGRES else "INSERT INTO users (username, password, total_goals, total_games) VALUES (?, ?, 0, 0)"
+                cur.execute(q2, (username, hashed))
+                logger.info(f"✅ Joueur invité créé: {username}")
+        conn.commit(); cur.close(); conn.close()
+    except Exception as e:
+        logger.warning(f"Seed guest players: {e}")
+
+def is_guest_player(username):
+    """Vérifier si c'est un joueur invité (stats non sauvegardées)"""
+    guest_list = ["Joueur1", "Joueur2", "Joueur3", "Joueur4"]
+    return username in guest_list
+
 def is_admin(username):
     admin_list = ["Imran", "Apoutou", "Hamara", "MDA"]
     return username in admin_list
@@ -170,6 +193,7 @@ try:
     seed_test_accounts()
     seed_admin()
     seed_admin_accounts()
+    seed_guest_players()  # Créer les joueurs invités
 except Exception as e:
     logger.error(f"Erreur init DB: {e}")
 
@@ -337,12 +361,46 @@ def leaderboard():
 def user_stats(username):
     conn = get_db_connection()
     cur = conn.cursor()
+    
+    # Récupérer les infos utilisateur
     q = "SELECT * FROM users WHERE username = %s" if USE_POSTGRES else "SELECT * FROM users WHERE username = ?"
     cur.execute(q, (username,))
     user = cur.fetchone()
-    cur.close(); conn.close()
-    if not user: return jsonify(None), 404
-    return jsonify(row_to_dict(user))
+    
+    if not user:
+        cur.close()
+        conn.close()
+        return jsonify(None), 404
+    
+    user_dict = row_to_dict(user)
+    
+    # Récupérer l'historique des scores
+    q_scores = "SELECT score, date FROM scores WHERE username = %s ORDER BY date DESC LIMIT 20" if USE_POSTGRES else "SELECT score, date FROM scores WHERE username = ? ORDER BY date DESC LIMIT 20"
+    cur.execute(q_scores, (username,))
+    scores_rows = cur.fetchall()
+    
+    cur.close()
+    conn.close()
+    
+    # Calculer les statistiques
+    recent_scores = [{"score": row_to_dict(r)['score'], "date": row_to_dict(r)['date']} for r in scores_rows]
+    total_games = user_dict.get('total_games', 0)
+    total_goals = user_dict.get('total_goals', 0)
+    
+    ratio = round(total_goals / total_games, 2) if total_games > 0 else 0
+    best_score = max([s['score'] for s in recent_scores], default=0)
+    average_score = round(sum([s['score'] for s in recent_scores]) / len(recent_scores), 2) if recent_scores else 0
+    
+    return jsonify({
+        "username": user_dict['username'],
+        "total_games": total_games,
+        "total_goals": total_goals,
+        "ratio": ratio,
+        "best_score": best_score,
+        "average_score": average_score,
+        "recent_scores": recent_scores
+    })
+
 
 @app.route("/api/is_admin")
 def api_is_admin():
@@ -926,22 +984,42 @@ def save_game_results(game):
         losers_team = 'team2' if winner_team == 'team1' else 'team1'
         losers = game.get(f"{losers_team}_players", [])
         
-        for player in winners + losers:
+        # Filtrer les joueurs invités (Joueur1, Joueur2, etc.)
+        all_players = winners + losers
+        real_players = [p for p in all_players if not is_guest_player(p)]
+        real_winners = [p for p in winners if not is_guest_player(p)]
+        
+        logger.info(f"💾 Sauvegarde stats pour: {real_players}")
+        if len(real_players) < len(all_players):
+            guest_count = len(all_players) - len(real_players)
+            logger.info(f"   ⏭️  {guest_count} joueur(s) invité(s) ignoré(s)")
+        
+        # Mettre à jour le nombre de parties pour les joueurs réels
+        for player in real_players:
             q_update = "UPDATE users SET total_games = total_games + 1 WHERE username = %s" if USE_POSTGRES else "UPDATE users SET total_games = total_games + 1 WHERE username = ?"
             cur.execute(q_update, (player,))
+            
+            # Ajouter l'entrée dans l'historique des scores
+            winner_score = game.get(f"{winner_team}_score", 0)
+            score_to_save = winner_score if player in winners else 0
+            
+            q_score = "INSERT INTO scores (username, score) VALUES (%s, %s)" if USE_POSTGRES else "INSERT INTO scores (username, score) VALUES (?, ?)"
+            cur.execute(q_score, (player, score_to_save))
         
+        # Mettre à jour les buts pour les gagnants réels
         winner_score = game.get(f"{winner_team}_score", 0)
-        for player in winners:
+        for player in real_winners:
             q_goals = "UPDATE users SET total_goals = total_goals + %s WHERE username = %s" if USE_POSTGRES else "UPDATE users SET total_goals = total_goals + ? WHERE username = ?"
             cur.execute(q_goals, (winner_score, player))
         
         conn.commit()
         cur.close()
         conn.close()
-        logger.info("Résultats sauvegardés")
+        logger.info("✅ Résultats sauvegardés")
     
     except Exception as e:
         logger.error(f"Erreur save_game_results: {e}")
+
 
 @socketio.on('reset_game')
 def handle_reset():
