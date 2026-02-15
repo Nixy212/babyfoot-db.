@@ -583,6 +583,56 @@ def api_current_game():
     global current_game
     return jsonify(current_game)
 
+# ===== ROUTES HTTP POUR L ESP32 =====
+arduino_last_goal_time = {}
+
+@app.route("/api/arduino/goal", methods=["POST"])
+def api_arduino_goal():
+    global current_game
+    data = request.get_json(silent=True) or {}
+    ARDUINO_SECRET = os.environ.get("ARDUINO_SECRET", "babyfoot-arduino-secret-2024")
+    if data.get("secret") != ARDUINO_SECRET:
+        logger.warning("❌ But Arduino rejeté : secret invalide")
+        return jsonify({"success": False, "message": "Secret invalide"}), 403
+    import time
+    now = time.time()
+    client_ip = request.remote_addr
+    if client_ip in arduino_last_goal_time:
+        if now - arduino_last_goal_time[client_ip] < 2:
+            return jsonify({"success": False, "message": "Trop rapide"}), 429
+    arduino_last_goal_time[client_ip] = now
+    if not current_game.get("active"):
+        logger.warning("❌ But Arduino ignoré : aucune partie en cours")
+        return jsonify({"success": False, "message": "Aucune partie en cours", "game_active": False}), 200
+    team = data.get("team")
+    if team not in ["team1", "team2"]:
+        return jsonify({"success": False, "message": "Équipe invalide"}), 400
+    current_game[f"{team}_score"] += 1
+    logger.info(f"✅ BUT ARDUINO HTTP - {team} : T1={current_game["team1_score"]} T2={current_game["team2_score"]}")
+    if current_game[f"{team}_score"] == 9:
+        socketio.emit("servo_lock", {}, namespace="/")
+    if current_game[f"{team}_score"] >= 10:
+        current_game["winner"] = team
+        current_game["active"] = False
+        try: save_game_results(current_game)
+        except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
+        socketio.emit("game_ended", current_game, namespace="/")
+        import threading
+        def ask_rematch(): import time; time.sleep(2); socketio.emit("rematch_prompt", {}, namespace="/")
+        threading.Thread(target=ask_rematch, daemon=True).start()
+        return jsonify({"success": True, "game_ended": True, "winner": team, "scores": {"team1": current_game["team1_score"], "team2": current_game["team2_score"]}})
+    else:
+        socketio.emit("score_updated", current_game, namespace="/")
+        return jsonify({"success": True, "game_ended": False, "scores": {"team1": current_game["team1_score"], "team2": current_game["team2_score"]}})
+
+@app.route("/api/arduino/status", methods=["GET"])
+def api_arduino_status():
+    return jsonify({
+        "game_active": current_game.get("active", False),
+        "team1_score": current_game.get("team1_score", 0),
+        "team2_score": current_game.get("team2_score", 0),
+    })
+
 @app.route("/api/has_active_game")
 def api_has_active_game():
     global current_game
