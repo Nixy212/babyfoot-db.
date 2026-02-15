@@ -1174,23 +1174,29 @@ def save_game_results(game):
             guest_count = len(all_players) - len(real_players)
             logger.info(f"   ⏭️  {guest_count} joueur(s) invité(s) ignoré(s)")
         
-        # Mettre à jour le nombre de parties pour les joueurs réels
+        # Récupérer les scores des deux équipes
+        team1_score = game.get("team1_score", 0)
+        team2_score = game.get("team2_score", 0)
+        
+        # Mettre à jour le nombre de parties ET les buts pour les joueurs réels
         for player in real_players:
+            # ✅ Incrémenter le nombre de parties
             q_update = "UPDATE users SET total_games = total_games + 1 WHERE username = %s" if USE_POSTGRES else "UPDATE users SET total_games = total_games + 1 WHERE username = ?"
             cur.execute(q_update, (player,))
             
-            # Ajouter l'entrée dans l'historique des scores
-            winner_score = game.get(f"{winner_team}_score", 0)
-            score_to_save = winner_score if player in winners else 0
+            # ✅ Déterminer le score du joueur selon son équipe
+            player_team = 'team1' if player in game.get('team1_players', []) else 'team2'
+            player_score = team1_score if player_team == 'team1' else team2_score
             
+            # ✅ Ajouter l'entrée dans l'historique des scores
             q_score = "INSERT INTO scores (username, score) VALUES (%s, %s)" if USE_POSTGRES else "INSERT INTO scores (username, score) VALUES (?, ?)"
-            cur.execute(q_score, (player, score_to_save))
-        
-        # Mettre à jour les buts pour les gagnants réels
-        winner_score = game.get(f"{winner_team}_score", 0)
-        for player in real_winners:
+            cur.execute(q_score, (player, player_score))
+            
+            # ✅ Mettre à jour le total des buts (pour TOUS les joueurs, pas seulement les gagnants)
             q_goals = "UPDATE users SET total_goals = total_goals + %s WHERE username = %s" if USE_POSTGRES else "UPDATE users SET total_goals = total_goals + ? WHERE username = ?"
-            cur.execute(q_goals, (winner_score, player))
+            cur.execute(q_goals, (player_score, player))
+            
+            logger.info(f"   📊 {player} ({player_team}): {player_score} buts enregistrés")
         
         conn.commit()
         cur.close()
