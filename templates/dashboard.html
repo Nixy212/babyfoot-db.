@@ -11,41 +11,39 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
   <style>
-    .invitation-popup {
-      display: none;
+    .notification-bar {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.8);
-      z-index: 9999;
-      align-items: center;
-      justify-content: center;
-    }
-    .invitation-popup.show {
-      display: flex;
-    }
-    .invitation-content {
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
+      top: 70px;
+      right: 20px;
       max-width: 400px;
-      width: 90%;
-      text-align: center;
+      z-index: 9999;
     }
-    .invitation-buttons {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1.5rem;
-    }
-    .invitation-buttons button {
-      flex: 1;
-      padding: 0.75rem;
-      border: none;
+    .notification {
+      background: white;
+      padding: 1rem;
       border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(400px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .notification-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .notification-buttons button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
       cursor: pointer;
       font-weight: 600;
+      font-size: 0.9rem;
     }
     .btn-accept {
       background: #27ae60;
@@ -58,9 +56,38 @@
     #invitation-section {
       margin-top: 1.5rem;
       padding: 1.5rem;
-      background: #f8f9fa;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       border-radius: 12px;
+      color: white;
       display: none;
+    }
+    #invitation-section h3 {
+      color: white;
+      margin-top: 0;
+    }
+    .player-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .player-chip {
+      padding: 0.5rem 1rem;
+      background: rgba(255,255,255,0.2);
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: white;
+    }
+    .player-chip:hover {
+      background: rgba(255,255,255,0.3);
+      border-color: white;
+    }
+    .player-chip.selected {
+      background: white;
+      color: #667eea;
+      border-color: white;
     }
     #servo-controls {
       margin-top: 1.5rem;
@@ -111,6 +138,8 @@
   <a href="#" onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.href='/')">🚪 Déconnexion</a>
 </div>
 
+<div class="notification-bar" id="notificationBar"></div>
+
 <script>
 function toggleMenu() {
   document.getElementById("burger").classList.toggle("open");
@@ -153,12 +182,10 @@ function toggleMenu() {
     </div>
 
     <div id="invitation-section" class="fade-up" style="animation-delay:.1s">
-      <h3>👥 Inviter un joueur</h3>
-      <p>Invitez quelqu'un à jouer avec vous</p>
-      <select id="player-select" class="input" style="margin-bottom:1rem">
-        <option value="">-- Sélectionner un joueur --</option>
-      </select>
-      <button class="btn btn-primary btn-full" onclick="sendInvitation()">📤 Envoyer invitation</button>
+      <h3>👥 Créer un Lobby</h3>
+      <p>Invitez des joueurs pour créer une partie</p>
+      <div class="player-selector" id="playerSelector"></div>
+      <button class="btn btn-full" style="margin-top:1rem;background:white;color:#667eea;font-weight:bold" onclick="createLobby()">🎮 Créer le Lobby</button>
     </div>
 
     <div id="servo-controls" class="fade-up" style="animation-delay:.15s">
@@ -190,23 +217,13 @@ function toggleMenu() {
   </div>
 </div>
 
-<div id="invitationPopup" class="invitation-popup">
-  <div class="invitation-content">
-    <h2>🎮 Invitation à jouer</h2>
-    <p id="invitationMessage"></p>
-    <div class="invitation-buttons">
-      <button class="btn-accept" onclick="acceptInvitation()">✅ Accepter</button>
-      <button class="btn-decline" onclick="declineInvitation()">❌ Refuser</button>
-    </div>
-  </div>
-</div>
-
 <script>
 const socket = io();
 let currentUsername = null;
-let currentInvitationId = null;
 let isAdmin = false;
 let hasReservation = false;
+let selectedPlayers = [];
+let allUsers = [];
 
 async function loadCurrentUser() {
   try {
@@ -236,19 +253,48 @@ async function loadPlayers() {
   try {
     const res = await fetch('/users_list');
     const users = await res.json();
-    const select = document.getElementById('player-select');
+    allUsers = users.filter(u => u !== currentUsername);
     
-    users.forEach(u => {
-      if (u !== currentUsername) {
-        const opt = document.createElement('option');
-        opt.value = u;
-        opt.textContent = u;
-        select.appendChild(opt);
-      }
+    const selector = document.getElementById('playerSelector');
+    selector.innerHTML = '';
+    
+    allUsers.forEach(u => {
+      const chip = document.createElement('div');
+      chip.className = 'player-chip';
+      chip.textContent = u;
+      chip.onclick = () => togglePlayer(u, chip);
+      selector.appendChild(chip);
     });
   } catch (e) {
     console.error('Erreur chargement joueurs:', e);
   }
+}
+
+function togglePlayer(username, chip) {
+  if (selectedPlayers.includes(username)) {
+    selectedPlayers = selectedPlayers.filter(u => u !== username);
+    chip.classList.remove('selected');
+  } else {
+    selectedPlayers.push(username);
+    chip.classList.add('selected');
+  }
+}
+
+function createLobby() {
+  if (selectedPlayers.length === 0) {
+    showNotification('Sélectionnez au moins 1 joueur', 'warning');
+    return;
+  }
+  
+  socket.emit('create_lobby', { invited: selectedPlayers });
+  
+  selectedPlayers = [];
+  document.querySelectorAll('.player-chip').forEach(c => c.classList.remove('selected'));
+}
+
+function unlockServo() {
+  socket.emit('unlock_servo');
+  showNotification('Servo déverrouillé', 'success');
 }
 
 async function loadLeaderboard() {
@@ -318,56 +364,53 @@ async function loadUserStats(username) {
   }
 }
 
-function sendInvitation() {
-  const toUser = document.getElementById('player-select').value;
+function showNotification(message, type) {
+  const bar = document.getElementById('notificationBar');
+  const notif = document.createElement('div');
+  notif.className = 'notification';
+  notif.innerHTML = `
+    <div style="flex:1">${message}</div>
+  `;
+  bar.appendChild(notif);
   
-  if (!toUser) {
-    alert('Veuillez sélectionner un joueur');
-    return;
-  }
-  
-  socket.emit('send_invitation', { to_user: toUser });
-  alert('✅ Invitation envoyée à ' + toUser);
-  document.getElementById('player-select').value = '';
+  setTimeout(() => {
+    notif.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => notif.remove(), 300);
+  }, 3000);
 }
 
-function unlockServo() {
-  socket.emit('unlock_servo');
-  alert('✅ Servo déverrouillé !');
-}
+socket.on('lobby_created', () => {
+  showNotification('Lobby créé ! Redirection...', 'success');
+  setTimeout(() => location.href = '/lobby', 1000);
+});
 
-function acceptInvitation() {
-  socket.emit('accept_invitation', { invitation_id: currentInvitationId });
-  document.getElementById('invitationPopup').classList.remove('show');
-  setTimeout(() => location.href = '/live-score', 500);
-}
-
-function declineInvitation() {
-  socket.emit('decline_invitation', { invitation_id: currentInvitationId });
-  document.getElementById('invitationPopup').classList.remove('show');
-}
-
-socket.on('invitation_received', (data) => {
+socket.on('lobby_invitation', (data) => {
   if (data.to === currentUsername) {
-    currentInvitationId = data.invitation_id;
-    document.getElementById('invitationMessage').textContent = 
-      `${data.from} vous invite à jouer !`;
-    document.getElementById('invitationPopup').classList.add('show');
+    const bar = document.getElementById('notificationBar');
+    const notif = document.createElement('div');
+    notif.className = 'notification';
+    notif.innerHTML = `
+      <div style="flex:1">
+        <strong>${data.from}</strong> vous invite à jouer
+      </div>
+      <div class="notification-buttons">
+        <button class="btn-accept" onclick="acceptLobby()">✅</button>
+        <button class="btn-decline" onclick="declineLobby()">❌</button>
+      </div>
+    `;
+    bar.appendChild(notif);
   }
 });
 
-socket.on('invitation_accepted', (data) => {
-  if (data.player1 === currentUsername || data.player2 === currentUsername) {
-    alert(`🎮 Partie acceptée ! Redirection...`);
-    setTimeout(() => location.href = '/live-score', 1000);
-  }
-});
+function acceptLobby() {
+  socket.emit('accept_lobby');
+  setTimeout(() => location.href = '/lobby', 500);
+}
 
-socket.on('invitation_declined', (data) => {
-  if (data.from === currentUsername) {
-    alert(`❌ ${data.to} a refusé votre invitation`);
-  }
-});
+function declineLobby() {
+  socket.emit('decline_lobby');
+  document.querySelectorAll('.notification').forEach(n => n.remove());
+}
 
 loadCurrentUser();
 loadPlayers();
