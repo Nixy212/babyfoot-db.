@@ -386,7 +386,6 @@ socket.on('game_ended', (game) => {
 });
 
 socket.on('game_stopped', () => {
-  alert('🛑 Partie arrêtée par un admin');
   location.href = '/dashboard';
 });
 
@@ -395,12 +394,11 @@ socket.on('rematch_prompt', () => {
 });
 
 socket.on('rematch_cancelled', () => {
-  alert('❌ Rematch annulé - Un joueur a refusé');
-  setTimeout(() => location.href = '/dashboard', 2000);
+  location.href = '/dashboard';
 });
 
 socket.on('error', (data) => {
-  alert('❌ ' + data.message);
+  console.error('Erreur:', data.message);
 });
 
 document.getElementById('btnStart').addEventListener('click', startGame);
