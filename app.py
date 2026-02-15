@@ -478,7 +478,18 @@ def handle_create_lobby(data):
 @socketio.on('invite_to_lobby')
 def handle_invite_to_lobby(data):
     global active_lobby
+    username = session.get('username')
     invited_user = data.get('user')
+    
+    # Vérifier que l'utilisateur a le droit d'inviter (hôte ou admin)
+    if username != active_lobby['host'] and not is_admin(username):
+        emit('error', {'message': 'Seul l\'hôte ou un admin peut inviter'})
+        return
+    
+    # Vérifier que le lobby n'est pas complet (max 8 joueurs)
+    if len(active_lobby['accepted']) + len(active_lobby['invited']) >= 8:
+        emit('error', {'message': 'Le lobby est complet (8 joueurs maximum)'})
+        return
     
     if invited_user and invited_user not in active_lobby['invited']:
         active_lobby['invited'].append(invited_user)
@@ -487,6 +498,8 @@ def handle_invite_to_lobby(data):
             'from': active_lobby['host'],
             'to': invited_user
         }, namespace='/')
+        
+        socketio.emit('lobby_update', active_lobby, namespace='/')
 @socketio.on('accept_lobby')
 def handle_accept_lobby():
     global active_lobby
@@ -498,10 +511,19 @@ def handle_accept_lobby():
     if username not in active_lobby['accepted']:
         active_lobby['accepted'].append(username)
         
-        if len(active_lobby['team1']) <= len(active_lobby['team2']):
+        # Placer dans l'équipe la moins remplie (limite de 4 joueurs par équipe)
+        team1_count = len(active_lobby['team1'])
+        team2_count = len(active_lobby['team2'])
+        
+        if team1_count < 4 and team1_count <= team2_count:
             active_lobby['team1'].append(username)
-        else:
+        elif team2_count < 4:
             active_lobby['team2'].append(username)
+        else:
+            # Les deux équipes sont pleines, ne pas ajouter
+            emit('error', {'message': 'Les deux équipes sont complètes (4 joueurs max par équipe)'})
+            active_lobby['accepted'].remove(username)
+            return
     
     logger.info(f"{username} a accepté le lobby")
     socketio.emit('lobby_update', active_lobby, namespace='/')
@@ -571,6 +593,40 @@ def handle_decline_team_swap(data):
     
     if request_id in team_swap_requests:
         team_swap_requests.pop(request_id)
+
+@socketio.on('kick_from_lobby')
+def handle_kick_from_lobby(data):
+    global active_lobby
+    username = session.get('username')
+    kicked_user = data.get('user')
+    
+    # Vérifier que l'utilisateur a le droit d'exclure (hôte ou admin)
+    if username != active_lobby['host'] and not is_admin(username):
+        emit('error', {'message': 'Seul l\'hôte ou un admin peut exclure'})
+        return
+    
+    # Ne pas permettre d'exclure l'hôte
+    if kicked_user == active_lobby['host']:
+        emit('error', {'message': 'Impossible d\'exclure l\'hôte'})
+        return
+    
+    # Retirer le joueur de toutes les listes
+    if kicked_user in active_lobby['invited']:
+        active_lobby['invited'].remove(kicked_user)
+    if kicked_user in active_lobby['accepted']:
+        active_lobby['accepted'].remove(kicked_user)
+    if kicked_user in active_lobby['team1']:
+        active_lobby['team1'].remove(kicked_user)
+    if kicked_user in active_lobby['team2']:
+        active_lobby['team2'].remove(kicked_user)
+    
+    logger.info(f"{kicked_user} a été exclu du lobby par {username}")
+    
+    # Notifier le joueur exclu
+    socketio.emit('kicked_from_lobby', {'kicked_user': kicked_user}, namespace='/')
+    
+    # Mettre à jour le lobby pour tous
+    socketio.emit('lobby_update', active_lobby, namespace='/')
 
 @socketio.on('cancel_lobby')
 def handle_cancel_lobby():
