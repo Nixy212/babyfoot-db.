@@ -14,11 +14,14 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'babyfoot-secret-key-2024-change-me')
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 7 jours au lieu de 24h
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_PATH'] = '/'
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Rafraîchir à chaque requête
 
-socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True, ping_timeout=60, ping_interval=25, async_mode="threading")
+socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True, ping_timeout=60, ping_interval=25, async_mode="threading", manage_session=False)
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
@@ -608,9 +611,10 @@ def api_arduino_goal():
     if team not in ["team1", "team2"]:
         return jsonify({"success": False, "message": "Équipe invalide"}), 400
     current_game[f"{team}_score"] += 1
-    logger.info(f"✅ BUT ARDUINO HTTP - {team} : T1={current_game["team1_score"]} T2={current_game["team2_score"]}")
+    logger.info(f"✅ BUT ARDUINO HTTP - {team} : T1={current_game['team1_score']} T2={current_game['team2_score']}")
     if current_game[f"{team}_score"] == 9:
-        socketio.emit("servo_lock", {}, namespace="/")
+        servo_adverse = 'servo1' if team == 'team2' else 'servo2'
+        socketio.emit(f"{servo_adverse}_lock", {}, namespace="/")
     if current_game[f"{team}_score"] >= 10:
         current_game["winner"] = team
         current_game["active"] = False
@@ -1034,33 +1038,57 @@ def handle_start_game(data):
         logger.error(f"Erreur start_game: {e}")
         emit('error', {'message': str(e)})
 
-@socketio.on('unlock_servo')
-def handle_unlock_servo():
+@socketio.on('unlock_servo1')
+def handle_unlock_servo1():
+    """Déverrouiller servo 1 (équipe 1)"""
     username = session.get('username')
     
     if not username:
         emit('error', {'message': 'Non authentifié'})
         return
     
-    # Seuls les admins peuvent déverrouiller manuellement
     if not is_admin(username):
-        emit('error', {'message': 'Seuls les admins peuvent débloquer le servo'})
+        emit('error', {'message': 'Seuls les admins peuvent débloquer les servos'})
         return
     
-    logger.info(f"Déverrouillage servo par {username} (5 secondes)")
+    logger.info(f"🔓 Déverrouillage SERVO1 par {username} (5 secondes)")
     
-    # Déverrouiller immédiatement
-    socketio.emit('servo_unlock', {}, namespace='/')
+    socketio.emit('servo1_unlock', {}, namespace='/')
     
-    # Reverrouiller après 5 secondes
     import threading
-    def relock_servo():
+    def relock_servo1():
         import time
         time.sleep(5)
-        socketio.emit('servo_lock', {}, namespace='/')
-        logger.info("🔒 Servo reverrouillé automatiquement après 5s")
+        socketio.emit('servo1_lock', {}, namespace='/')
+        logger.info("🔒 SERVO1 reverrouillé automatiquement")
     
-    threading.Thread(target=relock_servo, daemon=True).start()
+    threading.Thread(target=relock_servo1, daemon=True).start()
+
+@socketio.on('unlock_servo2')
+def handle_unlock_servo2():
+    """Déverrouiller servo 2 (équipe 2)"""
+    username = session.get('username')
+    
+    if not username:
+        emit('error', {'message': 'Non authentifié'})
+        return
+    
+    if not is_admin(username):
+        emit('error', {'message': 'Seuls les admins peuvent débloquer les servos'})
+        return
+    
+    logger.info(f"🔓 Déverrouillage SERVO2 par {username} (5 secondes)")
+    
+    socketio.emit('servo2_unlock', {}, namespace='/')
+    
+    import threading
+    def relock_servo2():
+        import time
+        time.sleep(5)
+        socketio.emit('servo2_lock', {}, namespace='/')
+        logger.info("🔒 SERVO2 reverrouillé automatiquement")
+    
+    threading.Thread(target=relock_servo2, daemon=True).start()
 
 
 @socketio.on('stop_game')
@@ -1088,7 +1116,9 @@ def handle_stop_game():
     rematch_votes = {"team1": [], "team2": []}
     
     socketio.emit('game_stopped', {}, namespace='/')
-    socketio.emit('servo_lock', {}, namespace='/')
+    # Verrouiller les deux servos lors du stop
+    socketio.emit('servo1_lock', {}, namespace='/')
+    socketio.emit('servo2_lock', {}, namespace='/')
 
 @socketio.on('update_score')
 def handle_score(data):
@@ -1301,10 +1331,13 @@ def handle_arduino_goal(data):
         
         logger.info(f"✅ BUT VALIDÉ ! Nouveau score: T1={current_game['team1_score']} T2={current_game['team2_score']}")
         
-        # Fermer le servo à 9 buts (avant le dernier but)
+        # Fermer le servo ADVERSE à 9 buts
         if current_game[f"{team}_score"] == 9:
-            logger.info("🔒 9 buts atteints - Verrouillage du servo")
-            socketio.emit('servo_lock', {}, namespace='/')
+            # Si team1 marque 9 buts, on ferme le servo de team2
+            # Si team2 marque 9 buts, on ferme le servo de team1
+            servo_adverse = 'servo1' if team == 'team2' else 'servo2'
+            logger.info(f"🔒 9 buts pour {team} - Verrouillage {servo_adverse}")
+            socketio.emit(f'{servo_adverse}_lock', {}, namespace='/')
         
         # Fin de partie à 10 buts
         if current_game[f"{team}_score"] >= 10:
