@@ -87,6 +87,7 @@ active_lobby = {
 
 team_swap_requests = {}
 rematch_votes = {"team1": [], "team2": []}
+servo_commands = {"servo1": "none", "servo2": "none"}
 
 def get_db_connection():
     if USE_POSTGRES:
@@ -624,6 +625,31 @@ def api_arduino_status():
         "team2_score": current_game.get("team2_score", 0),
     })
 
+
+@app.route("/api/arduino/commands", methods=["GET"])
+def api_arduino_commands():
+    """ESP32 poll toutes les 500ms - commandes servo one-shot"""
+    global servo_commands
+    cmds = dict(servo_commands)
+    servo_commands = {"servo1": "none", "servo2": "none"}
+    return jsonify(cmds)
+
+@app.route("/api/arduino/servo", methods=["POST"])
+def api_arduino_servo():
+    """Dashboard/Admin commandent un servo"""
+    global servo_commands
+    username = session.get('username')
+    if not is_admin(username):
+        return jsonify({"success": False, "message": "Admin requis"}), 403
+    data = request.get_json(silent=True) or {}
+    servo = data.get("servo")
+    action = data.get("action")
+    if servo not in ["servo1", "servo2"] or action not in ["open", "close"]:
+        return jsonify({"success": False, "message": "Paramètres invalides"}), 400
+    servo_commands[servo] = action
+    logger.info(f"🎮 Commande servo: {servo} → {action} par {username}")
+    return jsonify({"success": True, "servo": servo, "action": action})
+
 @app.route("/api/has_active_game")
 def api_has_active_game():
     global current_game
@@ -820,6 +846,9 @@ def handle_start_game_from_lobby():
     }
     active_lobby = {"host": None, "invited": [], "accepted": [], "declined": [], "team1": [], "team2": [], "active": False}
     rematch_votes = {"team1": [], "team2": []}
+servo_commands = {"servo1": "none", "servo2": "none"}
+    servo_commands['servo1'] = 'open'
+    servo_commands['servo2'] = 'open'
     socketio.emit('game_started', current_game, namespace='/')
     socketio.emit('servo1_unlock', {}, namespace='/')
     socketio.emit('servo2_unlock', {}, namespace='/')
@@ -848,6 +877,7 @@ def handle_start_game(data):
             "reserved_by": reserved_by, "started_at": datetime.now().isoformat()
         }
         rematch_votes = {"team1": [], "team2": []}
+servo_commands = {"servo1": "none", "servo2": "none"}
         socketio.emit('game_started', current_game, namespace='/')
         socketio.emit('servo1_unlock', {}, namespace='/')
         socketio.emit('servo2_unlock', {}, namespace='/')
@@ -891,6 +921,9 @@ def handle_stop_game():
         emit('error', {'message': 'Seuls les admins peuvent arrêter'}); return
     current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False, "started_by": None, "reserved_by": None}
     rematch_votes = {"team1": [], "team2": []}
+servo_commands = {"servo1": "none", "servo2": "none"}
+    servo_commands['servo1'] = 'close'
+    servo_commands['servo2'] = 'close'
     socketio.emit('game_stopped', {}, namespace='/')
     socketio.emit('servo1_lock', {}, namespace='/')
     socketio.emit('servo2_lock', {}, namespace='/')
@@ -930,6 +963,7 @@ def handle_vote_rematch(data):
     if vote == 'no':
         socketio.emit('rematch_cancelled', {}, namespace='/')
         rematch_votes = {"team1": [], "team2": []}
+servo_commands = {"servo1": "none", "servo2": "none"}
         return
     team = None
     if username in current_game.get('team1_players', []): team = 'team1'
@@ -948,6 +982,7 @@ def handle_vote_rematch(data):
             "reserved_by": current_game.get('reserved_by'), "started_at": datetime.now().isoformat()
         }
         rematch_votes = {"team1": [], "team2": []}
+servo_commands = {"servo1": "none", "servo2": "none"}
         socketio.emit('game_started', current_game, namespace='/')
         socketio.emit('servo1_unlock', {}, namespace='/')
         socketio.emit('servo2_unlock', {}, namespace='/')
@@ -984,6 +1019,7 @@ def handle_reset():
         emit('error', {'message': 'Seuls les admins peuvent reset'}); return
     current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False}
     rematch_votes = {"team1": [], "team2": []}
+servo_commands = {"servo1": "none", "servo2": "none"}
     socketio.emit('game_reset', current_game, namespace='/')
 
 @socketio.on('arduino_goal')
