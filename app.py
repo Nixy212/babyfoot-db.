@@ -451,22 +451,28 @@ def handle_create_lobby(data):
     
     # Si un lobby est déjà actif, le fermer d'abord
     if active_lobby.get('active'):
-        logger.warning(f"Lobby actif fermé par {username} pour en créer un nouveau")
+        logger.warning(f"⚠️ Lobby actif détecté, fermeture forcée")
+        logger.warning(f"   Ancien lobby: host={active_lobby.get('host')}, accepted={active_lobby.get('accepted')}")
     
     invited_users = data.get('invited', [])
     
-    # Réinitialiser complètement le lobby
+    # L'hôte ne doit PAS être dans la liste invited
+    # Il est automatiquement dans accepted et team1
     active_lobby = {
         "host": username,
-        "invited": invited_users + [username],  # L'hôte doit être dans les invités
-        "accepted": [username],
+        "invited": invited_users,  # SANS l'hôte
+        "accepted": [username],     # L'hôte est déjà accepté
         "declined": [],
-        "team1": [username],
+        "team1": [username],        # L'hôte est dans team1
         "team2": [],
         "active": True
     }
     
-    logger.info(f"Lobby créé par {username}, invités: {invited_users}")
+    logger.info(f"✅ NOUVEAU LOBBY créé par {username}")
+    logger.info(f"   invited: {invited_users}")
+    logger.info(f"   accepted: {active_lobby['accepted']}")
+    logger.info(f"   team1: {active_lobby['team1']}")
+    logger.info(f"   team2: {active_lobby['team2']}")
     
     socketio.emit('lobby_created', {
         'host': username,
@@ -515,14 +521,17 @@ def handle_accept_lobby():
     global active_lobby
     username = session.get('username')
     
-    if username not in active_lobby['invited']:
-        return
-    
-    # Vérifier que le joueur n'est pas déjà dans une équipe
+    # PREMIER CHECK : Est-il déjà dans une équipe ? (évite les doublons)
     if username in active_lobby['team1'] or username in active_lobby['team2']:
-        logger.info(f"{username} est déjà dans une équipe")
+        logger.info(f"{username} est déjà dans une équipe, ignoré")
         return
     
+    # DEUXIÈME CHECK : Est-il invité ?
+    if username not in active_lobby['invited']:
+        logger.warning(f"{username} tente d'accepter mais n'est pas invité")
+        return
+    
+    # Ajouter à la liste des acceptés (si pas déjà dedans)
     if username not in active_lobby['accepted']:
         active_lobby['accepted'].append(username)
     
@@ -532,16 +541,20 @@ def handle_accept_lobby():
     
     if team1_count < 4 and team1_count <= team2_count:
         active_lobby['team1'].append(username)
+        logger.info(f"{username} → Équipe 1")
     elif team2_count < 4:
         active_lobby['team2'].append(username)
+        logger.info(f"{username} → Équipe 2")
     else:
-        # Les deux équipes sont pleines, ne pas ajouter
+        # Les deux équipes sont pleines
         emit('error', {'message': 'Les deux équipes sont complètes (4 joueurs max par équipe)'})
         active_lobby['accepted'].remove(username)
+        logger.warning(f"{username} refusé : équipes pleines")
         return
     
-    logger.info(f"{username} a accepté le lobby et rejoint équipe")
+    logger.info(f"✅ {username} a accepté et rejoint une équipe")
     socketio.emit('lobby_update', active_lobby, namespace='/')
+
 
 
 @socketio.on('decline_lobby')
