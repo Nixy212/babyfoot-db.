@@ -2,7 +2,7 @@ Flask==3.0.0
 flask-socketio==5.3.5
 bcrypt==4.1.2
 gunicorn==21.2.0
-psycopg[binary]==3.3.2
+psycopg2-binary==2.9.9
 python-socketio==5.11.0
 eventlet==0.36.1
 setuptools
