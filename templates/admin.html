@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Baby-Foot Club</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<nav class="nav nav-glass">
+  <div class="nav-inner">
+    <a href="/dashboard" class="nav-brand">
+      <span class="brand-text">Baby-Foot Club - ADMIN</span>
+    </a>
+    <div class="nav-right">
+      <button class="btn btn-ghost" onclick="logout()">🚪</button>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="container" style="max-width:600px">
+    <div class="page-header">
+      <h1>⚙️ Administration</h1>
+      <p>Outils de gestion</p>
+    </div>
+
+    <div class="card" style="margin-top:2rem">
+      <div class="card-header" style="background:#fee;border-bottom:2px solid #e74c3c">
+        <h3 style="color:#e74c3c;margin:0">🔥 ZONE DANGER</h3>
+      </div>
+      <div class="card-body">
+        <h4 style="margin-top:0">Reset de la base de données</h4>
+        <p style="color:var(--text-tertiary);margin-bottom:1.5rem">
+          ⚠️ Cette action va supprimer TOUTES les données (utilisateurs, scores, réservations) 
+          et recréer uniquement les comptes de base (admins, test, invités).
+        </p>
+        <p style="color:var(--text-tertiary);margin-bottom:1.5rem">
+          <strong>Cette action est IRRÉVERSIBLE !</strong>
+        </p>
+        <button class="btn" style="background:#e74c3c;color:white;width:100%" onclick="resetDatabase()">
+          🗑️ RESET COMPLET DE LA BASE
+        </button>
+        <div id="result" style="margin-top:1rem;padding:1rem;border-radius:8px;display:none"></div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:2rem">
+      <a href="/dashboard" class="btn btn-ghost">← Retour</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function logout() {
+  fetch('/api/logout', {method: 'POST'}).then(() => location.href = '/');
+}
+
+async function resetDatabase() {
+  const confirmed = confirm(
+    '⚠️ ATTENTION ⚠️\n\n' +
+    'Vous allez SUPPRIMER TOUTES LES DONNÉES :\n' +
+    '- Tous les utilisateurs (sauf admins/test/invités)\n' +
+    '- Tous les scores et statistiques\n' +
+    '- Toutes les réservations\n\n' +
+    'Cette action est IRRÉVERSIBLE !\n\n' +
+    'Êtes-vous ABSOLUMENT SÛR ?'
+  );
+  
+  if (!confirmed) return;
+  
+  const doubleCheck = confirm(
+    'Dernière confirmation :\n\n' +
+    'Tapez OK pour VRAIMENT supprimer toutes les données.'
+  );
+  
+  if (!doubleCheck) return;
+  
+  const result = document.getElementById('result');
+  result.style.display = 'block';
+  result.style.background = 'rgba(255,191,0,0.1)';
+  result.style.border = '1px solid #ffbf00';
+  result.style.color = 'var(--text-primary)';
+  result.textContent = '⏳ Reset en cours...';
+  
+  try {
+    const res = await fetch('/admin/reset_database', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'}
+    });
+    
+    const data = await res.json();
+    
+    if (data.success) {
+      result.style.background = 'rgba(39,174,96,0.1)';
+      result.style.border = '1px solid #27ae60';
+      result.textContent = '✅ Base de données réinitialisée ! Redirection...';
+      
+      setTimeout(() => {
+        location.href = '/dashboard';
+      }, 2000);
+    } else {
+      result.style.background = 'rgba(231,76,60,0.1)';
+      result.style.border = '1px solid #e74c3c';
+      result.textContent = '❌ Erreur : ' + data.message;
+    }
+  } catch (e) {
+    result.style.background = 'rgba(231,76,60,0.1)';
+    result.style.border = '1px solid #e74c3c';
+    result.textContent = '❌ Erreur réseau : ' + e.message;
+  }
+}
+</script>
+</body>
+</html>
