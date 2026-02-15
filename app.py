@@ -44,7 +44,17 @@ current_game = {
     "started_at": None
 }
 
-pending_invitations = {}
+active_lobby = {
+    "host": None,
+    "invited": [],
+    "accepted": [],
+    "declined": [],
+    "team1": [],
+    "team2": [],
+    "active": False
+}
+
+team_swap_requests = {}
 rematch_votes = {"team1": [], "team2": []}
 
 def get_db_connection():
@@ -207,6 +217,11 @@ def reservation():
     if "username" not in session: return redirect(url_for('login_page'))
     return render_template("reservation.html")
 
+@app.route("/lobby")
+def lobby_page():
+    if "username" not in session: return redirect(url_for('login_page'))
+    return render_template("lobby.html")
+
 @app.route("/live-score")
 def live_score():
     if "username" not in session: return redirect(url_for('login_page'))
@@ -233,10 +248,11 @@ def debug_socketio_page():
 
 @app.route("/debug/game")
 def debug_game():
-    global current_game
+    global current_game, active_lobby
     return jsonify({
         "current_game": current_game,
-        "pending_invitations": pending_invitations,
+        "active_lobby": active_lobby,
+        "team_swap_requests": team_swap_requests,
         "rematch_votes": rematch_votes,
         "timestamp": datetime.now().isoformat()
     })
@@ -404,6 +420,11 @@ def api_has_active_game():
         "game_data": current_game if current_game.get('active') else None
     })
 
+@app.route("/api/active_lobby")
+def api_active_lobby():
+    global active_lobby
+    return jsonify(active_lobby)
+
 @socketio.on('connect')
 def handle_connect():
     username = session.get('username', 'Anonymous')
@@ -411,67 +432,197 @@ def handle_connect():
     if current_game.get('active'):
         join_room('game')
         emit('game_recovery', current_game)
+    if active_lobby.get('active'):
+        join_room('lobby')
+        emit('lobby_update', active_lobby)
 
 @socketio.on('disconnect')
 def handle_disconnect():
     logger.info(f"WS déconnecté: {request.sid}")
 
-@socketio.on('send_invitation')
-def handle_send_invitation(data):
-    from_user = session.get('username')
-    to_user = data.get('to_user')
+@socketio.on('create_lobby')
+def handle_create_lobby(data):
+    global active_lobby
+    username = session.get('username')
     
-    if not from_user or not to_user:
-        emit('error', {'message': 'Utilisateurs invalides'})
+    if not is_admin(username) and not has_active_reservation(username):
+        emit('error', {'message': 'Seuls admins/réservateurs peuvent créer un lobby'})
         return
     
-    if not is_admin(from_user) and not has_active_reservation(from_user):
-        emit('error', {'message': 'Seuls admins/réservateurs peuvent inviter'})
-        return
+    invited_users = data.get('invited', [])
     
-    invitation_id = f"{from_user}_{to_user}_{datetime.now().timestamp()}"
-    pending_invitations[invitation_id] = {
-        'from': from_user,
-        'to': to_user,
-        'timestamp': datetime.now().isoformat()
+    active_lobby = {
+        "host": username,
+        "invited": invited_users,
+        "accepted": [username],
+        "declined": [],
+        "team1": [username],
+        "team2": [],
+        "active": True
     }
     
-    logger.info(f"Invitation: {from_user} → {to_user}")
-    socketio.emit('invitation_received', {
-        'invitation_id': invitation_id,
-        'from': from_user,
-        'to': to_user
-    }, namespace='/')
-
-@socketio.on('accept_invitation')
-def handle_accept_invitation(data):
-    invitation_id = data.get('invitation_id')
+    logger.info(f"Lobby créé par {username}, invités: {invited_users}")
     
-    if invitation_id not in pending_invitations:
-        emit('error', {'message': 'Invitation introuvable'})
+    socketio.emit('lobby_created', {
+        'host': username,
+        'invited': invited_users
+    }, namespace='/')
+    
+    for user in invited_users:
+        socketio.emit('lobby_invitation', {
+            'from': username,
+            'to': user
+        }, namespace='/')
+
+@socketio.on('accept_lobby')
+def handle_accept_lobby():
+    global active_lobby
+    username = session.get('username')
+    
+    if username not in active_lobby['invited']:
         return
     
-    invitation = pending_invitations.pop(invitation_id)
-    from_user = invitation['from']
-    to_user = invitation['to']
+    if username not in active_lobby['accepted']:
+        active_lobby['accepted'].append(username)
+        
+        if len(active_lobby['team1']) <= len(active_lobby['team2']):
+            active_lobby['team1'].append(username)
+        else:
+            active_lobby['team2'].append(username)
     
-    logger.info(f"Invitation acceptée: {from_user} ⚔️ {to_user}")
-    socketio.emit('invitation_accepted', {
-        'player1': from_user,
-        'player2': to_user
+    logger.info(f"{username} a accepté le lobby")
+    socketio.emit('lobby_update', active_lobby, namespace='/')
+
+@socketio.on('decline_lobby')
+def handle_decline_lobby():
+    global active_lobby
+    username = session.get('username')
+    
+    if username not in active_lobby['invited']:
+        return
+    
+    if username not in active_lobby['declined']:
+        active_lobby['declined'].append(username)
+    
+    logger.info(f"{username} a refusé le lobby")
+    socketio.emit('lobby_update', active_lobby, namespace='/')
+
+@socketio.on('request_team_swap')
+def handle_request_team_swap(data):
+    global team_swap_requests
+    from_user = session.get('username')
+    to_user = data.get('with')
+    
+    request_id = f"{from_user}_{to_user}"
+    team_swap_requests[request_id] = {
+        'from': from_user,
+        'to': to_user
+    }
+    
+    socketio.emit('team_swap_request', {
+        'from': from_user,
+        'to': to_user,
+        'request_id': request_id
     }, namespace='/')
 
-@socketio.on('decline_invitation')
-def handle_decline_invitation(data):
-    invitation_id = data.get('invitation_id')
+@socketio.on('accept_team_swap')
+def handle_accept_team_swap(data):
+    global active_lobby, team_swap_requests
+    request_id = data.get('request_id')
     
-    if invitation_id in pending_invitations:
-        invitation = pending_invitations.pop(invitation_id)
-        logger.info(f"Invitation refusée: {invitation['from']} ✗ {invitation['to']}")
-        socketio.emit('invitation_declined', {
-            'from': invitation['from'],
-            'to': invitation['to']
-        }, namespace='/')
+    if request_id not in team_swap_requests:
+        return
+    
+    swap = team_swap_requests.pop(request_id)
+    from_user = swap['from']
+    to_user = swap['to']
+    
+    if from_user in active_lobby['team1'] and to_user in active_lobby['team2']:
+        active_lobby['team1'].remove(from_user)
+        active_lobby['team2'].remove(to_user)
+        active_lobby['team1'].append(to_user)
+        active_lobby['team2'].append(from_user)
+    elif from_user in active_lobby['team2'] and to_user in active_lobby['team1']:
+        active_lobby['team2'].remove(from_user)
+        active_lobby['team1'].remove(to_user)
+        active_lobby['team2'].append(to_user)
+        active_lobby['team1'].append(from_user)
+    
+    logger.info(f"Échange équipe: {from_user} ↔ {to_user}")
+    socketio.emit('lobby_update', active_lobby, namespace='/')
+
+@socketio.on('decline_team_swap')
+def handle_decline_team_swap(data):
+    global team_swap_requests
+    request_id = data.get('request_id')
+    
+    if request_id in team_swap_requests:
+        team_swap_requests.pop(request_id)
+
+@socketio.on('cancel_lobby')
+def handle_cancel_lobby():
+    global active_lobby
+    username = session.get('username')
+    
+    if username != active_lobby['host'] and not is_admin(username):
+        emit('error', {'message': 'Seul l\'hôte ou un admin peut annuler'})
+        return
+    
+    active_lobby = {
+        "host": None,
+        "invited": [],
+        "accepted": [],
+        "declined": [],
+        "team1": [],
+        "team2": [],
+        "active": False
+    }
+    
+    logger.info(f"Lobby annulé par {username}")
+    socketio.emit('lobby_cancelled', {}, namespace='/')
+
+@socketio.on('start_game_from_lobby')
+def handle_start_game_from_lobby():
+    global current_game, active_lobby, rematch_votes
+    username = session.get('username')
+    
+    if username != active_lobby['host'] and not is_admin(username):
+        emit('error', {'message': 'Seul l\'hôte ou un admin peut lancer'})
+        return
+    
+    if len(active_lobby['accepted']) < 2:
+        emit('error', {'message': 'Au moins 2 joueurs requis'})
+        return
+    
+    reserved_by = None
+    if has_active_reservation(username):
+        reserved_by = username
+    
+    current_game = {
+        "team1_score": 0,
+        "team2_score": 0,
+        "team1_players": active_lobby['team1'],
+        "team2_players": active_lobby['team2'],
+        "active": True,
+        "started_by": username,
+        "reserved_by": reserved_by,
+        "started_at": datetime.now().isoformat()
+    }
+    
+    active_lobby = {
+        "host": None,
+        "invited": [],
+        "accepted": [],
+        "declined": [],
+        "team1": [],
+        "team2": [],
+        "active": False
+    }
+    
+    rematch_votes = {"team1": [], "team2": []}
+    
+    logger.info(f"Partie lancée depuis lobby par {username}")
+    socketio.emit('game_started', current_game, namespace='/')
 
 @socketio.on('start_game')
 def handle_start_game(data):
