@@ -21,37 +21,45 @@
       padding: 2rem;
       border-radius: 12px;
       min-height: 250px;
-      border: 3px solid;
+      border: 2px solid;
+      background: var(--bg-secondary);
     }
     .team1-box { 
-      background: #ffe5e5;
-      border-color: #e74c3c;
+      border-color: #cd7f32;
+      background: linear-gradient(135deg, rgba(205, 127, 50, 0.1) 0%, rgba(205, 127, 50, 0.05) 100%);
     }
     .team2-box { 
-      background: #e3f2fd;
-      border-color: #2196f3;
+      border-color: #ffd700;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%);
     }
     .team-box h3 { 
       margin-top: 0;
       font-size: 1.5rem;
+      font-weight: 700;
     }
-    .team1-box h3 { color: #c0392b; }
-    .team2-box h3 { color: #1565c0; }
+    .team1-box h3 { color: #cd7f32; }
+    .team2-box h3 { color: #ffd700; }
     
     .player-item {
-      background: white;
+      background: var(--bg-elevated);
       padding: 1rem;
       border-radius: 8px;
       margin-bottom: 0.75rem;
-      color: #333;
+      color: var(--text-primary);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
       font-weight: 600;
+      border: 1px solid var(--border-normal);
+      transition: all 0.2s;
+    }
+    .player-item:hover {
+      background: var(--bg-hover);
+      border-color: var(--border-accent);
     }
     .player-item button {
-      background: #3498db;
+      background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%);
       border: none;
       padding: 0.4rem 0.9rem;
       border-radius: 6px;
@@ -59,69 +67,120 @@
       cursor: pointer;
       font-size: 0.9rem;
       font-weight: 600;
+      transition: all 0.2s;
     }
     .player-item button:hover {
-      background: #2980b9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(205, 127, 50, 0.4);
+    }
+    .player-item button.btn-kick {
+      background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    }
+    .player-item button.btn-kick:hover {
+      box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
     }
     .status-bar {
-      background: #f8f9fa;
+      background: var(--bg-secondary);
       padding: 1.25rem;
       border-radius: 8px;
       margin-bottom: 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border: 2px solid #e0e0e0;
+      border: 1px solid var(--border-normal);
     }
     .status-indicator {
       display: flex;
       gap: 0.75rem;
       align-items: center;
       font-weight: 600;
-      color: #333;
+      color: var(--text-primary);
     }
     .status-dot {
       width: 14px;
       height: 14px;
       border-radius: 50%;
-      background: #27ae60;
+      background: #ffd700;
       animation: pulse 2s infinite;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
     }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
+    
+    #invite-section {
+      background: var(--bg-secondary);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border-normal);
+    }
+    #invite-section h3 {
+      color: var(--text-primary);
+      margin-top: 0;
+      margin-bottom: 1rem;
+    }
+    
+    .search-box {
+      position: relative;
+      margin-bottom: 1rem;
+    }
+    .search-box input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-normal);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--border-accent);
+      box-shadow: 0 0 0 3px rgba(205, 127, 50, 0.1);
+    }
+    .search-box input::placeholder {
+      color: var(--text-muted);
+    }
+    
     .player-selector {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem;
       margin-top: 1rem;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 0.5rem;
     }
     .player-chip {
       padding: 0.6rem 1.2rem;
-      background: white;
-      border: 2px solid #ddd;
+      background: var(--bg-elevated);
+      border: 2px solid var(--border-normal);
       border-radius: 20px;
       cursor: pointer;
       transition: all 0.2s;
-      color: #333;
+      color: var(--text-primary);
       font-weight: 600;
     }
     .player-chip:hover {
-      background: #f0f0f0;
-      border-color: #667eea;
+      background: var(--bg-hover);
+      border-color: var(--border-accent);
+      transform: translateY(-2px);
     }
     .player-chip.selected {
-      background: #667eea;
+      background: linear-gradient(135deg, #cd7f32 0%, #ffd700 100%);
       color: white;
-      border-color: #667eea;
+      border-color: #cd7f32;
     }
-    #invite-section {
-      background: #f8f9fa;
-      padding: 1.5rem;
-      border-radius: 8px;
-      margin-bottom: 1.5rem;
-      border: 2px solid #e0e0e0;
+    
+    #declinedSection {
+      background: rgba(231, 76, 60, 0.1);
+      border: 2px solid #e74c3c;
+    }
+    #declinedMessage {
+      color: #e74c3c;
     }
   </style>
 </head>
@@ -189,13 +248,16 @@ function toggleMenu() {
     </div>
 
     <div id="invite-section">
-      <h3 style="margin-top:0;color:#333">👥 Inviter des joueurs</h3>
+      <h3 style="margin-top:0;color:var(--text-primary)">👥 Inviter des joueurs</h3>
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="🔍 Rechercher un joueur..." oninput="filterPlayers()">
+      </div>
       <div class="player-selector" id="playerSelector"></div>
       <button class="btn btn-primary btn-full" style="margin-top:1rem" onclick="inviteSelected()">📤 Envoyer Invitations</button>
     </div>
 
-    <div id="declinedSection" style="display:none;background:#fee;padding:1rem;border-radius:8px;margin-bottom:1rem;border:2px solid #e74c3c">
-      <p id="declinedMessage" style="color:#c0392b;font-weight:600;margin:0"></p>
+    <div id="declinedSection" style="display:none;background:rgba(231,76,60,0.1);padding:1rem;border-radius:8px;margin-bottom:1rem;border:2px solid #e74c3c">
+      <p id="declinedMessage" style="color:#e74c3c;font-weight:600;margin:0"></p>
       <div style="display:flex;gap:1rem;margin-top:0.75rem">
         <button class="btn btn-primary" onclick="continueWithCurrent()">Continuer</button>
         <button class="btn" style="background:#e74c3c;color:white" onclick="location.href='/dashboard'">Annuler</button>
@@ -218,8 +280,8 @@ function toggleMenu() {
       <button class="btn" style="margin-left:1rem;background:#95a5a6;color:white" onclick="cancelLobby()">❌ Annuler</button>
     </div>
 
-    <div id="swapRequestNotif" style="display:none;position:fixed;top:80px;right:20px;background:white;padding:1.5rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:300px;border:2px solid #667eea">
-      <p id="swapMessage" style="margin:0;color:#333;font-weight:600"></p>
+    <div id="swapRequestNotif" style="display:none;position:fixed;top:80px;right:20px;background:var(--bg-elevated);padding:1.5rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:300px;border:2px solid var(--border-accent)">
+      <p id="swapMessage" style="margin:0;color:var(--text-primary);font-weight:600"></p>
       <div style="display:flex;gap:0.5rem;margin-top:1rem">
         <button class="btn btn-primary" style="flex:1" onclick="acceptSwap()">✅ Accepter</button>
         <button class="btn" style="flex:1;background:#e74c3c;color:white" onclick="declineSwap()">❌ Refuser</button>
@@ -259,21 +321,43 @@ async function loadPlayers() {
     const users = await res.json();
     allUsers = users.filter(u => u !== currentUsername);
     
-    const selector = document.getElementById('playerSelector');
-    selector.innerHTML = '';
-    
-    allUsers.forEach(u => {
-      if (!lobbyData.invited.includes(u) && !lobbyData.accepted.includes(u)) {
-        const chip = document.createElement('div');
-        chip.className = 'player-chip';
-        chip.textContent = u;
-        chip.onclick = () => togglePlayer(u, chip);
-        selector.appendChild(chip);
-      }
-    });
+    renderPlayerSelector();
   } catch (e) {
     console.error('Erreur:', e);
   }
+}
+
+function renderPlayerSelector() {
+  const selector = document.getElementById('playerSelector');
+  const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  selector.innerHTML = '';
+  
+  const filteredUsers = allUsers.filter(u => {
+    if (lobbyData.invited.includes(u) || lobbyData.accepted.includes(u)) {
+      return false;
+    }
+    return u.toLowerCase().includes(searchTerm);
+  });
+  
+  if (filteredUsers.length === 0) {
+    selector.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:1rem">Aucun joueur disponible</p>';
+    return;
+  }
+  
+  filteredUsers.forEach(u => {
+    const chip = document.createElement('div');
+    chip.className = 'player-chip';
+    chip.textContent = u;
+    if (selectedPlayers.includes(u)) {
+      chip.classList.add('selected');
+    }
+    chip.onclick = () => togglePlayer(u, chip);
+    selector.appendChild(chip);
+  });
+}
+
+function filterPlayers() {
+  renderPlayerSelector();
 }
 
 function togglePlayer(username, chip) {
@@ -287,6 +371,11 @@ function togglePlayer(username, chip) {
 }
 
 function inviteSelected() {
+  if (!canInvite()) {
+    alert('Seul l\'hôte et les admins peuvent inviter des joueurs');
+    return;
+  }
+  
   if (selectedPlayers.length === 0) return;
   
   selectedPlayers.forEach(user => {
@@ -295,6 +384,27 @@ function inviteSelected() {
   
   selectedPlayers = [];
   setTimeout(loadPlayers, 500);
+}
+
+function canInvite() {
+  return currentUsername === lobbyData.host || isAdmin;
+}
+
+function canKick(playerUsername) {
+  if (playerUsername === currentUsername) return false;
+  if (playerUsername === lobbyData.host) return false;
+  return currentUsername === lobbyData.host || isAdmin;
+}
+
+function kickPlayer(playerUsername) {
+  if (!canKick(playerUsername)) {
+    alert('Seul l\'hôte et les admins peuvent exclure des joueurs');
+    return;
+  }
+  
+  if (confirm(`Exclure ${playerUsername} du lobby ?`)) {
+    socket.emit('kick_from_lobby', { user: playerUsername });
+  }
 }
 
 async function loadLobby() {
@@ -319,8 +429,17 @@ function updateLobbyUI() {
   if (!lobbyData) return;
   
   document.getElementById('hostName').textContent = lobbyData.host;
+  document.getElementById('hostName').style.color = 'var(--bronze)';
   document.getElementById('acceptedCount').textContent = lobbyData.accepted.length;
   document.getElementById('invitedCount').textContent = lobbyData.invited.length + 1;
+  
+  // Afficher/masquer la section d'invitation selon les permissions
+  const inviteSection = document.getElementById('invite-section');
+  if (canInvite()) {
+    inviteSection.style.display = 'block';
+  } else {
+    inviteSection.style.display = 'none';
+  }
   
   const team1List = document.getElementById('team1List');
   const team2List = document.getElementById('team2List');
@@ -329,18 +448,27 @@ function updateLobbyUI() {
   team2List.innerHTML = '';
   
   if (lobbyData.team1.length === 0) {
-    team1List.innerHTML = '<p style="color:#999;text-align:center;padding:2rem">Aucun joueur</p>';
+    team1List.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem">Aucun joueur</p>';
   }
   if (lobbyData.team2.length === 0) {
-    team2List.innerHTML = '<p style="color:#999;text-align:center;padding:2rem">Aucun joueur</p>';
+    team2List.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem">Aucun joueur</p>';
   }
   
   lobbyData.team1.forEach(player => {
     const item = document.createElement('div');
     item.className = 'player-item';
+    
+    let buttons = '';
+    if (player !== currentUsername && canRequestSwap(player)) {
+      buttons += `<button onclick="requestSwap('${player}')">↔️ Échanger</button>`;
+    }
+    if (canKick(player)) {
+      buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')">❌ Exclure</button>`;
+    }
+    
     item.innerHTML = `
-      <span>${player}</span>
-      ${player !== currentUsername && canRequestSwap(player) ? `<button onclick="requestSwap('${player}')">↔️ Échanger</button>` : ''}
+      <span>${player}${player === lobbyData.host ? ' 👑' : ''}</span>
+      <div style="display:flex;gap:0.5rem">${buttons}</div>
     `;
     team1List.appendChild(item);
   });
@@ -348,9 +476,18 @@ function updateLobbyUI() {
   lobbyData.team2.forEach(player => {
     const item = document.createElement('div');
     item.className = 'player-item';
+    
+    let buttons = '';
+    if (player !== currentUsername && canRequestSwap(player)) {
+      buttons += `<button onclick="requestSwap('${player}')">↔️ Échanger</button>`;
+    }
+    if (canKick(player)) {
+      buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')">❌ Exclure</button>`;
+    }
+    
     item.innerHTML = `
-      <span>${player}</span>
-      ${player !== currentUsername && canRequestSwap(player) ? `<button onclick="requestSwap('${player}')">↔️ Échanger</button>` : ''}
+      <span>${player}${player === lobbyData.host ? ' 👑' : ''}</span>
+      <div style="display:flex;gap:0.5rem">${buttons}</div>
     `;
     team2List.appendChild(item);
   });
@@ -429,6 +566,11 @@ socket.on('lobby_cancelled', () => {
 
 socket.on('game_started', () => {
   location.href = '/live-score';
+});
+
+socket.on('kicked_from_lobby', () => {
+  alert('Vous avez été exclu du lobby');
+  location.href = '/dashboard';
 });
 
 loadCurrentUser();
