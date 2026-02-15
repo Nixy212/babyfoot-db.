@@ -11,6 +11,29 @@ import traceback
 import sys
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 logger = logging.getLogger(__name__)
+# ═══════════════════════════════════════════════════════════════
+# 🔧 PATCH POUR WOKWI - ACCEPTER HTTP SUR /api/arduino/*
+# ═══════════════════════════════════════════════════════════════
+@app.before_request
+def handle_http_for_arduino():
+    """
+    Permet aux requêtes HTTP sur /api/arduino/* pour la compatibilité Wokwi.
+    Force HTTPS pour tout le reste.
+    """
+    # Autoriser HTTP pour les endpoints Arduino (Wokwi ne supporte pas HTTPS)
+    if request.path.startswith('/api/arduino/'):
+        logger.info(f"🤖 Requête Arduino (HTTP autorisé): {request.method} {request.path}")
+        return None
+    
+    # Forcer HTTPS pour tous les autres endpoints
+    if not request.is_secure:
+        forwarded_proto = request.headers.get('X-Forwarded-Proto', '')
+        if forwarded_proto and forwarded_proto != 'https':
+            if 'localhost' not in request.host and '127.0.0.1' not in request.host:
+                secure_url = request.url.replace('http://', 'https://', 1)
+                logger.info(f"🔒 Redirection HTTPS: {request.url} → {secure_url}")
+                return redirect(secure_url, code=301)
+    return None
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'babyfoot-secret-key-2024-change-me')
