@@ -487,12 +487,15 @@ def api_active_lobby():
 def handle_connect():
     username = session.get('username', 'Anonymous')
     logger.info(f"WS connecté: {username} ({request.sid})")
+    
+    # Rejoindre la partie active si elle existe
     if current_game.get('active'):
         join_room('game')
         emit('game_recovery', current_game)
-    if active_lobby.get('active'):
-        join_room('lobby')
-        emit('lobby_update', active_lobby)
+    
+    # NE PAS auto-joindre le lobby - c'est ça qui causait le bug !
+    # Le lobby sera chargé uniquement si l'utilisateur est réellement dedans
+    # via la page /lobby qui fait un appel à /api/active_lobby
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -507,15 +510,17 @@ def handle_create_lobby(data):
         emit('error', {'message': 'Seuls admins/réservateurs peuvent créer un lobby'})
         return
     
-    # Si un lobby est déjà actif, le fermer d'abord
+    # Si un lobby est déjà actif, FORCER SA FERMETURE pour tout le monde
     if active_lobby.get('active'):
-        logger.warning(f"⚠️ Lobby actif détecté, fermeture forcée")
+        logger.warning(f"⚠️ Lobby actif détecté, FERMETURE FORCÉE")
         logger.warning(f"   Ancien lobby: host={active_lobby.get('host')}, accepted={active_lobby.get('accepted')}")
+        
+        # Notifier TOUS les clients que le lobby est fermé
+        socketio.emit('lobby_cancelled', {}, namespace='/')
     
     invited_users = data.get('invited', [])
     
-    # L'hôte ne doit PAS être dans la liste invited
-    # Il est automatiquement dans accepted et team1
+    # RESET COMPLET du lobby (tout à zéro)
     active_lobby = {
         "host": username,
         "invited": invited_users,  # SANS l'hôte
@@ -532,11 +537,13 @@ def handle_create_lobby(data):
     logger.info(f"   team1: {active_lobby['team1']}")
     logger.info(f"   team2: {active_lobby['team2']}")
     
+    # Notifier que le lobby est créé
     socketio.emit('lobby_created', {
         'host': username,
         'invited': invited_users
     }, namespace='/')
     
+    # Envoyer les invitations individuelles
     for user in invited_users:
         socketio.emit('lobby_invitation', {
             'from': username,
