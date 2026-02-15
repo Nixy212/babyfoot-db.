@@ -246,6 +246,13 @@ def lobby_page():
     if "username" not in session: return redirect(url_for('login_page'))
     return render_template("lobby.html")
 
+@app.route("/admin")
+def admin_page():
+    if "username" not in session: return redirect(url_for('login_page'))
+    username = session.get('username')
+    if not is_admin(username): return redirect(url_for('index'))
+    return render_template("admin.html")
+
 @app.route("/live-score")
 def live_score():
     if "username" not in session: return redirect(url_for('login_page'))
@@ -407,6 +414,41 @@ def api_is_admin():
     username = session.get('username')
     if not username: return jsonify({"is_admin": False})
     return jsonify({"is_admin": is_admin(username)})
+
+@app.route("/admin/reset_database", methods=["POST"])
+def admin_reset_database():
+    """DANGER : Reset complet de la base de données - ADMIN ONLY"""
+    username = session.get('username')
+    
+    if not is_admin(username):
+        return jsonify({"success": False, "message": "Admin requis"}), 403
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Supprimer toutes les données
+        cur.execute("DELETE FROM scores")
+        cur.execute("DELETE FROM reservations")
+        cur.execute("DELETE FROM users")
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        # Recréer les comptes de base
+        seed_test_accounts()
+        seed_admin()
+        seed_admin_accounts()
+        seed_guest_players()
+        
+        logger.info(f"🔥 BASE DE DONNÉES RESET PAR {username}")
+        
+        return jsonify({"success": True, "message": "Base de données réinitialisée"})
+    
+    except Exception as e:
+        logger.error(f"Erreur reset DB: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/save_reservation", methods=["POST"])
 @handle_errors
