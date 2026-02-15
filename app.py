@@ -497,9 +497,9 @@ def handle_invite_to_lobby(data):
         emit('error', {'message': 'Seul l\'hôte ou un admin peut inviter'})
         return
     
-    # Vérifier que le lobby n'est pas complet (max 8 joueurs)
-    if len(active_lobby['accepted']) + len(active_lobby['invited']) >= 8:
-        emit('error', {'message': 'Le lobby est complet (8 joueurs maximum)'})
+    # Vérifier que le lobby n'est pas complet (max 4 joueurs pour du 2v2)
+    if len(active_lobby['accepted']) + len(active_lobby['invited']) >= 4:
+        emit('error', {'message': 'Le lobby est complet (4 joueurs maximum pour du 2v2)'})
         return
     
     # Vérifier que l'utilisateur n'est pas déjà invité ou accepté
@@ -535,25 +535,26 @@ def handle_accept_lobby():
     if username not in active_lobby['accepted']:
         active_lobby['accepted'].append(username)
     
-    # Placer dans l'équipe la moins remplie (limite de 4 joueurs par équipe)
+    # Placer dans l'équipe la moins remplie (LIMITE DE 2 JOUEURS PAR ÉQUIPE)
     team1_count = len(active_lobby['team1'])
     team2_count = len(active_lobby['team2'])
     
-    if team1_count < 4 and team1_count <= team2_count:
+    if team1_count < 2 and team1_count <= team2_count:
         active_lobby['team1'].append(username)
         logger.info(f"{username} → Équipe 1")
-    elif team2_count < 4:
+    elif team2_count < 2:
         active_lobby['team2'].append(username)
         logger.info(f"{username} → Équipe 2")
     else:
-        # Les deux équipes sont pleines
-        emit('error', {'message': 'Les deux équipes sont complètes (4 joueurs max par équipe)'})
+        # Les deux équipes sont pleines (2v2)
+        emit('error', {'message': 'Les deux équipes sont complètes (2 joueurs max par équipe)'})
         active_lobby['accepted'].remove(username)
-        logger.warning(f"{username} refusé : équipes pleines")
+        logger.warning(f"{username} refusé : équipes pleines (2v2)")
         return
     
     logger.info(f"✅ {username} a accepté et rejoint une équipe")
     socketio.emit('lobby_update', active_lobby, namespace='/')
+
 
 
 
