@@ -1255,7 +1255,23 @@ def handle_arduino_goal(data):
 
 @socketio.on('arduino_ping')
 def handle_arduino_ping(data):
-    socketio.emit('arduino_pong', {'status': 'ok'}, namespace='/')
+    # Répondre uniquement à l'ESP32 qui a fait le ping
+    emit('arduino_pong', {'status': 'ok'})
+
+@socketio.on('get_game_state')
+def handle_get_game_state(data):
+    """
+    L'ESP32 demande l'état actuel de la partie lors de sa reconnexion.
+    Ainsi il sait si une partie est en cours ou non sans attendre un événement.
+    """
+    logger.info(f"🤖 ESP32 demande l'état de la partie (sid={request.sid})")
+    emit('game_state', {
+        'active': current_game.get('active', False),
+        'team1_score': current_game.get('team1_score', 0),
+        'team2_score': current_game.get('team2_score', 0),
+        'team1_players': current_game.get('team1_players', []),
+        'team2_players': current_game.get('team2_players', []),
+    })
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=5000, debug=True)
