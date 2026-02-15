@@ -413,6 +413,17 @@ async function loadLobby() {
     const data = await res.json();
     
     if (!data.active) {
+      console.log('Pas de lobby actif, redirection dashboard');
+      location.href = '/dashboard';
+      return;
+    }
+    
+    // VÉRIFICATION CRITIQUE : L'utilisateur est-il vraiment dans ce lobby ?
+    const isInvited = data.invited.includes(currentUsername);
+    const isAccepted = data.accepted.includes(currentUsername);
+    
+    if (!isInvited && !isAccepted) {
+      console.log('Utilisateur pas dans le lobby, redirection dashboard');
       location.href = '/dashboard';
       return;
     }
@@ -422,6 +433,7 @@ async function loadLobby() {
     loadPlayers();
   } catch (e) {
     console.error('Erreur:', e);
+    location.href = '/dashboard';
   }
 }
 
@@ -547,6 +559,16 @@ function startGame() {
 }
 
 socket.on('lobby_update', (data) => {
+  // VÉRIFICATION : Suis-je toujours dans ce lobby ?
+  const isInvited = data.invited.includes(currentUsername);
+  const isAccepted = data.accepted.includes(currentUsername);
+  
+  if (!isInvited && !isAccepted) {
+    console.log('Plus dans le lobby, redirection dashboard');
+    location.href = '/dashboard';
+    return;
+  }
+  
   lobbyData = data;
   updateLobbyUI();
   loadPlayers();
