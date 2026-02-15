@@ -65,30 +65,6 @@
       color: white;
       margin-top: 0;
     }
-    .player-selector {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-top: 1rem;
-    }
-    .player-chip {
-      padding: 0.5rem 1rem;
-      background: rgba(255,255,255,0.2);
-      border: 2px solid rgba(255,255,255,0.3);
-      border-radius: 20px;
-      cursor: pointer;
-      transition: all 0.2s;
-      color: white;
-    }
-    .player-chip:hover {
-      background: rgba(255,255,255,0.3);
-      border-color: white;
-    }
-    .player-chip.selected {
-      background: white;
-      color: #667eea;
-      border-color: white;
-    }
     #servo-controls {
       margin-top: 1.5rem;
       padding: 1.5rem;
@@ -183,9 +159,8 @@ function toggleMenu() {
 
     <div id="invitation-section" class="fade-up" style="animation-delay:.1s">
       <h3>👥 Créer un Lobby</h3>
-      <p>Invitez des joueurs pour créer une partie</p>
-      <div class="player-selector" id="playerSelector"></div>
-      <button class="btn btn-full" style="margin-top:1rem;background:white;color:#667eea;font-weight:bold" onclick="createLobby()">🎮 Créer le Lobby</button>
+      <p>Créez un lobby vide, puis invitez des joueurs depuis le lobby</p>
+      <button class="btn btn-full" style="margin-top:1rem;background:white;color:#667eea;font-weight:bold" onclick="createEmptyLobby()">🎮 Créer un Lobby Vide</button>
     </div>
 
     <div id="servo-controls" class="fade-up" style="animation-delay:.15s">
@@ -222,8 +197,6 @@ const socket = io();
 let currentUsername = null;
 let isAdmin = false;
 let hasReservation = false;
-let selectedPlayers = [];
-let allUsers = [];
 
 async function loadCurrentUser() {
   try {
@@ -249,47 +222,8 @@ async function loadCurrentUser() {
   }
 }
 
-async function loadPlayers() {
-  try {
-    const res = await fetch('/users_list');
-    const users = await res.json();
-    allUsers = users.filter(u => u !== currentUsername);
-    
-    const selector = document.getElementById('playerSelector');
-    selector.innerHTML = '';
-    
-    allUsers.forEach(u => {
-      const chip = document.createElement('div');
-      chip.className = 'player-chip';
-      chip.textContent = u;
-      chip.onclick = () => togglePlayer(u, chip);
-      selector.appendChild(chip);
-    });
-  } catch (e) {
-    console.error('Erreur chargement joueurs:', e);
-  }
-}
-
-function togglePlayer(username, chip) {
-  if (selectedPlayers.includes(username)) {
-    selectedPlayers = selectedPlayers.filter(u => u !== username);
-    chip.classList.remove('selected');
-  } else {
-    selectedPlayers.push(username);
-    chip.classList.add('selected');
-  }
-}
-
-function createLobby() {
-  if (selectedPlayers.length === 0) {
-    showNotification('Sélectionnez au moins 1 joueur', 'warning');
-    return;
-  }
-  
-  socket.emit('create_lobby', { invited: selectedPlayers });
-  
-  selectedPlayers = [];
-  document.querySelectorAll('.player-chip').forEach(c => c.classList.remove('selected'));
+function createEmptyLobby() {
+  socket.emit('create_lobby', { invited: [] });
 }
 
 function unlockServo() {
@@ -350,11 +284,11 @@ async function loadUserStats(username) {
     div.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem">
         <div style="text-align:center">
-          <div style="font-size:2rem;font-weight:700">${data.total_goals || 0}</div>
+          <div style="font-size:2rem;font-weight:700;color:#667eea">${data.total_goals || 0}</div>
           <div style="color:#666">Buts marqués</div>
         </div>
         <div style="text-align:center">
-          <div style="font-size:2rem;font-weight:700">${data.total_games || 0}</div>
+          <div style="font-size:2rem;font-weight:700;color:#667eea">${data.total_games || 0}</div>
           <div style="color:#666">Parties jouées</div>
         </div>
       </div>
@@ -368,9 +302,7 @@ function showNotification(message, type) {
   const bar = document.getElementById('notificationBar');
   const notif = document.createElement('div');
   notif.className = 'notification';
-  notif.innerHTML = `
-    <div style="flex:1">${message}</div>
-  `;
+  notif.innerHTML = `<div style="flex:1;color:#333">${message}</div>`;
   bar.appendChild(notif);
   
   setTimeout(() => {
@@ -390,8 +322,8 @@ socket.on('lobby_invitation', (data) => {
     const notif = document.createElement('div');
     notif.className = 'notification';
     notif.innerHTML = `
-      <div style="flex:1">
-        <strong>${data.from}</strong> vous invite à jouer
+      <div style="flex:1;color:#333">
+        <strong style="color:#667eea">${data.from}</strong> vous invite à jouer
       </div>
       <div class="notification-buttons">
         <button class="btn-accept" onclick="acceptLobby()">✅</button>
@@ -413,7 +345,6 @@ function declineLobby() {
 }
 
 loadCurrentUser();
-loadPlayers();
 loadLeaderboard();
 loadReservations();
 </script>
