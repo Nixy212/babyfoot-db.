@@ -11,6 +11,18 @@ import traceback
 import sys
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 logger = logging.getLogger(__name__)
+
+app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'babyfoot-secret-key-2024-change-me')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 7 jours au lieu de 24h
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_PATH'] = '/'
+app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Rafraîchir à chaque requête
+
+socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True, ping_timeout=60, ping_interval=25, async_mode="threading", manage_session=False)
+
 # ═══════════════════════════════════════════════════════════════
 # 🔧 PATCH POUR WOKWI - ACCEPTER HTTP SUR /api/arduino/*
 # ═══════════════════════════════════════════════════════════════
@@ -34,17 +46,7 @@ def handle_http_for_arduino():
                 logger.info(f"🔒 Redirection HTTPS: {request.url} → {secure_url}")
                 return redirect(secure_url, code=301)
     return None
-
-app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'babyfoot-secret-key-2024-change-me')
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # 7 jours au lieu de 24h
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = False
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_PATH'] = '/'
-app.config['SESSION_REFRESH_EACH_REQUEST'] = True  # Rafraîchir à chaque requête
-
-socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True, ping_timeout=60, ping_interval=25, async_mode="threading", manage_session=False)
+# ═══════════════════════════════════════════════════════════════
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
