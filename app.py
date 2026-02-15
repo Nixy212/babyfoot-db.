@@ -574,10 +574,11 @@ def handle_create_lobby(data):
     }
     
     logger.info(f"✅ NOUVEAU LOBBY créé par {username}")
-    logger.info(f"   invited: {invited_users}")
-    logger.info(f"   accepted: {active_lobby['accepted']}")
+    logger.info(f"   invited (en attente): {invited_users}")
+    logger.info(f"   accepted (confirmés): {active_lobby['accepted']}")
     logger.info(f"   team1: {active_lobby['team1']}")
     logger.info(f"   team2: {active_lobby['team2']}")
+    logger.info(f"   Total joueurs: {len(active_lobby['accepted']) + len(active_lobby['invited'])}")
     
     # Notifier que le lobby est créé
     socketio.emit('lobby_created', {
@@ -605,7 +606,8 @@ def handle_invite_to_lobby(data):
         return
     
     # Vérifier que le lobby n'est pas complet (max 4 joueurs pour du 2v2)
-    if len(active_lobby['accepted']) + len(active_lobby['invited']) >= 4:
+    total_players = len(active_lobby['accepted']) + len(active_lobby['invited'])
+    if total_players >= 4:
         emit('error', {'message': 'Le lobby est complet (4 joueurs maximum pour du 2v2)'})
         return
     
@@ -638,6 +640,9 @@ def handle_accept_lobby():
         logger.warning(f"{username} tente d'accepter mais n'est pas invité")
         return
     
+    # RETIRER de la liste invited (important !)
+    active_lobby['invited'].remove(username)
+    
     # Ajouter à la liste des acceptés (si pas déjà dedans)
     if username not in active_lobby['accepted']:
         active_lobby['accepted'].append(username)
@@ -656,6 +661,7 @@ def handle_accept_lobby():
         # Les deux équipes sont pleines (2v2)
         emit('error', {'message': 'Les deux équipes sont complètes (2 joueurs max par équipe)'})
         active_lobby['accepted'].remove(username)
+        active_lobby['invited'].append(username)  # Remettre dans invited
         logger.warning(f"{username} refusé : équipes pleines (2v2)")
         return
     
@@ -673,6 +679,10 @@ def handle_decline_lobby():
     if username not in active_lobby['invited']:
         return
     
+    # Retirer de la liste invited
+    active_lobby['invited'].remove(username)
+    
+    # Ajouter à declined
     if username not in active_lobby['declined']:
         active_lobby['declined'].append(username)
     
