@@ -443,7 +443,7 @@ function updateLobbyUI() {
   document.getElementById('hostName').textContent = lobbyData.host;
   document.getElementById('hostName').style.color = 'var(--bronze)';
   document.getElementById('acceptedCount').textContent = lobbyData.accepted.length;
-  document.getElementById('invitedCount').textContent = lobbyData.invited.length + 1;
+  document.getElementById('invitedCount').textContent = lobbyData.accepted.length + lobbyData.invited.length;
   
   // Afficher/masquer la section d'invitation selon les permissions
   const inviteSection = document.getElementById('invite-section');
