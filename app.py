@@ -449,11 +449,16 @@ def handle_create_lobby(data):
         emit('error', {'message': 'Seuls admins/réservateurs peuvent créer un lobby'})
         return
     
+    # Si un lobby est déjà actif, le fermer d'abord
+    if active_lobby.get('active'):
+        logger.warning(f"Lobby actif fermé par {username} pour en créer un nouveau")
+    
     invited_users = data.get('invited', [])
     
+    # Réinitialiser complètement le lobby
     active_lobby = {
         "host": username,
-        "invited": invited_users,
+        "invited": invited_users + [username],  # L'hôte doit être dans les invités
         "accepted": [username],
         "declined": [],
         "team1": [username],
@@ -491,7 +496,12 @@ def handle_invite_to_lobby(data):
         emit('error', {'message': 'Le lobby est complet (8 joueurs maximum)'})
         return
     
-    if invited_user and invited_user not in active_lobby['invited']:
+    # Vérifier que l'utilisateur n'est pas déjà invité ou accepté
+    if invited_user in active_lobby['invited'] or invited_user in active_lobby['accepted']:
+        logger.info(f"{invited_user} est déjà dans le lobby")
+        return
+    
+    if invited_user:
         active_lobby['invited'].append(invited_user)
         
         socketio.emit('lobby_invitation', {
@@ -508,25 +518,31 @@ def handle_accept_lobby():
     if username not in active_lobby['invited']:
         return
     
+    # Vérifier que le joueur n'est pas déjà dans une équipe
+    if username in active_lobby['team1'] or username in active_lobby['team2']:
+        logger.info(f"{username} est déjà dans une équipe")
+        return
+    
     if username not in active_lobby['accepted']:
         active_lobby['accepted'].append(username)
-        
-        # Placer dans l'équipe la moins remplie (limite de 4 joueurs par équipe)
-        team1_count = len(active_lobby['team1'])
-        team2_count = len(active_lobby['team2'])
-        
-        if team1_count < 4 and team1_count <= team2_count:
-            active_lobby['team1'].append(username)
-        elif team2_count < 4:
-            active_lobby['team2'].append(username)
-        else:
-            # Les deux équipes sont pleines, ne pas ajouter
-            emit('error', {'message': 'Les deux équipes sont complètes (4 joueurs max par équipe)'})
-            active_lobby['accepted'].remove(username)
-            return
     
-    logger.info(f"{username} a accepté le lobby")
+    # Placer dans l'équipe la moins remplie (limite de 4 joueurs par équipe)
+    team1_count = len(active_lobby['team1'])
+    team2_count = len(active_lobby['team2'])
+    
+    if team1_count < 4 and team1_count <= team2_count:
+        active_lobby['team1'].append(username)
+    elif team2_count < 4:
+        active_lobby['team2'].append(username)
+    else:
+        # Les deux équipes sont pleines, ne pas ajouter
+        emit('error', {'message': 'Les deux équipes sont complètes (4 joueurs max par équipe)'})
+        active_lobby['accepted'].remove(username)
+        return
+    
+    logger.info(f"{username} a accepté le lobby et rejoint équipe")
     socketio.emit('lobby_update', active_lobby, namespace='/')
+
 
 @socketio.on('decline_lobby')
 def handle_decline_lobby():
