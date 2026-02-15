@@ -5,3 +5,4 @@ gunicorn==21.2.0
 psycopg[binary]==3.3.2
 python-socketio==5.11.0
 setuptools
+eventlet==0.35.1
