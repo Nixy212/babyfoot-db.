@@ -738,14 +738,41 @@ def handle_invite_to_lobby(data):
         return
     
     if invited_user:
-        active_lobby['invited'].append(invited_user)
+        # ✅ NOUVEAU : Si c'est un joueur invité (Joueur1, Joueur2, etc.), l'ajouter DIRECTEMENT
+        if is_guest_player(invited_user):
+            logger.info(f"🤖 Ajout automatique du joueur invité : {invited_user}")
+            
+            # Ajouter directement aux acceptés
+            if invited_user not in active_lobby['accepted']:
+                active_lobby['accepted'].append(invited_user)
+            
+            # Placer dans l'équipe la moins remplie (LIMITE DE 2 JOUEURS PAR ÉQUIPE)
+            team1_count = len(active_lobby['team1'])
+            team2_count = len(active_lobby['team2'])
+            
+            if team1_count < 2 and team1_count <= team2_count:
+                active_lobby['team1'].append(invited_user)
+                logger.info(f"   → {invited_user} ajouté à l'Équipe 1")
+            elif team2_count < 2:
+                active_lobby['team2'].append(invited_user)
+                logger.info(f"   → {invited_user} ajouté à l'Équipe 2")
+            else:
+                logger.warning(f"   ⚠️  Les deux équipes sont pleines, {invited_user} en attente")
+                active_lobby['invited'].append(invited_user)
+            
+            # Diffuser la mise à jour
+            socketio.emit('lobby_update', active_lobby, namespace='/')
         
-        socketio.emit('lobby_invitation', {
-            'from': active_lobby['host'],
-            'to': invited_user
-        }, namespace='/')
-        
-        socketio.emit('lobby_update', active_lobby, namespace='/')
+        else:
+            # ❌ ANCIEN COMPORTEMENT : Les joueurs réels reçoivent une invitation
+            active_lobby['invited'].append(invited_user)
+            
+            socketio.emit('lobby_invitation', {
+                'from': active_lobby['host'],
+                'to': invited_user
+            }, namespace='/')
+            
+            socketio.emit('lobby_update', active_lobby, namespace='/')
 @socketio.on('accept_lobby')
 def handle_accept_lobby():
     global active_lobby
