@@ -459,12 +459,12 @@ def api_arduino_status():
 
 @app.route("/api/arduino/commands", methods=["GET"])
 def api_arduino_commands():
-    """ESP32 poll 300ms - retourne la dernière commande et vide la queue"""
+    """ESP32 poll - retourne et retire UNE SEULE commande de la queue"""
     global servo_commands
-    cmd1 = servo_commands["servo1"].pop() if servo_commands["servo1"] else "none"
-    cmd2 = servo_commands["servo2"].pop() if servo_commands["servo2"] else "none"
-    servo_commands["servo1"] = []
-    servo_commands["servo2"] = []
+    # ✅ Pop une seule commande, garder les autres dans la queue
+    cmd1 = servo_commands["servo1"].pop(0) if servo_commands["servo1"] else "none"
+    cmd2 = servo_commands["servo2"].pop(0) if servo_commands["servo2"] else "none"
+    # ❌ NE PAS vider la queue entière !
     return jsonify({"servo1": cmd1, "servo2": cmd2})
 
 @app.route("/api/arduino/servo", methods=["POST"])
@@ -488,40 +488,73 @@ def api_arduino_goal():
     global current_game
     data = request.get_json(silent=True) or {}
     ARDUINO_SECRET = os.environ.get("ARDUINO_SECRET", "babyfoot-arduino-secret-2024")
+    
+    # Debug
+    logger.info(f"📥 Requête but Arduino: {data}")
+    
     if data.get("secret") != ARDUINO_SECRET:
+        logger.warning(f"❌ Secret invalide: {data.get('secret')}")
         return jsonify({"success": False, "message": "Secret invalide"}), 403
+    
     import time
     now = time.time()
     client_ip = request.remote_addr
     if client_ip in arduino_last_goal_time and now - arduino_last_goal_time[client_ip] < 2:
+        logger.warning(f"⚠️ But trop rapide ignoré (client {client_ip})")
         return jsonify({"success": False, "message": "Trop rapide"}), 429
     arduino_last_goal_time[client_ip] = now
+    
     if not current_game.get("active"):
+        logger.warning(f"⚠️ But reçu mais aucune partie active")
         return jsonify({"success": False, "message": "Aucune partie en cours", "game_active": False}), 200
+    
     team = data.get("team")
     if team not in ["team1", "team2"]:
+        logger.warning(f"❌ Équipe invalide: {team}")
         return jsonify({"success": False, "message": "Équipe invalide"}), 400
+    
+    # ✅ Incrémenter le score
     current_game[f"{team}_score"] += 1
-    logger.info(f"✅ BUT ARDUINO - {team} : T1={current_game['team1_score']} T2={current_game['team2_score']}")
+    logger.info(f"⚽ BUT {team.upper()} - Nouveau score: T1={current_game['team1_score']} T2={current_game['team2_score']}")
+    
+    # ✅ Fermer le servo adverse à 9 buts
     if current_game[f"{team}_score"] == 9:
         servo_adverse = 'servo1' if team == 'team2' else 'servo2'
         servo_commands[servo_adverse].append('close')
+        logger.info(f"🔒 {team} a 9 buts → fermeture {servo_adverse}")
         socketio.emit(f"{servo_adverse}_lock", {}, namespace="/")
+    
+    # ✅ Fin de partie à 10 buts
     if current_game[f"{team}_score"] >= 10:
         current_game["winner"] = team
         current_game["active"] = False
         servo_commands["servo1"].append("close")
         servo_commands["servo2"].append("close")
-        try: save_game_results(current_game)
-        except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
+        logger.info(f"🏆 FIN DE PARTIE - Gagnant: {team}")
+        try:
+            save_game_results(current_game)
+        except Exception as e:
+            logger.error(f"Erreur sauvegarde: {e}")
         socketio.emit("game_ended", current_game, namespace="/")
         import threading
-        def ask_rematch(): import time; time.sleep(2); socketio.emit("rematch_prompt", {}, namespace="/")
+        def ask_rematch():
+            import time
+            time.sleep(2)
+            socketio.emit("rematch_prompt", {}, namespace="/")
         threading.Thread(target=ask_rematch, daemon=True).start()
         return jsonify({"success": True, "game_ended": True, "winner": team})
     else:
+        # ✅ Broadcast du score mis à jour
         socketio.emit("score_updated", current_game, namespace="/")
-        return jsonify({"success": True, "game_ended": False, "scores": {"team1": current_game["team1_score"], "team2": current_game["team2_score"]}})
+        logger.info(f"✅ Score broadcast à tous les clients")
+        return jsonify({
+            "success": True,
+            "game_ended": False,
+            "scores": {
+                "team1": current_game["team1_score"],
+                "team2": current_game["team2_score"]
+            }
+        })
 
 # ── Socket.IO ────────────────────────────────────────────────
 @socketio.on('connect')
