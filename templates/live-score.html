@@ -6,103 +6,27 @@
   <title>Partie Live — Baby-Foot Club</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
-  <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
-  <style>
-    .popup-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.8);
-      z-index: 9999;
-      align-items: center;
-      justify-content: center;
-    }
-    .popup-overlay.show {
-      display: flex;
-    }
-    .popup-content {
-      background: white;
-      padding: 2rem;
-      border-radius: 12px;
-      max-width: 400px;
-      width: 90%;
-      text-align: center;
-    }
-    .popup-content h2 {
-      margin-top: 0;
-    }
-    .popup-buttons {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1.5rem;
-    }
-    .popup-buttons button {
-      flex: 1;
-    }
-    .btn-danger {
-      background: #e74c3c;
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .btn-success {
-      background: #27ae60;
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    #admin-controls {
-      margin-top: 1rem;
-      padding: 1rem;
-      background: #fff3cd;
-      border-radius: 8px;
-      display: none;
-    }
-    #servo-unlock-btn {
-      margin-top: 1rem;
-      background: #f39c12;
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      display: none;
-    }
-  </style>
 </head>
-<body style="font-family: 'DM Sans', sans-serif;">
+<body>
 <nav class="nav nav-glass">
   <div class="nav-inner">
     <a href="/dashboard" class="nav-brand">
       <div class="logo-wrapper">
         <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
-        <div class="logo-pulse"></div>
       </div>
       <span class="brand-text">Baby-Foot Club</span>
     </a>
     <div class="nav-sep"></div>
     <div class="nav-links">
-      <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
-      <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
-      <a href="/live-score" class="nav-link active"><span class="nav-link-icon">🎮</span><span>Partie Live</span></a>
-      <a href="/stats" class="nav-link"><span class="nav-link-icon">📊</span><span>Stats</span></a>
-      <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
+      <a href="/dashboard" class="nav-link"><span>🏠</span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link"><span>📅</span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link active"><span>🎮</span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span>📊</span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span>🏆</span><span>Top 10</span></a>
     </div>
-    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
+    <button class="burger" id="burger" onclick="toggleMenu()">
       <span></span><span></span><span></span>
     </button>
     <div class="nav-right">
@@ -110,6 +34,7 @@
         <div class="nav-avatar" id="navAv">?</div>
         <span class="nav-username" id="navUsername"></span>
       </div>
+      <button class="btn btn-ghost" onclick="logout()">🚪</button>
     </div>
   </div>
 </nav>
@@ -121,268 +46,250 @@
   <a href="/live-score">🎮 Partie Live</a>
   <a href="/stats">📊 Stats</a>
   <a href="/top">🏆 Top 10</a>
-  <a href="#" onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.href='/')">🚪 Déconnexion</a>
+  <a href="#" onclick="logout()">🚪 Déconnexion</a>
 </div>
 
-<script>
-function toggleMenu() {
-  document.getElementById("burger").classList.toggle("open");
-  document.getElementById("mobileMenu").classList.toggle("open");
-  document.body.style.overflow = document.getElementById("mobileMenu").classList.contains("open") ? "hidden" : "";
-}
-</script>
-
 <div class="page">
-  <div class="container" style="max-width:1000px">
-    <div class="page-header fade-up">
-      <h1>🎮 Partie en direct</h1>
-      <p>Scores en temps réel via WebSocket</p>
+  <div class="container" style="max-width:900px">
+    <div class="page-header">
+      <h1>🎮 Partie Live</h1>
+      <p id="pageSub">Suivez le match en direct</p>
     </div>
 
-    <div id="startForm" class="card fade-up" style="animation-delay:.05s;margin-bottom:1.5rem">
-      <div class="card-header"><h3>Composer les équipes</h3></div>
-      <div class="card-body">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
-          <div>
-            <label class="label">🔴 Équipe 1</label>
-            <select id="t1p1" class="input" style="margin-bottom:0.5rem">
-              <option value="">Joueur 1</option>
-            </select>
-            <select id="t1p2" class="input">
-              <option value="">Joueur 2 (optionnel)</option>
-            </select>
+    <!-- ADMIN/CRÉATEUR: Configuration partie -->
+    <div id="setupArea" style="display:none">
+      <div class="card">
+        <div class="card-header"><h3>Configuration</h3></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
+            <div>
+              <h4>🔴 Équipe 1</h4>
+              <select id="t1p1" class="input"><option value="">Joueur 1</option></select>
+              <select id="t1p2" class="input"><option value="">Joueur 2 (optionnel)</option></select>
+            </div>
+            <div>
+              <h4>🔵 Équipe 2</h4>
+              <select id="t2p1" class="input"><option value="">Joueur 1</option></select>
+              <select id="t2p2" class="input"><option value="">Joueur 2 (optionnel)</option></select>
+            </div>
           </div>
-          <div>
-            <label class="label">🔵 Équipe 2</label>
-            <select id="t2p1" class="input" style="margin-bottom:0.5rem">
-              <option value="">Joueur 1</option>
-            </select>
-            <select id="t2p2" class="input">
-              <option value="">Joueur 2 (optionnel)</option>
-            </select>
-          </div>
+          <button id="btnStart" class="btn btn-primary btn-full btn-lg">Lancer la partie</button>
+          <button class="btn btn-secondary btn-full" style="margin-top:1rem" onclick="unlockServo()">🔓 Débloquer Servo</button>
         </div>
-        <button id="btnStart" class="btn btn-primary btn-full btn-lg">Lancer la partie</button>
-        
-        <button id="servo-unlock-btn" onclick="unlockServo()">🔓 Débloquer Servo</button>
       </div>
     </div>
 
+    <!-- SPECTATEUR: Voir le match -->
+    <div id="spectatorArea" style="display:none">
+      <div class="card">
+        <div class="card-header"><h3>👁️ Match en cours</h3></div>
+        <div class="card-body">
+          <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:2rem;align-items:center;text-align:center">
+            <div>
+              <div style="font-size:4rem;font-weight:700;color:var(--bronze)" id="specScore1">0</div>
+              <div style="font-weight:600;margin-top:0.5rem;color:var(--text-primary)">🔴 Équipe 1</div>
+              <div id="specTeam1" style="font-size:0.9rem;color:var(--text-tertiary);margin-top:0.5rem"></div>
+            </div>
+            <div style="font-size:2rem;color:var(--text-muted)">VS</div>
+            <div>
+              <div style="font-size:4rem;font-weight:700;color:var(--gold)" id="specScore2">0</div>
+              <div style="font-weight:600;margin-top:0.5rem;color:var(--text-primary)">🔵 Équipe 2</div>
+              <div id="specTeam2" style="font-size:0.9rem;color:var(--text-tertiary);margin-top:0.5rem"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADMIN: Contrôler le match -->
     <div id="gameArea" style="display:none">
-      <div class="card fade-up" style="margin-bottom:1.5rem">
+      <div class="card">
         <div class="card-header"><h3>Partie en cours</h3></div>
         <div class="card-body">
           <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:2rem;align-items:center;text-align:center">
             <div>
-              <div style="font-size:4rem;font-weight:700;color:#e74c3c" id="score1">0</div>
+              <div style="font-size:4rem;font-weight:700;color:var(--bronze)" id="score1">0</div>
               <div style="font-weight:600;margin-top:0.5rem">🔴 Équipe 1</div>
-              <div id="team1Players" style="font-size:0.9rem;color:#666;margin-top:0.5rem"></div>
-              <button class="btn btn-primary" style="margin-top:1rem" onclick="addPoint('team1')">+1 Point</button>
+              <div id="team1Players" style="font-size:0.9rem;color:var(--text-tertiary);margin-top:0.5rem"></div>
+              <button class="btn btn-primary" style="margin-top:1rem" onclick="addPoint('team1')">+1</button>
             </div>
-            <div style="font-size:2rem;color:#95a5a6">VS</div>
+            <div style="font-size:2rem;color:var(--text-muted)">VS</div>
             <div>
-              <div style="font-size:4rem;font-weight:700;color:#3498db" id="score2">0</div>
+              <div style="font-size:4rem;font-weight:700;color:var(--gold)" id="score2">0</div>
               <div style="font-weight:600;margin-top:0.5rem">🔵 Équipe 2</div>
-              <div id="team2Players" style="font-size:0.9rem;color:#666;margin-top:0.5rem"></div>
-              <button class="btn btn-primary" style="margin-top:1rem" onclick="addPoint('team2')">+1 Point</button>
+              <div id="team2Players" style="font-size:0.9rem;color:var(--text-tertiary);margin-top:0.5rem"></div>
+              <button class="btn btn-primary" style="margin-top:1rem" onclick="addPoint('team2')">+1</button>
             </div>
           </div>
-
-          <div id="admin-controls">
-            <button class="btn-danger btn-full" onclick="stopGame()">🛑 ARRÊTER LA PARTIE (ADMIN)</button>
-          </div>
+          <button class="btn" style="margin-top:2rem;background:#e74c3c;color:white" onclick="stopGame()">🛑 Arrêter</button>
         </div>
       </div>
     </div>
 
-    <div id="winnerArea" style="display:none">
-      <div class="card fade-up">
-        <div class="card-header"><h3>🏆 Partie terminée !</h3></div>
-        <div class="card-body" style="text-align:center">
-          <div style="font-size:3rem;margin:2rem 0" id="winnerText"></div>
-          <div style="font-size:2rem;color:#666;margin-bottom:2rem" id="finalScore"></div>
-          <button class="btn btn-primary btn-lg" onclick="location.href='/dashboard'">Retour au Dashboard</button>
+    <!-- AUCUN MATCH -->
+    <div id="noGameArea" style="display:none">
+      <div class="card">
+        <div class="card-body" style="text-align:center;padding:3rem 1rem">
+          <div style="font-size:4rem;margin-bottom:1rem;opacity:0.3">⚽</div>
+          <h2 style="color:var(--text-primary);margin-bottom:0.5rem">Aucun match en cours</h2>
+          <p style="color:var(--text-tertiary);margin-bottom:2rem">Il n'y a pas de partie active</p>
+          <a href="/dashboard" class="btn btn-primary">Retour</a>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
-<div id="rematchPopup" class="popup-overlay">
-  <div class="popup-content">
-    <h2>🔄 Rejouer ?</h2>
-    <p>Voulez-vous refaire une partie avec les mêmes équipes ?</p>
-    <div class="popup-buttons">
-      <button class="btn-success" onclick="voteRematch('yes')">✅ OUI</button>
-      <button class="btn-danger" onclick="voteRematch('no')">❌ NON</button>
+    <!-- POPUP REMATCH -->
+    <div id="rematchPopup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center">
+      <div style="background:var(--bg-elevated);padding:2rem;border-radius:12px;max-width:400px;text-align:center">
+        <h2 style="color:var(--text-primary)">🔄 Rejouer ?</h2>
+        <p style="color:var(--text-tertiary);margin:1rem 0">Même équipes, nouvelle partie ?</p>
+        <div style="display:flex;gap:1rem">
+          <button class="btn btn-primary" style="flex:1" onclick="voteRematch('yes')">✅ OUI</button>
+          <button class="btn" style="flex:1;background:#e74c3c;color:white" onclick="voteRematch('no')">❌ NON</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
 const socket = io();
-let currentGame = null;
-let currentUsername = null;
+let currentUser = null;
 let isAdmin = false;
-let canUnlockServo = false;
+let canControl = false;
 
-async function loadCurrentUser() {
-  try {
-    const res = await fetch('/current_user');
-    if (res.ok) {
-      const user = await res.json();
-      currentUsername = user.username;
-      isAdmin = user.is_admin;
-      canUnlockServo = user.is_admin || user.has_reservation;
-      
-      document.getElementById('navUsername').textContent = user.username;
-      document.getElementById('navAv').textContent = user.username[0].toUpperCase();
-      
-      if (canUnlockServo) {
-        document.getElementById('servo-unlock-btn').style.display = 'block';
-      }
-      
-      if (isAdmin) {
-        document.getElementById('admin-controls').style.display = 'block';
-      }
-    }
-  } catch (e) {
-    console.error('Erreur chargement user:', e);
+function toggleMenu() {
+  document.getElementById("burger").classList.toggle("open");
+  document.getElementById("mobileMenu").classList.toggle("open");
+}
+
+function logout() {
+  fetch('/api/logout', {method: 'POST'}).then(() => location.href = '/');
+}
+
+async function loadUser() {
+  const res = await fetch('/current_user');
+  if (res.ok) {
+    const user = await res.json();
+    currentUser = user.username;
+    isAdmin = user.is_admin;
+    document.getElementById('navUsername').textContent = user.username;
+    document.getElementById('navAv').textContent = user.username[0].toUpperCase();
+    checkActiveGame();
   }
 }
 
 async function loadUsers() {
-  try {
-    const res = await fetch('/users_list');
-    const users = await res.json();
-    
-    const selects = [
-      document.getElementById('t1p1'),
-      document.getElementById('t1p2'),
-      document.getElementById('t2p1'),
-      document.getElementById('t2p2')
-    ];
-    
-    selects.forEach(select => {
-      users.forEach(u => {
-        const opt = document.createElement('option');
-        opt.value = u;
-        opt.textContent = u;
-        select.appendChild(opt);
-      });
+  const res = await fetch('/users_list');
+  const users = await res.json();
+  ['t1p1','t1p2','t2p1','t2p2'].forEach(id => {
+    const sel = document.getElementById(id);
+    users.forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u; opt.textContent = u;
+      sel.appendChild(opt);
     });
-  } catch (e) {
-    console.error('Erreur chargement users:', e);
-  }
+  });
 }
 
 async function checkActiveGame() {
-  try {
-    const res = await fetch('/api/has_active_game');
-    const data = await res.json();
+  const res = await fetch('/api/has_active_game');
+  const data = await res.json();
+  
+  if (data.has_active_game) {
+    const game = data.game_data;
+    canControl = isAdmin || game.started_by === currentUser;
     
-    if (data.has_active_game && data.game_data) {
-      console.log('📥 Partie récupérée');
-      currentGame = data.game_data;
-      showGame();
-      updateScores();
+    if (canControl) {
+      document.getElementById('setupArea').style.display = 'none';
+      document.getElementById('gameArea').style.display = 'block';
+      document.getElementById('spectatorArea').style.display = 'none';
+      document.getElementById('noGameArea').style.display = 'none';
+      updateGameUI(game);
+    } else {
+      document.getElementById('setupArea').style.display = 'none';
+      document.getElementById('gameArea').style.display = 'none';
+      document.getElementById('spectatorArea').style.display = 'block';
+      document.getElementById('noGameArea').style.display = 'none';
+      updateSpectatorUI(game);
     }
-  } catch (e) {
-    console.error('Erreur récupération partie:', e);
+  } else {
+    if (isAdmin) {
+      document.getElementById('setupArea').style.display = 'block';
+      document.getElementById('gameArea').style.display = 'none';
+      document.getElementById('spectatorArea').style.display = 'none';
+      document.getElementById('noGameArea').style.display = 'none';
+      document.getElementById('pageSub').textContent = 'Configurer une nouvelle partie';
+    } else {
+      document.getElementById('setupArea').style.display = 'none';
+      document.getElementById('gameArea').style.display = 'none';
+      document.getElementById('spectatorArea').style.display = 'none';
+      document.getElementById('noGameArea').style.display = 'block';
+    }
   }
+}
+
+function updateGameUI(game) {
+  document.getElementById('score1').textContent = game.team1_score;
+  document.getElementById('score2').textContent = game.team2_score;
+  document.getElementById('team1Players').textContent = game.team1_players.join(', ');
+  document.getElementById('team2Players').textContent = game.team2_players.join(', ');
+}
+
+function updateSpectatorUI(game) {
+  document.getElementById('specScore1').textContent = game.team1_score;
+  document.getElementById('specScore2').textContent = game.team2_score;
+  document.getElementById('specTeam1').textContent = game.team1_players.join(', ');
+  document.getElementById('specTeam2').textContent = game.team2_players.join(', ');
 }
 
 function startGame() {
-  const team1 = [
-    document.getElementById('t1p1').value,
-    document.getElementById('t1p2').value
-  ].filter(p => p);
-  
-  const team2 = [
-    document.getElementById('t2p1').value,
-    document.getElementById('t2p2').value
-  ].filter(p => p);
-  
-  if (team1.length === 0 || team2.length === 0) {
-    alert('Chaque équipe doit avoir au moins un joueur');
+  const t1 = [document.getElementById('t1p1').value, document.getElementById('t1p2').value].filter(Boolean);
+  const t2 = [document.getElementById('t2p1').value, document.getElementById('t2p2').value].filter(Boolean);
+  if (t1.length === 0 || t2.length === 0) {
+    alert('Il faut au moins 1 joueur par équipe');
     return;
   }
-  
-  socket.emit('start_game', { team1, team2 });
+  socket.emit('start_game', {team1: t1, team2: t2});
 }
 
 function addPoint(team) {
-  socket.emit('update_score', { team });
-}
-
-function showGame() {
-  document.getElementById('startForm').style.display = 'none';
-  document.getElementById('gameArea').style.display = 'block';
-  document.getElementById('winnerArea').style.display = 'none';
-  
-  if (currentGame) {
-    document.getElementById('team1Players').textContent = currentGame.team1_players.join(', ');
-    document.getElementById('team2Players').textContent = currentGame.team2_players.join(', ');
-  }
-}
-
-function updateScores() {
-  if (!currentGame) return;
-  document.getElementById('score1').textContent = currentGame.team1_score;
-  document.getElementById('score2').textContent = currentGame.team2_score;
-}
-
-function showWinner() {
-  document.getElementById('startForm').style.display = 'none';
-  document.getElementById('gameArea').style.display = 'none';
-  document.getElementById('winnerArea').style.display = 'block';
-  
-  const winner = currentGame.winner === 'team1' ? 'Équipe 1' : 'Équipe 2';
-  document.getElementById('winnerText').textContent = `${winner} a gagné !`;
-  document.getElementById('finalScore').textContent = `${currentGame.team1_score} - ${currentGame.team2_score}`;
-}
-
-function unlockServo() {
-  socket.emit('unlock_servo');
-  alert('✅ Servo déverrouillé !');
+  socket.emit('update_score', {team});
 }
 
 function stopGame() {
-  if (confirm('⚠️ Êtes-vous sûr de vouloir arrêter cette partie ?')) {
+  if (confirm('Arrêter la partie ?')) {
     socket.emit('stop_game');
   }
 }
 
+function unlockServo() {
+  socket.emit('unlock_servo');
+}
+
 function voteRematch(vote) {
-  socket.emit('vote_rematch', { vote });
-  document.getElementById('rematchPopup').classList.remove('show');
+  socket.emit('vote_rematch', {vote});
+  document.getElementById('rematchPopup').style.display = 'none';
 }
 
 socket.on('game_started', (game) => {
-  console.log('🎮 Partie démarrée');
-  currentGame = game;
-  showGame();
-  updateScores();
-});
-
-socket.on('game_recovery', (game) => {
-  console.log('📥 Partie récupérée via Socket');
-  currentGame = game;
-  showGame();
-  updateScores();
+  checkActiveGame();
 });
 
 socket.on('score_updated', (game) => {
-  console.log('📊 Score mis à jour');
-  currentGame = game;
-  updateScores();
+  if (canControl) {
+    updateGameUI(game);
+  } else {
+    updateSpectatorUI(game);
+  }
 });
 
 socket.on('game_ended', (game) => {
-  console.log('🏁 Partie terminée');
-  currentGame = game;
-  updateScores();
-  showWinner();
+  if (canControl) {
+    updateGameUI(game);
+  } else {
+    updateSpectatorUI(game);
+  }
 });
 
 socket.on('game_stopped', () => {
@@ -390,22 +297,17 @@ socket.on('game_stopped', () => {
 });
 
 socket.on('rematch_prompt', () => {
-  document.getElementById('rematchPopup').classList.add('show');
+  if (canControl) {
+    document.getElementById('rematchPopup').style.display = 'flex';
+  }
 });
 
 socket.on('rematch_cancelled', () => {
   location.href = '/dashboard';
 });
 
-socket.on('error', (data) => {
-  console.error('Erreur:', data.message);
-});
-
-document.getElementById('btnStart').addEventListener('click', startGame);
-
-loadCurrentUser();
+loadUser();
 loadUsers();
-checkActiveGame();
 </script>
 </body>
 </html>
