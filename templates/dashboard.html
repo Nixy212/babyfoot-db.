@@ -349,9 +349,14 @@ function showNotification(message, type) {
   }, 3000);
 }
 
-socket.on('lobby_created', () => {
-  showNotification('Lobby créé ! Redirection...', 'success');
-  setTimeout(() => location.href = '/lobby', 1000);
+socket.on('lobby_created', (data) => {
+  // Ne rediriger que si c'est nous qui avons créé le lobby ou si nous sommes invités
+  if (data.host === currentUsername || data.invited.includes(currentUsername)) {
+    showNotification('Lobby créé ! Redirection...', 'success');
+    setTimeout(() => location.href = '/lobby', 500);
+  } else {
+    console.log('Lobby créé par', data.host, 'mais nous ne sommes pas concernés');
+  }
 });
 
 socket.on('lobby_invitation', (data) => {
