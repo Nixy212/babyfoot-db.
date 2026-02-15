@@ -202,6 +202,55 @@
   .team-score { width: 100%; }
   .unlock-btn { padding: 16px !important; font-size: 1.1rem !important; }
 
+  /* ===== LOBBY MOBILE ===== */
+  .team-container {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .team-box {
+    padding: 16px !important;
+    min-height: auto !important;
+  }
+  .team-box h3 {
+    font-size: 1.2rem !important;
+  }
+  .player-item {
+    padding: 12px !important;
+    font-size: 0.9rem;
+    flex-wrap: wrap;
+  }
+  .player-item > div {
+    width: 100%;
+    margin-top: 8px;
+    display: flex;
+    gap: 6px;
+  }
+  .player-item button {
+    flex: 1;
+    padding: 8px !important;
+    font-size: 0.8rem !important;
+  }
+  .player-selector {
+    max-height: 150px !important;
+  }
+  .player-chip {
+    padding: 10px 14px !important;
+    font-size: 0.9rem;
+  }
+  .search-box input {
+    font-size: 16px !important;
+  }
+  .status-bar {
+    flex-direction: column !important;
+    gap: 12px;
+    text-align: center;
+  }
+  #swapRequestNotif {
+    left: 12px !important;
+    right: 12px !important;
+    max-width: none !important;
+  }
+
   /* Reservation grille équipes */
   .card-body > div[style*="grid-template-columns:1fr 1fr"] {
     grid-template-columns: 1fr !important;
