@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lobby — Baby-Foot Club</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
+  <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
+  <style>
+    .team-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin: 2rem 0;
+    }
+    .team-box {
+      padding: 2rem;
+      border-radius: 12px;
+      min-height: 200px;
+    }
+    .team1-box { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .team2-box { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .team-box h3 { color: white; margin-top: 0; }
+    .player-item {
+      background: rgba(255,255,255,0.2);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .player-item button {
+      background: rgba(255,255,255,0.3);
+      border: none;
+      padding: 0.25rem 0.75rem;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .status-bar {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .status-indicator {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #27ae60;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body style="font-family: 'DM Sans', sans-serif;">
+<nav class="nav nav-glass">
+  <div class="nav-inner">
+    <a href="/dashboard" class="nav-brand">
+      <div class="logo-wrapper">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
+        <div class="logo-pulse"></div>
+      </div>
+      <span class="brand-text">Baby-Foot Club</span>
+    </a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
+      <a href="/lobby" class="nav-link active"><span class="nav-link-icon">🎮</span><span>Lobby</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon">📊</span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
+    </div>
+    <button class="burger" id="burger" onclick="toggleMenu()">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-right">
+      <div class="user-profile-mini">
+        <div class="nav-avatar" id="navAv">?</div>
+        <span class="nav-username" id="navUsername"></span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
+  <a href="/dashboard">🏠 Dashboard</a>
+  <a href="/reservation">📅 Réserver</a>
+  <a href="/lobby">🎮 Lobby</a>
+  <a href="/stats">📊 Stats</a>
+  <a href="/top">🏆 Top 10</a>
+  <a href="#" onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.href='/')">🚪 Déconnexion</a>
+</div>
+
+<script>
+function toggleMenu() {
+  document.getElementById("burger").classList.toggle("open");
+  document.getElementById("mobileMenu").classList.toggle("open");
+  document.body.style.overflow = document.getElementById("mobileMenu").classList.contains("open") ? "hidden" : "";
+}
+</script>
+
+<div class="page">
+  <div class="container" style="max-width:1000px">
+    <div class="page-header fade-up">
+      <h1>🎮 Lobby de Partie</h1>
+      <p>En attente des joueurs</p>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span><strong id="acceptedCount">0</strong> / <strong id="invitedCount">0</strong> joueurs prêts</span>
+      </div>
+      <div id="hostName"></div>
+    </div>
+
+    <div id="declinedSection" style="display:none;background:#fee;padding:1rem;border-radius:8px;margin-bottom:1rem">
+      <p id="declinedMessage"></p>
+      <div style="display:flex;gap:1rem;margin-top:0.5rem">
+        <button class="btn btn-primary" onclick="continueWithCurrent()">Continuer</button>
+        <button class="btn" onclick="location.href='/dashboard'">Annuler</button>
+      </div>
+    </div>
+
+    <div class="team-container">
+      <div class="team-box team1-box">
+        <h3>🔴 Équipe 1</h3>
+        <div id="team1List"></div>
+      </div>
+      <div class="team-box team2-box">
+        <h3>🔵 Équipe 2</h3>
+        <div id="team2List"></div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:2rem">
+      <button id="startButton" class="btn btn-primary btn-lg" style="display:none" onclick="startGame()">🚀 LANCER LA PARTIE</button>
+      <button class="btn btn-danger" onclick="cancelLobby()" style="margin-left:1rem">❌ Annuler</button>
+    </div>
+
+    <div id="swapRequestNotif" style="display:none;position:fixed;top:80px;right:20px;background:white;padding:1.5rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:300px">
+      <p id="swapMessage"></p>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem">
+        <button class="btn btn-primary" onclick="acceptSwap()">Accepter</button>
+        <button class="btn" onclick="declineSwap()">Refuser</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const socket = io();
+let currentUsername = null;
+let isAdmin = false;
+let lobbyData = null;
+let currentSwapRequest = null;
+
+async function loadCurrentUser() {
+  try {
+    const res = await fetch('/current_user');
+    if (res.ok) {
+      const user = await res.json();
+      currentUsername = user.username;
+      isAdmin = user.is_admin;
+      
+      document.getElementById('navUsername').textContent = user.username;
+      document.getElementById('navAv').textContent = user.username[0].toUpperCase();
+    }
+  } catch (e) {
+    console.error('Erreur:', e);
+  }
+}
+
+async function loadLobby() {
+  try {
+    const res = await fetch('/api/active_lobby');
+    const data = await res.json();
+    
+    if (!data.active) {
+      location.href = '/dashboard';
+      return;
+    }
+    
+    lobbyData = data;
+    updateLobbyUI();
+  } catch (e) {
+    console.error('Erreur:', e);
+  }
+}
+
+function updateLobbyUI() {
+  if (!lobbyData) return;
+  
+  document.getElementById('hostName').textContent = `Hôte: ${lobbyData.host}`;
+  document.getElementById('acceptedCount').textContent = lobbyData.accepted.length;
+  document.getElementById('invitedCount').textContent = lobbyData.invited.length + 1;
+  
+  const team1List = document.getElementById('team1List');
+  const team2List = document.getElementById('team2List');
+  
+  team1List.innerHTML = '';
+  team2List.innerHTML = '';
+  
+  lobbyData.team1.forEach(player => {
+    const item = document.createElement('div');
+    item.className = 'player-item';
+    item.innerHTML = `
+      <span>${player}</span>
+      ${player !== currentUsername && canRequestSwap(player) ? `<button onclick="requestSwap('${player}')">↔️ Échanger</button>` : ''}
+    `;
+    team1List.appendChild(item);
+  });
+  
+  lobbyData.team2.forEach(player => {
+    const item = document.createElement('div');
+    item.className = 'player-item';
+    item.innerHTML = `
+      <span>${player}</span>
+      ${player !== currentUsername && canRequestSwap(player) ? `<button onclick="requestSwap('${player}')">↔️ Échanger</button>` : ''}
+    `;
+    team2List.appendChild(item);
+  });
+  
+  if (lobbyData.declined.length > 0) {
+    document.getElementById('declinedSection').style.display = 'block';
+    document.getElementById('declinedMessage').textContent = `⚠️ ${lobbyData.declined.join(', ')} ${lobbyData.declined.length > 1 ? 'ont' : 'a'} refusé l'invitation`;
+  }
+  
+  if (currentUsername === lobbyData.host || isAdmin) {
+    if (lobbyData.accepted.length >= 2) {
+      document.getElementById('startButton').style.display = 'inline-block';
+    }
+  }
+}
+
+function canRequestSwap(targetPlayer) {
+  const myTeam = lobbyData.team1.includes(currentUsername) ? 'team1' : 'team2';
+  const targetTeam = lobbyData.team1.includes(targetPlayer) ? 'team1' : 'team2';
+  return myTeam !== targetTeam;
+}
+
+function requestSwap(withPlayer) {
+  socket.emit('request_team_swap', { with: withPlayer });
+}
+
+function acceptSwap() {
+  if (currentSwapRequest) {
+    socket.emit('accept_team_swap', { request_id: currentSwapRequest });
+    document.getElementById('swapRequestNotif').style.display = 'none';
+    currentSwapRequest = null;
+  }
+}
+
+function declineSwap() {
+  if (currentSwapRequest) {
+    socket.emit('decline_team_swap', { request_id: currentSwapRequest });
+    document.getElementById('swapRequestNotif').style.display = 'none';
+    currentSwapRequest = null;
+  }
+}
+
+function continueWithCurrent() {
+  document.getElementById('declinedSection').style.display = 'none';
+}
+
+function cancelLobby() {
+  if (confirm('Annuler le lobby ?')) {
+    socket.emit('cancel_lobby');
+  }
+}
+
+function startGame() {
+  socket.emit('start_game_from_lobby');
+}
+
+socket.on('lobby_update', (data) => {
+  lobbyData = data;
+  updateLobbyUI();
+});
+
+socket.on('team_swap_request', (data) => {
+  if (data.to === currentUsername) {
+    currentSwapRequest = data.request_id;
+    document.getElementById('swapMessage').textContent = `${data.from} veut échanger d'équipe avec vous`;
+    document.getElementById('swapRequestNotif').style.display = 'block';
+  }
+});
+
+socket.on('lobby_cancelled', () => {
+  location.href = '/dashboard';
+});
+
+socket.on('game_started', () => {
+  location.href = '/live-score';
+});
+
+loadCurrentUser();
+loadLobby();
+</script>
+</body>
+</html>
