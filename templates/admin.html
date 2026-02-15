@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Baby-Foot Club</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 </head>
 <body>
 <nav class="nav nav-glass">
@@ -23,6 +24,39 @@
     <div class="page-header">
       <h1>⚙️ Administration</h1>
       <p>Outils de gestion</p>
+    </div>
+
+    <!-- NOUVELLE SECTION : CONTRÔLE DES SERVOS -->
+    <div class="card" style="margin-top:2rem">
+      <div class="card-header" style="background:#e8f4fd;border-bottom:2px solid #3498db">
+        <h3 style="color:#3498db;margin:0">🔧 Contrôle des Servos</h3>
+      </div>
+      <div class="card-body">
+        <p style="color:var(--text-tertiary);margin-bottom:1.5rem">
+          Déverrouiller manuellement les servomoteurs pour libérer les balles bloquées.
+          Les servos se reverrouillent automatiquement après 5 secondes.
+        </p>
+        
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+          <button 
+            class="btn" 
+            style="background:#3498db;color:white;width:100%;padding:1rem" 
+            onclick="unlockServo1()"
+            id="btnServo1">
+            🔓 Servo 1<br><small>(Équipe 1)</small>
+          </button>
+          
+          <button 
+            class="btn" 
+            style="background:#3498db;color:white;width:100%;padding:1rem" 
+            onclick="unlockServo2()"
+            id="btnServo2">
+            🔓 Servo 2<br><small>(Équipe 2)</small>
+          </button>
+        </div>
+        
+        <div id="servo-result" style="margin-top:1rem;padding:1rem;border-radius:8px;display:none"></div>
+      </div>
     </div>
 
     <div class="card" style="margin-top:2rem">
@@ -52,6 +86,94 @@
 </div>
 
 <script>
+// Initialiser Socket.IO pour les commandes servos
+const socket = io();
+
+socket.on('connect', () => {
+  console.log('✅ Socket.IO connecté');
+});
+
+socket.on('disconnect', () => {
+  console.log('❌ Socket.IO déconnecté');
+});
+
+// Fonction de déverrouillage Servo 1
+function unlockServo1() {
+  const btn = document.getElementById('btnServo1');
+  const result = document.getElementById('servo-result');
+  
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  btn.innerHTML = '⏳ En cours...<br><small>(Équipe 1)</small>';
+  
+  result.style.display = 'block';
+  result.style.background = 'rgba(52, 152, 219, 0.1)';
+  result.style.border = '1px solid #3498db';
+  result.style.color = 'var(--text-primary)';
+  result.textContent = '🔓 Déverrouillage du Servo 1 en cours... (5 secondes)';
+  
+  socket.emit('unlock_servo1');
+  
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.innerHTML = '🔓 Servo 1<br><small>(Équipe 1)</small>';
+    
+    result.style.background = 'rgba(39, 174, 96, 0.1)';
+    result.style.border = '1px solid #27ae60';
+    result.textContent = '✅ Servo 1 reverrouillé automatiquement';
+    
+    setTimeout(() => {
+      result.style.display = 'none';
+    }, 3000);
+  }, 5000);
+}
+
+// Fonction de déverrouillage Servo 2
+function unlockServo2() {
+  const btn = document.getElementById('btnServo2');
+  const result = document.getElementById('servo-result');
+  
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  btn.innerHTML = '⏳ En cours...<br><small>(Équipe 2)</small>';
+  
+  result.style.display = 'block';
+  result.style.background = 'rgba(52, 152, 219, 0.1)';
+  result.style.border = '1px solid #3498db';
+  result.style.color = 'var(--text-primary)';
+  result.textContent = '🔓 Déverrouillage du Servo 2 en cours... (5 secondes)';
+  
+  socket.emit('unlock_servo2');
+  
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.innerHTML = '🔓 Servo 2<br><small>(Équipe 2)</small>';
+    
+    result.style.background = 'rgba(39, 174, 96, 0.1)';
+    result.style.border = '1px solid #27ae60';
+    result.textContent = '✅ Servo 2 reverrouillé automatiquement';
+    
+    setTimeout(() => {
+      result.style.display = 'none';
+    }, 3000);
+  }, 5000);
+}
+
+// Gestion des erreurs Socket.IO
+socket.on('error', (data) => {
+  const result = document.getElementById('servo-result');
+  result.style.display = 'block';
+  result.style.background = 'rgba(231, 76, 60, 0.1)';
+  result.style.border = '1px solid #e74c3c';
+  result.textContent = '❌ Erreur : ' + data.message;
+  
+  setTimeout(() => {
+    result.style.display = 'none';
+  }, 5000);
+});
+
 function logout() {
   fetch('/api/logout', {method: 'POST'}).then(() => location.href = '/');
 }
