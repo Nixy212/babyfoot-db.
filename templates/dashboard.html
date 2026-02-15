@@ -113,6 +113,7 @@
         <div class="nav-avatar" id="navAv">?</div>
         <span class="nav-username" id="navUsername"></span>
       </div>
+      <a href="/admin" id="adminBtn" class="btn" style="margin-left:1rem;background:linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);color:white;display:none">⚙️ Admin</a>
       <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()">🚪 Déconnexion</button>
     </div>
   </div>
@@ -125,6 +126,7 @@
   <a href="/live-score">🎮 Partie Live</a>
   <a href="/stats">📊 Stats</a>
   <a href="/top">🏆 Top 10</a>
+  <a href="/admin" id="adminBtnMobile" style="display:none;background:rgba(231,76,60,0.2);color:#e74c3c;font-weight:bold">⚙️ Admin</a>
   <a href="#" onclick="logout()">🚪 Déconnexion</a>
 </div>
 
@@ -186,7 +188,15 @@ function logout() {
     <div id="servo-controls" class="fade-up" style="animation-delay:.15s">
       <h3>🎮 Contrôles Servo</h3>
       <p>Débloquez le servo pour lancer une balle</p>
-      <button class="btn btn-primary btn-full" onclick="unlockServo()">🔓 Débloquer Servo</button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+        <button class="btn btn-primary" onclick="unlockServo1()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">
+          🔓 Servo 1<br><small style="font-size: 0.8em; opacity: 0.9;">(Équipe 1)</small>
+        </button>
+        <button class="btn btn-primary" onclick="unlockServo2()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">
+          🔓 Servo 2<br><small style="font-size: 0.8em; opacity: 0.9;">(Équipe 2)</small>
+        </button>
+      </div>
+      <div id="servo-feedback" style="margin-top: 1rem; padding: 0.75rem; border-radius: 8px; display: none; text-align: center;"></div>
     </div>
 
     <div class="card fade-up" style="animation-delay:.2s;margin-top:1.5rem">
@@ -230,6 +240,12 @@ async function loadCurrentUser() {
       document.getElementById('navUsername').textContent = user.username;
       document.getElementById('navAv').textContent = user.username[0].toUpperCase();
       
+      // Afficher le bouton Admin si l'utilisateur est admin
+      if (isAdmin) {
+        document.getElementById('adminBtn').style.display = 'inline-block';
+        document.getElementById('adminBtnMobile').style.display = 'block';
+      }
+      
       if (isAdmin || hasReservation) {
         document.getElementById('invitation-section').style.display = 'block';
         document.getElementById('servo-controls').style.display = 'block';
@@ -270,9 +286,58 @@ function createEmptyLobby() {
   socket.emit('create_lobby', { invited: [] });
 }
 
-function unlockServo() {
-  socket.emit('unlock_servo');
-  showNotification('Servo déverrouillé', 'success');
+function unlockServo1() {
+  const feedback = document.getElementById('servo-feedback');
+  const btn = event.target;
+  
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  
+  feedback.style.display = 'block';
+  feedback.style.background = 'rgba(52, 152, 219, 0.1)';
+  feedback.style.border = '1px solid #3498db';
+  feedback.textContent = '🔓 Déverrouillage Servo 1 en cours... (5 secondes)';
+  
+  socket.emit('unlock_servo1');
+  
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    feedback.style.background = 'rgba(39, 174, 96, 0.1)';
+    feedback.style.border = '1px solid #27ae60';
+    feedback.textContent = '✅ Servo 1 reverrouillé automatiquement';
+    
+    setTimeout(() => {
+      feedback.style.display = 'none';
+    }, 3000);
+  }, 5000);
+}
+
+function unlockServo2() {
+  const feedback = document.getElementById('servo-feedback');
+  const btn = event.target;
+  
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  
+  feedback.style.display = 'block';
+  feedback.style.background = 'rgba(231, 76, 60, 0.1)';
+  feedback.style.border = '1px solid #e74c3c';
+  feedback.textContent = '🔓 Déverrouillage Servo 2 en cours... (5 secondes)';
+  
+  socket.emit('unlock_servo2');
+  
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    feedback.style.background = 'rgba(39, 174, 96, 0.1)';
+    feedback.style.border = '1px solid #27ae60';
+    feedback.textContent = '✅ Servo 2 reverrouillé automatiquement';
+    
+    setTimeout(() => {
+      feedback.style.display = 'none';
+    }, 3000);
+  }, 5000);
 }
 
 async function loadLeaderboard() {
