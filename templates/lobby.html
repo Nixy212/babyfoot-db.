@@ -301,17 +301,24 @@ let selectedPlayers = [];
 
 async function loadCurrentUser() {
   try {
+    console.log('👤 loadCurrentUser() démarré');
     const res = await fetch('/current_user');
+    console.log('   Réponse /current_user:', res.status, res.ok);
+    
     if (res.ok) {
       const user = await res.json();
       currentUsername = user.username;
       isAdmin = user.is_admin;
       
+      console.log('✅ Utilisateur chargé:', currentUsername, '(admin:', isAdmin, ')');
+      
       document.getElementById('navUsername').textContent = user.username;
       document.getElementById('navAv').textContent = user.username[0].toUpperCase();
+    } else {
+      console.error('❌ Erreur fetch /current_user, status:', res.status);
     }
   } catch (e) {
-    console.error('Erreur:', e);
+    console.error('❌ Erreur loadCurrentUser:', e);
   }
 }
 
@@ -409,11 +416,16 @@ function kickPlayer(playerUsername) {
 
 async function loadLobby() {
   try {
+    console.log('🔍 loadLobby() démarré');
+    console.log('   currentUsername:', currentUsername);
+    
     const res = await fetch('/api/active_lobby');
     const data = await res.json();
     
+    console.log('📦 Données lobby reçues:', data);
+    
     if (!data.active) {
-      console.log('Pas de lobby actif, redirection dashboard');
+      console.log('❌ Pas de lobby actif, redirection dashboard');
       location.href = '/dashboard';
       return;
     }
@@ -422,17 +434,25 @@ async function loadLobby() {
     const isInvited = data.invited.includes(currentUsername);
     const isAccepted = data.accepted.includes(currentUsername);
     
+    console.log('👤 Vérifications:');
+    console.log('   isInvited:', isInvited, '(invited:', data.invited, ')');
+    console.log('   isAccepted:', isAccepted, '(accepted:', data.accepted, ')');
+    
     if (!isInvited && !isAccepted) {
-      console.log('Utilisateur pas dans le lobby, redirection dashboard');
+      console.log('❌ Utilisateur pas dans le lobby, redirection dashboard');
+      console.log('   currentUsername:', currentUsername);
+      console.log('   lobby.invited:', data.invited);
+      console.log('   lobby.accepted:', data.accepted);
       location.href = '/dashboard';
       return;
     }
     
+    console.log('✅ Utilisateur dans le lobby, chargement UI');
     lobbyData = data;
     updateLobbyUI();
     loadPlayers();
   } catch (e) {
-    console.error('Erreur:', e);
+    console.error('❌ Erreur loadLobby:', e);
     location.href = '/dashboard';
   }
 }
@@ -595,8 +615,16 @@ socket.on('kicked_from_lobby', () => {
   location.href = '/dashboard';
 });
 
-loadCurrentUser();
-loadLobby();
+// IMPORTANT: Charger l'utilisateur AVANT le lobby pour éviter la race condition
+async function initPage() {
+  console.log('🚀 Initialisation de la page lobby...');
+  await loadCurrentUser();
+  console.log('⏳ loadCurrentUser terminé, démarrage loadLobby...');
+  await loadLobby();
+  console.log('✅ Initialisation terminée');
+}
+
+initPage();
 </script>
 </body>
 </html>
