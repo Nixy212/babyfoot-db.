@@ -58,8 +58,8 @@ if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
 USE_POSTGRES = bool(DATABASE_URL)
 
 if USE_POSTGRES:
-    import psycopg
-    from psycopg.rows import dict_row
+    import psycopg2
+    import psycopg2.extras
 else:
     import sqlite3
     DB_PATH = os.environ.get('DB_PATH', 'babyfoot.db')
@@ -91,7 +91,7 @@ servo_commands = {"servo1": "none", "servo2": "none"}
 
 def get_db_connection():
     if USE_POSTGRES:
-        return psycopg.connect(DATABASE_URL, row_factory=dict_row)
+        return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
     else:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
