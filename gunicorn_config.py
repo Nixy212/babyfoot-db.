@@ -1,8 +1,7 @@
 workers = 1
-worker_class = 'gthread'
-threads = 4
+worker_class = 'eventlet'
 timeout = 120
 keepalive = 75
 accesslog = '-'
 errorlog = '-'
-loglevel = 'debug'
+loglevel = 'info'
