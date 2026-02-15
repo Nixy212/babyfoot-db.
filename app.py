@@ -743,23 +743,22 @@ def handle_unlock_servo1():
     if not is_admin(username):
         emit('error', {'message': 'Admin requis'}); return
     
-    # ✅ Envoyer OPEN
+    # ✅ Ouvrir pendant 3 secondes SEULEMENT si pas de partie
+    if current_game.get('active'):
+        emit('error', {'message': 'Impossible pendant une partie'}); return
+    
     servo_commands["servo1"].append("open")
-    logger.info(f"🔓 SERVO1 OPEN ajouté à la queue par {username}")
-    logger.info(f"   Queue actuelle: {servo_commands}")
+    logger.info(f"🔓 SERVO1 ouvert 3s par {username}")
     socketio.emit('servo1_unlock', {}, namespace='/')
     
-    # ✅ Refermer après 3 secondes
+    # Refermer après 3s
     import threading
     def relock():
         import time
-        time.sleep(3)  # ✅ 3 secondes
-        if not current_game.get('active'):
-            servo_commands["servo1"].append("close")
-            socketio.emit('servo1_lock', {}, namespace='/')
-            logger.info(f"🔒 SERVO1 CLOSE ajouté après 3s")
-        else:
-            logger.info(f"⚠️ Partie active, SERVO1 reste ouvert")
+        time.sleep(3)
+        servo_commands["servo1"].append("close")
+        socketio.emit('servo1_lock', {}, namespace='/')
+        logger.info(f"🔒 SERVO1 refermé après 3s")
     threading.Thread(target=relock, daemon=True).start()
 
 @socketio.on('unlock_servo2')
@@ -769,23 +768,22 @@ def handle_unlock_servo2():
     if not is_admin(username):
         emit('error', {'message': 'Admin requis'}); return
     
-    # ✅ Envoyer OPEN
+    # ✅ Ouvrir pendant 3 secondes SEULEMENT si pas de partie
+    if current_game.get('active'):
+        emit('error', {'message': 'Impossible pendant une partie'}); return
+    
     servo_commands["servo2"].append("open")
-    logger.info(f"🔓 SERVO2 OPEN ajouté à la queue par {username}")
-    logger.info(f"   Queue actuelle: {servo_commands}")
+    logger.info(f"🔓 SERVO2 ouvert 3s par {username}")
     socketio.emit('servo2_unlock', {}, namespace='/')
     
-    # ✅ Refermer après 3 secondes
+    # Refermer après 3s
     import threading
     def relock():
         import time
-        time.sleep(3)  # ✅ 3 secondes
-        if not current_game.get('active'):
-            servo_commands["servo2"].append("close")
-            socketio.emit('servo2_lock', {}, namespace='/')
-            logger.info(f"🔒 SERVO2 CLOSE ajouté après 3s")
-        else:
-            logger.info(f"⚠️ Partie active, SERVO2 reste ouvert")
+        time.sleep(3)
+        servo_commands["servo2"].append("close")
+        socketio.emit('servo2_lock', {}, namespace='/')
+        logger.info(f"🔒 SERVO2 refermé après 3s")
     threading.Thread(target=relock, daemon=True).start()
 
 @socketio.on('stop_game')
