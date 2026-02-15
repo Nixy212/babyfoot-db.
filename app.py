@@ -763,14 +763,26 @@ def handle_unlock_servo():
         emit('error', {'message': 'Non authentifié'})
         return
     
-    can_unlock = is_admin(username) or (current_game.get('reserved_by') == username)
-    
-    if not can_unlock:
-        emit('error', {'message': 'Seuls admins et réservateur peuvent débloquer'})
+    # Seuls les admins peuvent déverrouiller manuellement
+    if not is_admin(username):
+        emit('error', {'message': 'Seuls les admins peuvent débloquer le servo'})
         return
     
-    logger.info(f"Déverrouillage servo par {username}")
+    logger.info(f"Déverrouillage servo par {username} (5 secondes)")
+    
+    # Déverrouiller immédiatement
     socketio.emit('servo_unlock', {}, namespace='/')
+    
+    # Reverrouiller après 5 secondes
+    import threading
+    def relock_servo():
+        import time
+        time.sleep(5)
+        socketio.emit('servo_lock', {}, namespace='/')
+        logger.info("🔒 Servo reverrouillé automatiquement après 5s")
+    
+    threading.Thread(target=relock_servo, daemon=True).start()
+
 
 @socketio.on('stop_game')
 def handle_stop_game():
@@ -961,6 +973,12 @@ def handle_arduino_goal(data):
         
         logger.info(f"✅ BUT VALIDÉ ! Nouveau score: T1={current_game['team1_score']} T2={current_game['team2_score']}")
         
+        # Fermer le servo à 9 buts (avant le dernier but)
+        if current_game[f"{team}_score"] == 9:
+            logger.info("🔒 9 buts atteints - Verrouillage du servo")
+            socketio.emit('servo_lock', {}, namespace='/')
+        
+        # Fin de partie à 10 buts
         if current_game[f"{team}_score"] >= 10:
             current_game['winner'] = team
             current_game['active'] = False
@@ -976,14 +994,11 @@ def handle_arduino_goal(data):
             socketio.emit('game_ended', current_game, namespace='/')
             
             import threading
-            def lock_and_rematch():
+            def ask_rematch_delayed():
                 import time
                 time.sleep(2)
-                socketio.emit('servo_lock', {}, namespace='/')
-                logger.info("🔒 Servo verrouillé")
-                time.sleep(1)
                 socketio.emit('rematch_prompt', {}, namespace='/')
-            threading.Thread(target=lock_and_rematch, daemon=True).start()
+            threading.Thread(target=ask_rematch_delayed, daemon=True).start()
         
         else:
             socketio.emit('score_updated', current_game, namespace='/')
