@@ -20,47 +20,69 @@
     .team-box {
       padding: 2rem;
       border-radius: 12px;
-      min-height: 200px;
+      min-height: 250px;
+      border: 3px solid;
     }
-    .team1-box { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-    .team2-box { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-    .team-box h3 { color: white; margin-top: 0; }
+    .team1-box { 
+      background: #ffe5e5;
+      border-color: #e74c3c;
+    }
+    .team2-box { 
+      background: #e3f2fd;
+      border-color: #2196f3;
+    }
+    .team-box h3 { 
+      margin-top: 0;
+      font-size: 1.5rem;
+    }
+    .team1-box h3 { color: #c0392b; }
+    .team2-box h3 { color: #1565c0; }
+    
     .player-item {
-      background: rgba(255,255,255,0.2);
-      padding: 0.75rem 1rem;
+      background: white;
+      padding: 1rem;
       border-radius: 8px;
-      margin-bottom: 0.5rem;
-      color: white;
+      margin-bottom: 0.75rem;
+      color: #333;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      font-weight: 600;
     }
     .player-item button {
-      background: rgba(255,255,255,0.3);
+      background: #3498db;
       border: none;
-      padding: 0.25rem 0.75rem;
+      padding: 0.4rem 0.9rem;
       border-radius: 6px;
       color: white;
       cursor: pointer;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .player-item button:hover {
+      background: #2980b9;
     }
     .status-bar {
       background: #f8f9fa;
-      padding: 1rem;
+      padding: 1.25rem;
       border-radius: 8px;
       margin-bottom: 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
+      border: 2px solid #e0e0e0;
     }
     .status-indicator {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.75rem;
       align-items: center;
+      font-weight: 600;
+      color: #333;
     }
     .status-dot {
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       background: #27ae60;
       animation: pulse 2s infinite;
@@ -68,6 +90,38 @@
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
+    }
+    .player-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .player-chip {
+      padding: 0.6rem 1.2rem;
+      background: white;
+      border: 2px solid #ddd;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #333;
+      font-weight: 600;
+    }
+    .player-chip:hover {
+      background: #f0f0f0;
+      border-color: #667eea;
+    }
+    .player-chip.selected {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
+    #invite-section {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      border: 2px solid #e0e0e0;
     }
   </style>
 </head>
@@ -131,14 +185,20 @@ function toggleMenu() {
         <div class="status-dot"></div>
         <span><strong id="acceptedCount">0</strong> / <strong id="invitedCount">0</strong> joueurs prêts</span>
       </div>
-      <div id="hostName"></div>
+      <div style="font-weight:600;color:#333">Hôte: <span id="hostName" style="color:#667eea"></span></div>
     </div>
 
-    <div id="declinedSection" style="display:none;background:#fee;padding:1rem;border-radius:8px;margin-bottom:1rem">
-      <p id="declinedMessage"></p>
-      <div style="display:flex;gap:1rem;margin-top:0.5rem">
+    <div id="invite-section">
+      <h3 style="margin-top:0;color:#333">👥 Inviter des joueurs</h3>
+      <div class="player-selector" id="playerSelector"></div>
+      <button class="btn btn-primary btn-full" style="margin-top:1rem" onclick="inviteSelected()">📤 Envoyer Invitations</button>
+    </div>
+
+    <div id="declinedSection" style="display:none;background:#fee;padding:1rem;border-radius:8px;margin-bottom:1rem;border:2px solid #e74c3c">
+      <p id="declinedMessage" style="color:#c0392b;font-weight:600;margin:0"></p>
+      <div style="display:flex;gap:1rem;margin-top:0.75rem">
         <button class="btn btn-primary" onclick="continueWithCurrent()">Continuer</button>
-        <button class="btn" onclick="location.href='/dashboard'">Annuler</button>
+        <button class="btn" style="background:#e74c3c;color:white" onclick="location.href='/dashboard'">Annuler</button>
       </div>
     </div>
 
@@ -155,14 +215,14 @@ function toggleMenu() {
 
     <div style="text-align:center;margin-top:2rem">
       <button id="startButton" class="btn btn-primary btn-lg" style="display:none" onclick="startGame()">🚀 LANCER LA PARTIE</button>
-      <button class="btn btn-danger" onclick="cancelLobby()" style="margin-left:1rem">❌ Annuler</button>
+      <button class="btn" style="margin-left:1rem;background:#95a5a6;color:white" onclick="cancelLobby()">❌ Annuler</button>
     </div>
 
-    <div id="swapRequestNotif" style="display:none;position:fixed;top:80px;right:20px;background:white;padding:1.5rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:300px">
-      <p id="swapMessage"></p>
+    <div id="swapRequestNotif" style="display:none;position:fixed;top:80px;right:20px;background:white;padding:1.5rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:300px;border:2px solid #667eea">
+      <p id="swapMessage" style="margin:0;color:#333;font-weight:600"></p>
       <div style="display:flex;gap:0.5rem;margin-top:1rem">
-        <button class="btn btn-primary" onclick="acceptSwap()">Accepter</button>
-        <button class="btn" onclick="declineSwap()">Refuser</button>
+        <button class="btn btn-primary" style="flex:1" onclick="acceptSwap()">✅ Accepter</button>
+        <button class="btn" style="flex:1;background:#e74c3c;color:white" onclick="declineSwap()">❌ Refuser</button>
       </div>
     </div>
   </div>
@@ -174,6 +234,8 @@ let currentUsername = null;
 let isAdmin = false;
 let lobbyData = null;
 let currentSwapRequest = null;
+let allUsers = [];
+let selectedPlayers = [];
 
 async function loadCurrentUser() {
   try {
@@ -191,6 +253,50 @@ async function loadCurrentUser() {
   }
 }
 
+async function loadPlayers() {
+  try {
+    const res = await fetch('/users_list');
+    const users = await res.json();
+    allUsers = users.filter(u => u !== currentUsername);
+    
+    const selector = document.getElementById('playerSelector');
+    selector.innerHTML = '';
+    
+    allUsers.forEach(u => {
+      if (!lobbyData.invited.includes(u) && !lobbyData.accepted.includes(u)) {
+        const chip = document.createElement('div');
+        chip.className = 'player-chip';
+        chip.textContent = u;
+        chip.onclick = () => togglePlayer(u, chip);
+        selector.appendChild(chip);
+      }
+    });
+  } catch (e) {
+    console.error('Erreur:', e);
+  }
+}
+
+function togglePlayer(username, chip) {
+  if (selectedPlayers.includes(username)) {
+    selectedPlayers = selectedPlayers.filter(u => u !== username);
+    chip.classList.remove('selected');
+  } else {
+    selectedPlayers.push(username);
+    chip.classList.add('selected');
+  }
+}
+
+function inviteSelected() {
+  if (selectedPlayers.length === 0) return;
+  
+  selectedPlayers.forEach(user => {
+    socket.emit('invite_to_lobby', { user });
+  });
+  
+  selectedPlayers = [];
+  setTimeout(loadPlayers, 500);
+}
+
 async function loadLobby() {
   try {
     const res = await fetch('/api/active_lobby');
@@ -203,6 +309,7 @@ async function loadLobby() {
     
     lobbyData = data;
     updateLobbyUI();
+    loadPlayers();
   } catch (e) {
     console.error('Erreur:', e);
   }
@@ -211,7 +318,7 @@ async function loadLobby() {
 function updateLobbyUI() {
   if (!lobbyData) return;
   
-  document.getElementById('hostName').textContent = `Hôte: ${lobbyData.host}`;
+  document.getElementById('hostName').textContent = lobbyData.host;
   document.getElementById('acceptedCount').textContent = lobbyData.accepted.length;
   document.getElementById('invitedCount').textContent = lobbyData.invited.length + 1;
   
@@ -220,6 +327,13 @@ function updateLobbyUI() {
   
   team1List.innerHTML = '';
   team2List.innerHTML = '';
+  
+  if (lobbyData.team1.length === 0) {
+    team1List.innerHTML = '<p style="color:#999;text-align:center;padding:2rem">Aucun joueur</p>';
+  }
+  if (lobbyData.team2.length === 0) {
+    team2List.innerHTML = '<p style="color:#999;text-align:center;padding:2rem">Aucun joueur</p>';
+  }
   
   lobbyData.team1.forEach(player => {
     const item = document.createElement('div');
@@ -249,6 +363,8 @@ function updateLobbyUI() {
   if (currentUsername === lobbyData.host || isAdmin) {
     if (lobbyData.accepted.length >= 2) {
       document.getElementById('startButton').style.display = 'inline-block';
+    } else {
+      document.getElementById('startButton').style.display = 'none';
     }
   }
 }
@@ -296,6 +412,7 @@ function startGame() {
 socket.on('lobby_update', (data) => {
   lobbyData = data;
   updateLobbyUI();
+  loadPlayers();
 });
 
 socket.on('team_swap_request', (data) => {
