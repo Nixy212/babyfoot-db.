@@ -474,6 +474,19 @@ def handle_create_lobby(data):
             'to': user
         }, namespace='/')
 
+
+@socketio.on('invite_to_lobby')
+def handle_invite_to_lobby(data):
+    global active_lobby
+    invited_user = data.get('user')
+    
+    if invited_user and invited_user not in active_lobby['invited']:
+        active_lobby['invited'].append(invited_user)
+        
+        socketio.emit('lobby_invitation', {
+            'from': active_lobby['host'],
+            'to': invited_user
+        }, namespace='/')
 @socketio.on('accept_lobby')
 def handle_accept_lobby():
     global active_lobby
