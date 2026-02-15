@@ -158,6 +158,44 @@ def is_guest_player(username):
     guest_list = ["Joueur1", "Joueur2", "Joueur3", "Joueur4"]
     return username in guest_list
 
+def cleanup_old_data():
+    """Nettoyer automatiquement les anciennes données pour éviter la surcharge de la BDD"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Supprimer les scores de plus de 6 mois
+        if USE_POSTGRES:
+            cur.execute("DELETE FROM scores WHERE date < NOW() - INTERVAL '6 months'")
+            deleted_scores = cur.rowcount
+            
+            # Supprimer les réservations de plus de 7 jours
+            cur.execute("DELETE FROM reservations WHERE created_at < NOW() - INTERVAL '7 days'")
+            deleted_reservations = cur.rowcount
+        else:
+            cur.execute("DELETE FROM scores WHERE date < datetime('now', '-6 months')")
+            deleted_scores = cur.rowcount
+            
+            cur.execute("DELETE FROM reservations WHERE created_at < datetime('now', '-7 days')")
+            deleted_reservations = cur.rowcount
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        if deleted_scores > 0 or deleted_reservations > 0:
+            logger.info(f"🧹 Nettoyage automatique : {deleted_scores} scores supprimés, {deleted_reservations} réservations supprimées")
+    except Exception as e:
+        logger.error(f"Erreur cleanup_old_data: {e}")
+
+def schedule_cleanup():
+    """Planifier le nettoyage automatique toutes les 24h"""
+    import threading
+    cleanup_old_data()
+    # Relancer dans 24h (86400 secondes)
+    threading.Timer(86400, schedule_cleanup).start()
+    logger.info("⏰ Prochain nettoyage planifié dans 24h")
+
 def is_admin(username):
     admin_list = ["Imran", "Apoutou", "Hamara", "MDA"]
     return username in admin_list
@@ -194,6 +232,8 @@ try:
     seed_admin()
     seed_admin_accounts()
     seed_guest_players()  # Créer les joueurs invités
+    schedule_cleanup()  # Démarrer le nettoyage automatique
+    logger.info("✅ Système initialisé - Nettoyage automatique activé")
 except Exception as e:
     logger.error(f"Erreur init DB: {e}")
 
@@ -276,6 +316,37 @@ def scores():
 @app.route("/debug-socketio")
 def debug_socketio_page():
     return render_template("debug-socketio.html")
+
+@app.route("/health")
+def health_check():
+    """Health check endpoint pour monitoring externe (UptimeRobot, etc.)"""
+    try:
+        # Test de connexion à la base de données
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT 1")
+        cur.close()
+        conn.close()
+        
+        # Compter les parties actives
+        active_games = 1 if current_game.get('active') else 0
+        active_lobbies = 1 if active_lobby.get('active') else 0
+        
+        return jsonify({
+            "status": "healthy",
+            "database": "connected",
+            "active_games": active_games,
+            "active_lobbies": active_lobbies,
+            "timestamp": datetime.now().isoformat(),
+            "uptime": "ok"
+        }), 200
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return jsonify({
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 500
 
 @app.route("/debug/game")
 def debug_game():
@@ -1104,6 +1175,29 @@ def handle_reset():
 @socketio.on('arduino_goal')
 def handle_arduino_goal(data):
     global current_game
+    
+    # PROTECTION 1 : Vérifier le secret partagé avec Arduino
+    ARDUINO_SECRET = os.environ.get('ARDUINO_SECRET', 'babyfoot-arduino-secret-2024')
+    if data.get('secret') != ARDUINO_SECRET:
+        logger.warning(f"❌ But Arduino rejeté : secret invalide from {request.sid}")
+        emit('error', {'message': 'Secret invalide'})
+        return
+    
+    # PROTECTION 2 : Rate limiting (max 1 but toutes les 2 secondes)
+    if not hasattr(handle_arduino_goal, 'last_goal_time'):
+        handle_arduino_goal.last_goal_time = {}
+    
+    import time
+    now = time.time()
+    client_id = request.sid
+    
+    if client_id in handle_arduino_goal.last_goal_time:
+        time_since_last = now - handle_arduino_goal.last_goal_time[client_id]
+        if time_since_last < 2:
+            logger.warning(f"❌ But Arduino rejeté : trop rapide (rate limit) - {time_since_last:.2f}s depuis dernier but")
+            return
+    
+    handle_arduino_goal.last_goal_time[client_id] = now
     
     logger.info(f"🤖 Arduino BUT reçu - Data: {data}")
     logger.info(f"   Match actif: {current_game.get('active', False)}")
