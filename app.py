@@ -10,8 +10,8 @@ import bcrypt
 import os
 import logging
 import traceback
-
 import sys
+
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 logger = logging.getLogger(__name__)
 
@@ -24,32 +24,20 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_PATH'] = '/'
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 
-# ✅ CORRECTION : async_mode="eventlet" (au lieu de "threading")
-socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True, ping_timeout=60, ping_interval=25, async_mode="eventlet", manage_session=False)
+socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True,
+                    ping_timeout=60, ping_interval=25, async_mode="eventlet", manage_session=False)
 
-# ═══════════════════════════════════════════════════════════════
-# 🔧 PATCH POUR WOKWI - ACCEPTER HTTP SUR /api/arduino/*
-# ═══════════════════════════════════════════════════════════════
 @app.before_request
 def handle_http_for_arduino():
-    """
-    Permet aux requêtes HTTP sur /api/arduino/* pour la compatibilité Wokwi.
-    Force HTTPS pour tout le reste.
-    """
     if request.path.startswith('/api/arduino/'):
-        logger.info(f"🤖 Requête Arduino (HTTP autorisé): {request.method} {request.path}")
         return None
-    
     if not request.is_secure:
         forwarded_proto = request.headers.get('X-Forwarded-Proto', '')
         if forwarded_proto and forwarded_proto != 'https':
             if 'localhost' not in request.host and '127.0.0.1' not in request.host:
                 secure_url = request.url.replace('http://', 'https://', 1)
-                logger.info(f"🔒 Redirection HTTPS: {request.url} → {secure_url}")
                 return redirect(secure_url, code=301)
     return None
-
-# ═══════════════════════════════════════════════════════════════
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
@@ -64,31 +52,24 @@ else:
     import sqlite3
     DB_PATH = os.environ.get('DB_PATH', 'babyfoot.db')
 
+# ── État global ──────────────────────────────────────────────
 current_game = {
-    "team1_score": 0,
-    "team2_score": 0,
-    "team1_players": [],
-    "team2_players": [],
-    "active": False,
-    "started_by": None,
-    "reserved_by": None,
-    "started_at": None
+    "team1_score": 0, "team2_score": 0,
+    "team1_players": [], "team2_players": [],
+    "active": False, "started_by": None,
+    "reserved_by": None, "started_at": None
 }
 
 active_lobby = {
-    "host": None,
-    "invited": [],
-    "accepted": [],
-    "declined": [],
-    "team1": [],
-    "team2": [],
-    "active": False
+    "host": None, "invited": [], "accepted": [],
+    "declined": [], "team1": [], "team2": [], "active": False
 }
 
 team_swap_requests = {}
 rematch_votes = {"team1": [], "team2": []}
 servo_commands = {"servo1": "none", "servo2": "none"}
 
+# ── DB ───────────────────────────────────────────────────────
 def get_db_connection():
     if USE_POSTGRES:
         return psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
@@ -118,75 +99,27 @@ def init_database():
     conn.close()
     logger.info(f"✅ DB initialisée ({'PostgreSQL' if USE_POSTGRES else 'SQLite'})")
 
-def seed_test_accounts():
-    test_accounts = [("alice","test123"),("bob","test123"),("charlie","test123"),("diana","test123")]
+def seed_accounts():
+    accounts = [
+        ("alice","test123"), ("bob","test123"), ("charlie","test123"), ("diana","test123"),
+        ("Imran","imran2024"), ("Apoutou","admin123"), ("Hamara","admin123"), ("MDA","admin123"),
+        ("Joueur1","guest"), ("Joueur2","guest"), ("Joueur3","guest"), ("Joueur4","guest"),
+    ]
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        for username, password in test_accounts:
+        for username, password in accounts:
             q = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
             cur.execute(q, (username,))
             if not cur.fetchone():
                 hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
                 q2 = "INSERT INTO users (username, password, total_goals, total_games) VALUES (%s, %s, 0, 0)" if USE_POSTGRES else "INSERT INTO users (username, password, total_goals, total_games) VALUES (?, ?, 0, 0)"
                 cur.execute(q2, (username, hashed))
-        conn.commit(); cur.close(); conn.close()
+        conn.commit()
+        cur.close()
+        conn.close()
     except Exception as e:
-        logger.warning(f"Seed test accounts: {e}")
-
-def seed_admin():
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        q = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
-        cur.execute(q, ("Imran",))
-        if not cur.fetchone():
-            hashed = bcrypt.hashpw("imran2024".encode(), bcrypt.gensalt()).decode()
-            q2 = "INSERT INTO users (username, password, total_goals, total_games) VALUES (%s, %s, 0, 0)" if USE_POSTGRES else "INSERT INTO users (username, password, total_goals, total_games) VALUES (?, ?, 0, 0)"
-            cur.execute(q2, ("Imran", hashed))
-            conn.commit()
-            logger.info("✅ Compte admin Imran créé")
-        cur.close(); conn.close()
-    except Exception as e:
-        logger.warning(f"Seed admin: {e}")
-
-def seed_admin_accounts():
-    admin_accounts = [("Apoutou","admin123"),("Hamara","admin123"),("MDA","admin123")]
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        for username, password in admin_accounts:
-            q = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
-            cur.execute(q, (username,))
-            if not cur.fetchone():
-                hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-                q2 = "INSERT INTO users (username, password, total_goals, total_games) VALUES (%s, %s, 0, 0)" if USE_POSTGRES else "INSERT INTO users (username, password, total_goals, total_games) VALUES (?, ?, 0, 0)"
-                cur.execute(q2, (username, hashed))
-                logger.info(f"✅ Compte admin créé: {username}")
-        conn.commit(); cur.close(); conn.close()
-    except Exception as e:
-        logger.warning(f"Seed admin accounts: {e}")
-
-def seed_guest_players():
-    guest_players = [("Joueur1","guest"),("Joueur2","guest"),("Joueur3","guest"),("Joueur4","guest")]
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        for username, password in guest_players:
-            q = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
-            cur.execute(q, (username,))
-            if not cur.fetchone():
-                hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-                q2 = "INSERT INTO users (username, password, total_goals, total_games) VALUES (%s, %s, 0, 0)" if USE_POSTGRES else "INSERT INTO users (username, password, total_goals, total_games) VALUES (?, ?, 0, 0)"
-                cur.execute(q2, (username, hashed))
-                logger.info(f"✅ Joueur invité créé: {username}")
-        conn.commit(); cur.close(); conn.close()
-    except Exception as e:
-        logger.warning(f"Seed guest players: {e}")
-
-def is_guest_player(username):
-    guest_list = ["Joueur1", "Joueur2", "Joueur3", "Joueur4"]
-    return username in guest_list
+        logger.warning(f"Seed accounts: {e}")
 
 def cleanup_old_data():
     try:
@@ -194,46 +127,33 @@ def cleanup_old_data():
         cur = conn.cursor()
         if USE_POSTGRES:
             cur.execute("DELETE FROM scores WHERE date < NOW() - INTERVAL '6 months'")
-            deleted_scores = cur.rowcount
             cur.execute("DELETE FROM reservations WHERE created_at < NOW() - INTERVAL '7 days'")
-            deleted_reservations = cur.rowcount
         else:
             cur.execute("DELETE FROM scores WHERE date < datetime('now', '-6 months')")
-            deleted_scores = cur.rowcount
             cur.execute("DELETE FROM reservations WHERE created_at < datetime('now', '-7 days')")
-            deleted_reservations = cur.rowcount
         conn.commit()
         cur.close()
         conn.close()
-        if deleted_scores > 0 or deleted_reservations > 0:
-            logger.info(f"🧹 Nettoyage automatique : {deleted_scores} scores supprimés, {deleted_reservations} réservations supprimées")
     except Exception as e:
-        logger.error(f"Erreur cleanup_old_data: {e}")
+        logger.error(f"Erreur cleanup: {e}")
 
 def schedule_cleanup():
     import threading
     cleanup_old_data()
     threading.Timer(86400, schedule_cleanup).start()
-    logger.info("⏰ Prochain nettoyage planifié dans 24h")
 
 def is_admin(username):
-    admin_list = ["Imran", "Apoutou", "Hamara", "MDA"]
-    return username in admin_list
+    return username in ["Imran", "Apoutou", "Hamara", "MDA"]
+
+def is_guest_player(username):
+    return username in ["Joueur1", "Joueur2", "Joueur3", "Joueur4"]
 
 def has_active_reservation(username):
     try:
         conn = get_db_connection()
         cur = conn.cursor()
         today = datetime.now().strftime('%A')
-        days_fr = {
-            'Monday': 'Lundi',
-            'Tuesday': 'Mardi',
-            'Wednesday': 'Mercredi',
-            'Thursday': 'Jeudi',
-            'Friday': 'Vendredi',
-            'Saturday': 'Samedi',
-            'Sunday': 'Dimanche'
-        }
+        days_fr = {'Monday':'Lundi','Tuesday':'Mardi','Wednesday':'Mercredi','Thursday':'Jeudi','Friday':'Vendredi','Saturday':'Samedi','Sunday':'Dimanche'}
         day_fr = days_fr.get(today, today)
         q = "SELECT * FROM reservations WHERE reserved_by = %s AND day = %s" if USE_POSTGRES else "SELECT * FROM reservations WHERE reserved_by = ? AND day = ?"
         cur.execute(q, (username, day_fr))
@@ -247,12 +167,9 @@ def has_active_reservation(username):
 
 try:
     init_database()
-    seed_test_accounts()
-    seed_admin()
-    seed_admin_accounts()
-    seed_guest_players()
+    seed_accounts()
     schedule_cleanup()
-    logger.info("✅ Système initialisé - Nettoyage automatique activé")
+    logger.info("✅ Système initialisé")
 except Exception as e:
     logger.error(f"Erreur init DB: {e}")
 
@@ -281,61 +198,50 @@ def validate_password(p):
     if len(p) < 6: raise ValueError("Minimum 6 caractères")
     return p
 
+# ── Pages ────────────────────────────────────────────────────
 @app.route("/")
 def index(): return render_template("index.html")
-
 @app.route("/login")
 def login_page(): return render_template("login.html")
-
 @app.route("/register")
 def register_page(): return render_template("register.html")
-
 @app.route("/dashboard")
 def dashboard():
     if "username" not in session: return redirect(url_for('login_page'))
     return render_template("dashboard.html")
-
 @app.route("/reservation")
 def reservation():
     if "username" not in session: return redirect(url_for('login_page'))
     return render_template("reservation.html")
-
 @app.route("/lobby")
 def lobby_page():
     if "username" not in session: return redirect(url_for('login_page'))
     return render_template("lobby.html")
-
 @app.route("/admin")
 def admin_page():
     if "username" not in session: return redirect(url_for('login_page'))
-    username = session.get('username')
-    if not is_admin(username): return redirect(url_for('index'))
+    if not is_admin(session.get('username')): return redirect(url_for('index'))
     return render_template("admin.html")
-
 @app.route("/live-score")
 def live_score():
     if "username" not in session: return redirect(url_for('login_page'))
     return render_template("live-score.html")
-
 @app.route("/stats")
 def stats():
     if "username" not in session: return redirect(url_for('login_page'))
     return render_template("stats.html")
-
 @app.route("/top")
 def top():
     if "username" not in session: return redirect(url_for('login_page'))
     return render_template("top.html")
-
 @app.route("/scores")
 def scores():
     if "username" not in session: return redirect(url_for('login_page'))
     return render_template("scores.html")
-
 @app.route("/debug-socketio")
-def debug_socketio_page():
-    return render_template("debug-socketio.html")
+def debug_socketio_page(): return render_template("debug-socketio.html")
 
+# ── Health ───────────────────────────────────────────────────
 @app.route("/health")
 def health_check():
     try:
@@ -344,35 +250,15 @@ def health_check():
         cur.execute("SELECT 1")
         cur.close()
         conn.close()
-        active_games = 1 if current_game.get('active') else 0
-        active_lobbies = 1 if active_lobby.get('active') else 0
-        return jsonify({
-            "status": "healthy",
-            "database": "connected",
-            "active_games": active_games,
-            "active_lobbies": active_lobbies,
-            "timestamp": datetime.now().isoformat(),
-            "uptime": "ok"
-        }), 200
+        return jsonify({"status": "healthy", "database": "connected", "timestamp": datetime.now().isoformat()}), 200
     except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return jsonify({
-            "status": "unhealthy",
-            "error": str(e),
-            "timestamp": datetime.now().isoformat()
-        }), 500
+        return jsonify({"status": "unhealthy", "error": str(e)}), 500
 
 @app.route("/debug/game")
 def debug_game():
-    global current_game, active_lobby
-    return jsonify({
-        "current_game": current_game,
-        "active_lobby": active_lobby,
-        "team_swap_requests": team_swap_requests,
-        "rematch_votes": rematch_votes,
-        "timestamp": datetime.now().isoformat()
-    })
+    return jsonify({"current_game": current_game, "active_lobby": active_lobby, "rematch_votes": rematch_votes, "servo_commands": servo_commands})
 
+# ── Auth ─────────────────────────────────────────────────────
 @app.route("/api/register", methods=["POST"])
 @handle_errors
 def api_register():
@@ -403,11 +289,10 @@ def api_login():
     cur = conn.cursor()
     q = "SELECT * FROM users WHERE username = %s" if USE_POSTGRES else "SELECT * FROM users WHERE username = ?"
     cur.execute(q, (username,))
-    user = cur.fetchone()
+    user = row_to_dict(cur.fetchone())
     cur.close(); conn.close()
     if not user: return jsonify({"success": False, "message": "Utilisateur inconnu"}), 401
-    user_dict = row_to_dict(user)
-    if not bcrypt.checkpw(password.encode(), user_dict["password"].encode()):
+    if not bcrypt.checkpw(password.encode(), user["password"].encode()):
         return jsonify({"success": False, "message": "Mot de passe incorrect"}), 401
     session.permanent = True
     session['username'] = username
@@ -422,12 +307,15 @@ def api_logout():
 def current_user():
     username = session.get('username')
     if not username: return jsonify(None), 401
-    return jsonify({
-        "username": username,
-        "is_admin": is_admin(username),
-        "has_reservation": has_active_reservation(username)
-    })
+    return jsonify({"username": username, "is_admin": is_admin(username), "has_reservation": has_active_reservation(username)})
 
+@app.route("/api/is_admin")
+def api_is_admin():
+    username = session.get('username')
+    if not username: return jsonify({"is_admin": False})
+    return jsonify({"is_admin": is_admin(username)})
+
+# ── Data ─────────────────────────────────────────────────────
 @app.route("/reservations_all")
 @handle_errors
 def reservations_all():
@@ -455,38 +343,23 @@ def user_stats(username):
     cur = conn.cursor()
     q = "SELECT * FROM users WHERE username = %s" if USE_POSTGRES else "SELECT * FROM users WHERE username = ?"
     cur.execute(q, (username,))
-    user = cur.fetchone()
+    user = row_to_dict(cur.fetchone())
     if not user:
-        cur.close()
-        conn.close()
+        cur.close(); conn.close()
         return jsonify(None), 404
-    user_dict = row_to_dict(user)
-    q_scores = "SELECT score, date FROM scores WHERE username = %s ORDER BY date DESC LIMIT 20" if USE_POSTGRES else "SELECT score, date FROM scores WHERE username = ? ORDER BY date DESC LIMIT 20"
-    cur.execute(q_scores, (username,))
-    scores_rows = cur.fetchall()
-    cur.close()
-    conn.close()
-    recent_scores = [{"score": row_to_dict(r)['score'], "date": row_to_dict(r)['date']} for r in scores_rows]
-    total_games = user_dict.get('total_games', 0)
-    total_goals = user_dict.get('total_goals', 0)
-    ratio = round(total_goals / total_games, 2) if total_games > 0 else 0
-    best_score = max([s['score'] for s in recent_scores], default=0)
-    average_score = round(sum([s['score'] for s in recent_scores]) / len(recent_scores), 2) if recent_scores else 0
+    q2 = "SELECT score, date FROM scores WHERE username = %s ORDER BY date DESC LIMIT 20" if USE_POSTGRES else "SELECT score, date FROM scores WHERE username = ? ORDER BY date DESC LIMIT 20"
+    cur.execute(q2, (username,))
+    scores_rows = [row_to_dict(r) for r in cur.fetchall()]
+    cur.close(); conn.close()
+    total_games = user.get('total_games', 0)
+    total_goals = user.get('total_goals', 0)
     return jsonify({
-        "username": user_dict['username'],
-        "total_games": total_games,
-        "total_goals": total_goals,
-        "ratio": ratio,
-        "best_score": best_score,
-        "average_score": average_score,
-        "recent_scores": recent_scores
+        "username": user['username'], "total_games": total_games, "total_goals": total_goals,
+        "ratio": round(total_goals / total_games, 2) if total_games > 0 else 0,
+        "best_score": max([s['score'] for s in scores_rows], default=0),
+        "average_score": round(sum([s['score'] for s in scores_rows]) / len(scores_rows), 2) if scores_rows else 0,
+        "recent_scores": scores_rows
     })
-
-@app.route("/api/is_admin")
-def api_is_admin():
-    username = session.get('username')
-    if not username: return jsonify({"is_admin": False})
-    return jsonify({"is_admin": is_admin(username)})
 
 @app.route("/admin/reset_database", methods=["POST"])
 def admin_reset_database():
@@ -499,17 +372,10 @@ def admin_reset_database():
         cur.execute("DELETE FROM scores")
         cur.execute("DELETE FROM reservations")
         cur.execute("DELETE FROM users")
-        conn.commit()
-        cur.close()
-        conn.close()
-        seed_test_accounts()
-        seed_admin()
-        seed_admin_accounts()
-        seed_guest_players()
-        logger.info(f"🔥 BASE DE DONNÉES RESET PAR {username}")
+        conn.commit(); cur.close(); conn.close()
+        seed_accounts()
         return jsonify({"success": True, "message": "Base de données réinitialisée"})
     except Exception as e:
-        logger.error(f"Erreur reset DB: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/save_reservation", methods=["POST"])
@@ -556,8 +422,7 @@ def users_list():
     cur.execute("SELECT username FROM users ORDER BY username ASC")
     rows = cur.fetchall()
     cur.close(); conn.close()
-    users = [row_to_dict(r)['username'] for r in rows]
-    return jsonify(users)
+    return jsonify([row_to_dict(r)['username'] for r in rows])
 
 @app.route("/scores_all")
 @handle_errors
@@ -571,51 +436,18 @@ def scores_all():
 
 @app.route("/api/current_game")
 def api_current_game():
-    global current_game
     return jsonify(current_game)
 
-# ===== ROUTES HTTP POUR L ESP32 =====
-arduino_last_goal_time = {}
+@app.route("/api/has_active_game")
+def api_has_active_game():
+    return jsonify({"has_active_game": current_game.get('active', False), "game_data": current_game if current_game.get('active') else None})
 
-@app.route("/api/arduino/goal", methods=["POST"])
-def api_arduino_goal():
-    global current_game
-    data = request.get_json(silent=True) or {}
-    ARDUINO_SECRET = os.environ.get("ARDUINO_SECRET", "babyfoot-arduino-secret-2024")
-    if data.get("secret") != ARDUINO_SECRET:
-        logger.warning("❌ But Arduino rejeté : secret invalide")
-        return jsonify({"success": False, "message": "Secret invalide"}), 403
-    import time
-    now = time.time()
-    client_ip = request.remote_addr
-    if client_ip in arduino_last_goal_time:
-        if now - arduino_last_goal_time[client_ip] < 2:
-            return jsonify({"success": False, "message": "Trop rapide"}), 429
-    arduino_last_goal_time[client_ip] = now
-    if not current_game.get("active"):
-        logger.warning("❌ But Arduino ignoré : aucune partie en cours")
-        return jsonify({"success": False, "message": "Aucune partie en cours", "game_active": False}), 200
-    team = data.get("team")
-    if team not in ["team1", "team2"]:
-        return jsonify({"success": False, "message": "Équipe invalide"}), 400
-    current_game[f"{team}_score"] += 1
-    logger.info(f"✅ BUT ARDUINO HTTP - {team} : T1={current_game['team1_score']} T2={current_game['team2_score']}")
-    if current_game[f"{team}_score"] == 9:
-        servo_adverse = 'servo1' if team == 'team2' else 'servo2'
-        socketio.emit(f"{servo_adverse}_lock", {}, namespace="/")
-    if current_game[f"{team}_score"] >= 10:
-        current_game["winner"] = team
-        current_game["active"] = False
-        try: save_game_results(current_game)
-        except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
-        socketio.emit("game_ended", current_game, namespace="/")
-        import threading
-        def ask_rematch(): import time; time.sleep(2); socketio.emit("rematch_prompt", {}, namespace="/")
-        threading.Thread(target=ask_rematch, daemon=True).start()
-        return jsonify({"success": True, "game_ended": True, "winner": team, "scores": {"team1": current_game["team1_score"], "team2": current_game["team2_score"]}})
-    else:
-        socketio.emit("score_updated", current_game, namespace="/")
-        return jsonify({"success": True, "game_ended": False, "scores": {"team1": current_game["team1_score"], "team2": current_game["team2_score"]}})
+@app.route("/api/active_lobby")
+def api_active_lobby():
+    return jsonify(active_lobby)
+
+# ── Arduino HTTP endpoints ────────────────────────────────────
+arduino_last_goal_time = {}
 
 @app.route("/api/arduino/status", methods=["GET"])
 def api_arduino_status():
@@ -624,7 +456,6 @@ def api_arduino_status():
         "team1_score": current_game.get("team1_score", 0),
         "team2_score": current_game.get("team2_score", 0),
     })
-
 
 @app.route("/api/arduino/commands", methods=["GET"])
 def api_arduino_commands():
@@ -636,7 +467,7 @@ def api_arduino_commands():
 
 @app.route("/api/arduino/servo", methods=["POST"])
 def api_arduino_servo():
-    """Dashboard/Admin commandent un servo"""
+    """Dashboard/Admin commandent un servo via HTTP"""
     global servo_commands
     username = session.get('username')
     if not is_admin(username):
@@ -650,19 +481,47 @@ def api_arduino_servo():
     logger.info(f"🎮 Commande servo: {servo} → {action} par {username}")
     return jsonify({"success": True, "servo": servo, "action": action})
 
-@app.route("/api/has_active_game")
-def api_has_active_game():
+@app.route("/api/arduino/goal", methods=["POST"])
+def api_arduino_goal():
     global current_game
-    return jsonify({
-        "has_active_game": current_game.get('active', False),
-        "game_data": current_game if current_game.get('active') else None
-    })
+    data = request.get_json(silent=True) or {}
+    ARDUINO_SECRET = os.environ.get("ARDUINO_SECRET", "babyfoot-arduino-secret-2024")
+    if data.get("secret") != ARDUINO_SECRET:
+        return jsonify({"success": False, "message": "Secret invalide"}), 403
+    import time
+    now = time.time()
+    client_ip = request.remote_addr
+    if client_ip in arduino_last_goal_time and now - arduino_last_goal_time[client_ip] < 2:
+        return jsonify({"success": False, "message": "Trop rapide"}), 429
+    arduino_last_goal_time[client_ip] = now
+    if not current_game.get("active"):
+        return jsonify({"success": False, "message": "Aucune partie en cours", "game_active": False}), 200
+    team = data.get("team")
+    if team not in ["team1", "team2"]:
+        return jsonify({"success": False, "message": "Équipe invalide"}), 400
+    current_game[f"{team}_score"] += 1
+    logger.info(f"✅ BUT ARDUINO - {team} : T1={current_game['team1_score']} T2={current_game['team2_score']}")
+    if current_game[f"{team}_score"] == 9:
+        servo_adverse = 'servo1' if team == 'team2' else 'servo2'
+        servo_commands[servo_adverse] = 'close'
+        socketio.emit(f"{servo_adverse}_lock", {}, namespace="/")
+    if current_game[f"{team}_score"] >= 10:
+        current_game["winner"] = team
+        current_game["active"] = False
+        servo_commands["servo1"] = "close"
+        servo_commands["servo2"] = "close"
+        try: save_game_results(current_game)
+        except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
+        socketio.emit("game_ended", current_game, namespace="/")
+        import threading
+        def ask_rematch(): import time; time.sleep(2); socketio.emit("rematch_prompt", {}, namespace="/")
+        threading.Thread(target=ask_rematch, daemon=True).start()
+        return jsonify({"success": True, "game_ended": True, "winner": team})
+    else:
+        socketio.emit("score_updated", current_game, namespace="/")
+        return jsonify({"success": True, "game_ended": False, "scores": {"team1": current_game["team1_score"], "team2": current_game["team2_score"]}})
 
-@app.route("/api/active_lobby")
-def api_active_lobby():
-    global active_lobby
-    return jsonify(active_lobby)
-
+# ── Socket.IO ────────────────────────────────────────────────
 @socketio.on('connect')
 def handle_connect():
     username = session.get('username', 'Anonymous')
@@ -680,22 +539,11 @@ def handle_create_lobby(data):
     global active_lobby
     username = session.get('username')
     if not is_admin(username) and not has_active_reservation(username):
-        emit('error', {'message': 'Seuls admins/réservateurs peuvent créer un lobby'})
-        return
+        emit('error', {'message': 'Seuls admins/réservateurs peuvent créer un lobby'}); return
     if active_lobby.get('active'):
-        logger.warning(f"⚠️ Lobby actif détecté, FERMETURE FORCÉE")
         socketio.emit('lobby_cancelled', {}, namespace='/')
     invited_users = data.get('invited', [])
-    active_lobby = {
-        "host": username,
-        "invited": invited_users,
-        "accepted": [username],
-        "declined": [],
-        "team1": [username],
-        "team2": [],
-        "active": True
-    }
-    logger.info(f"✅ NOUVEAU LOBBY créé par {username}")
+    active_lobby = {"host": username, "invited": invited_users, "accepted": [username], "declined": [], "team1": [username], "team2": [], "active": True}
     socketio.emit('lobby_created', {'host': username, 'invited': invited_users}, namespace='/')
     for user in invited_users:
         socketio.emit('lobby_invitation', {'from': username, 'to': user}, namespace='/')
@@ -706,51 +554,35 @@ def handle_invite_to_lobby(data):
     username = session.get('username')
     invited_user = data.get('user')
     if username != active_lobby['host'] and not is_admin(username):
-        emit('error', {'message': "Seul l'hôte ou un admin peut inviter"})
-        return
-    total_players = len(active_lobby['accepted']) + len(active_lobby['invited'])
-    if total_players >= 4:
-        emit('error', {'message': 'Le lobby est complet (4 joueurs maximum pour du 2v2)'})
-        return
-    if invited_user in active_lobby['invited'] or invited_user in active_lobby['accepted']:
-        return
-    if invited_user:
-        if is_guest_player(invited_user):
-            if invited_user not in active_lobby['accepted']:
-                active_lobby['accepted'].append(invited_user)
-            team1_count = len(active_lobby['team1'])
-            team2_count = len(active_lobby['team2'])
-            if team1_count < 2 and team1_count <= team2_count:
-                active_lobby['team1'].append(invited_user)
-            elif team2_count < 2:
-                active_lobby['team2'].append(invited_user)
-            else:
-                active_lobby['invited'].append(invited_user)
-            socketio.emit('lobby_update', active_lobby, namespace='/')
-        else:
-            active_lobby['invited'].append(invited_user)
-            socketio.emit('lobby_invitation', {'from': active_lobby['host'], 'to': invited_user}, namespace='/')
-            socketio.emit('lobby_update', active_lobby, namespace='/')
+        emit('error', {'message': "Seul l'hôte ou un admin peut inviter"}); return
+    if len(active_lobby['accepted']) + len(active_lobby['invited']) >= 4:
+        emit('error', {'message': 'Lobby complet'}); return
+    if invited_user in active_lobby['invited'] or invited_user in active_lobby['accepted']: return
+    if is_guest_player(invited_user):
+        active_lobby['accepted'].append(invited_user)
+        t1, t2 = len(active_lobby['team1']), len(active_lobby['team2'])
+        if t1 < 2 and t1 <= t2: active_lobby['team1'].append(invited_user)
+        elif t2 < 2: active_lobby['team2'].append(invited_user)
+        else: active_lobby['invited'].append(invited_user)
+        socketio.emit('lobby_update', active_lobby, namespace='/')
+    else:
+        active_lobby['invited'].append(invited_user)
+        socketio.emit('lobby_invitation', {'from': active_lobby['host'], 'to': invited_user}, namespace='/')
+        socketio.emit('lobby_update', active_lobby, namespace='/')
 
 @socketio.on('accept_lobby')
 def handle_accept_lobby():
     global active_lobby
     username = session.get('username')
-    if username in active_lobby['team1'] or username in active_lobby['team2']:
-        return
-    if username not in active_lobby['invited']:
-        return
+    if username in active_lobby['team1'] or username in active_lobby['team2']: return
+    if username not in active_lobby['invited']: return
     active_lobby['invited'].remove(username)
-    if username not in active_lobby['accepted']:
-        active_lobby['accepted'].append(username)
-    team1_count = len(active_lobby['team1'])
-    team2_count = len(active_lobby['team2'])
-    if team1_count < 2 and team1_count <= team2_count:
-        active_lobby['team1'].append(username)
-    elif team2_count < 2:
-        active_lobby['team2'].append(username)
+    if username not in active_lobby['accepted']: active_lobby['accepted'].append(username)
+    t1, t2 = len(active_lobby['team1']), len(active_lobby['team2'])
+    if t1 < 2 and t1 <= t2: active_lobby['team1'].append(username)
+    elif t2 < 2: active_lobby['team2'].append(username)
     else:
-        emit('error', {'message': 'Les deux équipes sont complètes (2 joueurs max par équipe)'})
+        emit('error', {'message': 'Équipes complètes'})
         active_lobby['accepted'].remove(username)
         active_lobby['invited'].append(username)
         return
@@ -760,16 +592,13 @@ def handle_accept_lobby():
 def handle_decline_lobby():
     global active_lobby
     username = session.get('username')
-    if username not in active_lobby['invited']:
-        return
+    if username not in active_lobby['invited']: return
     active_lobby['invited'].remove(username)
-    if username not in active_lobby['declined']:
-        active_lobby['declined'].append(username)
+    if username not in active_lobby['declined']: active_lobby['declined'].append(username)
     socketio.emit('lobby_update', active_lobby, namespace='/')
 
 @socketio.on('request_team_swap')
 def handle_request_team_swap(data):
-    global team_swap_requests
     from_user = session.get('username')
     to_user = data.get('with')
     request_id = f"{from_user}_{to_user}"
@@ -778,27 +607,23 @@ def handle_request_team_swap(data):
 
 @socketio.on('accept_team_swap')
 def handle_accept_team_swap(data):
-    global active_lobby, team_swap_requests
+    global active_lobby
     request_id = data.get('request_id')
-    if request_id not in team_swap_requests:
-        return
+    if request_id not in team_swap_requests: return
     swap = team_swap_requests.pop(request_id)
-    from_user = swap['from']
-    to_user = swap['to']
-    if from_user in active_lobby['team1'] and to_user in active_lobby['team2']:
-        active_lobby['team1'].remove(from_user); active_lobby['team2'].remove(to_user)
-        active_lobby['team1'].append(to_user); active_lobby['team2'].append(from_user)
-    elif from_user in active_lobby['team2'] and to_user in active_lobby['team1']:
-        active_lobby['team2'].remove(from_user); active_lobby['team1'].remove(to_user)
-        active_lobby['team2'].append(to_user); active_lobby['team1'].append(from_user)
+    fu, tu = swap['from'], swap['to']
+    if fu in active_lobby['team1'] and tu in active_lobby['team2']:
+        active_lobby['team1'].remove(fu); active_lobby['team2'].remove(tu)
+        active_lobby['team1'].append(tu); active_lobby['team2'].append(fu)
+    elif fu in active_lobby['team2'] and tu in active_lobby['team1']:
+        active_lobby['team2'].remove(fu); active_lobby['team1'].remove(tu)
+        active_lobby['team2'].append(tu); active_lobby['team1'].append(fu)
     socketio.emit('lobby_update', active_lobby, namespace='/')
 
 @socketio.on('decline_team_swap')
 def handle_decline_team_swap(data):
-    global team_swap_requests
     request_id = data.get('request_id')
-    if request_id in team_swap_requests:
-        team_swap_requests.pop(request_id)
+    if request_id in team_swap_requests: team_swap_requests.pop(request_id)
 
 @socketio.on('kick_from_lobby')
 def handle_kick_from_lobby(data):
@@ -806,14 +631,11 @@ def handle_kick_from_lobby(data):
     username = session.get('username')
     kicked_user = data.get('user')
     if username != active_lobby['host'] and not is_admin(username):
-        emit('error', {'message': "Seul l'hôte ou un admin peut exclure"})
-        return
+        emit('error', {'message': "Seul l'hôte ou un admin peut exclure"}); return
     if kicked_user == active_lobby['host']:
-        emit('error', {'message': "Impossible d'exclure l'hôte"})
-        return
+        emit('error', {'message': "Impossible d'exclure l'hôte"}); return
     for lst in ['invited', 'accepted', 'team1', 'team2']:
-        if kicked_user in active_lobby[lst]:
-            active_lobby[lst].remove(kicked_user)
+        if kicked_user in active_lobby[lst]: active_lobby[lst].remove(kicked_user)
     socketio.emit('kicked_from_lobby', {'kicked_user': kicked_user}, namespace='/')
     socketio.emit('lobby_update', active_lobby, namespace='/')
 
@@ -822,62 +644,56 @@ def handle_cancel_lobby():
     global active_lobby
     username = session.get('username')
     if username != active_lobby['host'] and not is_admin(username):
-        emit('error', {'message': "Seul l'hôte ou un admin peut annuler"})
-        return
+        emit('error', {'message': "Seul l'hôte ou un admin peut annuler"}); return
     active_lobby = {"host": None, "invited": [], "accepted": [], "declined": [], "team1": [], "team2": [], "active": False}
     socketio.emit('lobby_cancelled', {}, namespace='/')
 
 @socketio.on('start_game_from_lobby')
 def handle_start_game_from_lobby():
-    global current_game, active_lobby, rematch_votes
+    global current_game, active_lobby, rematch_votes, servo_commands
     username = session.get('username')
     if username != active_lobby['host'] and not is_admin(username):
-        emit('error', {'message': "Seul l'hôte ou un admin peut lancer"})
-        return
+        emit('error', {'message': "Seul l'hôte ou un admin peut lancer"}); return
     if len(active_lobby['accepted']) < 2:
-        emit('error', {'message': 'Au moins 2 joueurs requis'})
-        return
-    reserved_by = username if has_active_reservation(username) else None
+        emit('error', {'message': 'Au moins 2 joueurs requis'}); return
     current_game = {
         "team1_score": 0, "team2_score": 0,
         "team1_players": active_lobby['team1'], "team2_players": active_lobby['team2'],
         "active": True, "started_by": username,
-        "reserved_by": reserved_by, "started_at": datetime.now().isoformat()
+        "reserved_by": username if has_active_reservation(username) else None,
+        "started_at": datetime.now().isoformat()
     }
     active_lobby = {"host": None, "invited": [], "accepted": [], "declined": [], "team1": [], "team2": [], "active": False}
     rematch_votes = {"team1": [], "team2": []}
-servo_commands = {"servo1": "none", "servo2": "none"}
-    servo_commands['servo1'] = 'open'
-    servo_commands['servo2'] = 'open'
+    servo_commands["servo1"] = "open"
+    servo_commands["servo2"] = "open"
     socketio.emit('game_started', current_game, namespace='/')
     socketio.emit('servo1_unlock', {}, namespace='/')
     socketio.emit('servo2_unlock', {}, namespace='/')
 
 @socketio.on('start_game')
 def handle_start_game(data):
-    global current_game, rematch_votes
+    global current_game, rematch_votes, servo_commands
     try:
         username = session.get('username', '')
         if not is_admin(username) and not has_active_reservation(username):
-            emit('error', {'message': 'Vous devez avoir une réservation active ou être admin'})
-            return
+            emit('error', {'message': 'Réservation active ou admin requis'}); return
         team1 = [p for p in data.get('team1', []) if p and p.strip()]
         team2 = [p for p in data.get('team2', []) if p and p.strip()]
         if not team1 or not team2:
-            emit('error', {'message': 'Chaque équipe doit avoir au moins un joueur'})
-            return
+            emit('error', {'message': 'Chaque équipe doit avoir au moins un joueur'}); return
         if current_game.get('active'):
-            emit('error', {'message': 'Une partie est déjà en cours'})
-            return
-        reserved_by = username if has_active_reservation(username) else None
+            emit('error', {'message': 'Une partie est déjà en cours'}); return
         current_game = {
             "team1_score": 0, "team2_score": 0,
             "team1_players": team1, "team2_players": team2,
             "active": True, "started_by": username,
-            "reserved_by": reserved_by, "started_at": datetime.now().isoformat()
+            "reserved_by": username if has_active_reservation(username) else None,
+            "started_at": datetime.now().isoformat()
         }
         rematch_votes = {"team1": [], "team2": []}
-servo_commands = {"servo1": "none", "servo2": "none"}
+        servo_commands["servo1"] = "open"
+        servo_commands["servo2"] = "open"
         socketio.emit('game_started', current_game, namespace='/')
         socketio.emit('servo1_unlock', {}, namespace='/')
         socketio.emit('servo2_unlock', {}, namespace='/')
@@ -887,43 +703,46 @@ servo_commands = {"servo1": "none", "servo2": "none"}
 
 @socketio.on('unlock_servo1')
 def handle_unlock_servo1():
+    global servo_commands
     username = session.get('username')
-    if not username:
-        emit('error', {'message': 'Non authentifié'}); return
     if not is_admin(username):
-        emit('error', {'message': 'Seuls les admins peuvent débloquer les servos'}); return
+        emit('error', {'message': 'Admin requis'}); return
+    servo_commands["servo1"] = "open"
     socketio.emit('servo1_unlock', {}, namespace='/')
+    logger.info(f"🔓 SERVO1 déverrouillé par {username}")
     import threading
     def relock():
         import time; time.sleep(5)
+        servo_commands["servo1"] = "close"
         socketio.emit('servo1_lock', {}, namespace='/')
     threading.Thread(target=relock, daemon=True).start()
 
 @socketio.on('unlock_servo2')
 def handle_unlock_servo2():
+    global servo_commands
     username = session.get('username')
-    if not username:
-        emit('error', {'message': 'Non authentifié'}); return
     if not is_admin(username):
-        emit('error', {'message': 'Seuls les admins peuvent débloquer les servos'}); return
+        emit('error', {'message': 'Admin requis'}); return
+    servo_commands["servo2"] = "open"
     socketio.emit('servo2_unlock', {}, namespace='/')
+    logger.info(f"🔓 SERVO2 déverrouillé par {username}")
     import threading
     def relock():
         import time; time.sleep(5)
+        servo_commands["servo2"] = "close"
         socketio.emit('servo2_lock', {}, namespace='/')
     threading.Thread(target=relock, daemon=True).start()
 
 @socketio.on('stop_game')
 def handle_stop_game():
-    global current_game, rematch_votes
+    global current_game, rematch_votes, servo_commands
     username = session.get('username')
     if not is_admin(username):
-        emit('error', {'message': 'Seuls les admins peuvent arrêter'}); return
+        emit('error', {'message': 'Admin requis'}); return
     current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False, "started_by": None, "reserved_by": None}
     rematch_votes = {"team1": [], "team2": []}
-servo_commands = {"servo1": "none", "servo2": "none"}
-    servo_commands['servo1'] = 'close'
-    servo_commands['servo2'] = 'close'
+    servo_commands["servo1"] = "close"
+    servo_commands["servo2"] = "close"
     socketio.emit('game_stopped', {}, namespace='/')
     socketio.emit('servo1_lock', {}, namespace='/')
     socketio.emit('servo2_lock', {}, namespace='/')
@@ -957,24 +776,19 @@ def handle_score(data):
 
 @socketio.on('vote_rematch')
 def handle_vote_rematch(data):
-    global rematch_votes, current_game
+    global rematch_votes, current_game, servo_commands
     username = session.get('username')
-    vote = data.get('vote')
-    if vote == 'no':
+    if data.get('vote') == 'no':
         socketio.emit('rematch_cancelled', {}, namespace='/')
         rematch_votes = {"team1": [], "team2": []}
-servo_commands = {"servo1": "none", "servo2": "none"}
         return
     team = None
     if username in current_game.get('team1_players', []): team = 'team1'
     elif username in current_game.get('team2_players', []): team = 'team2'
-    if not team:
-        emit('error', {'message': 'Pas dans cette partie'}); return
-    if username not in rematch_votes[team]:
-        rematch_votes[team].append(username)
-    team1_all = len(rematch_votes['team1']) == len(current_game['team1_players'])
-    team2_all = len(rematch_votes['team2']) == len(current_game['team2_players'])
-    if team1_all and team2_all:
+    if not team: emit('error', {'message': 'Pas dans cette partie'}); return
+    if username not in rematch_votes[team]: rematch_votes[team].append(username)
+    if len(rematch_votes['team1']) == len(current_game['team1_players']) and \
+       len(rematch_votes['team2']) == len(current_game['team2_players']):
         current_game = {
             "team1_score": 0, "team2_score": 0,
             "team1_players": current_game['team1_players'], "team2_players": current_game['team2_players'],
@@ -982,49 +796,27 @@ servo_commands = {"servo1": "none", "servo2": "none"}
             "reserved_by": current_game.get('reserved_by'), "started_at": datetime.now().isoformat()
         }
         rematch_votes = {"team1": [], "team2": []}
-servo_commands = {"servo1": "none", "servo2": "none"}
+        servo_commands["servo1"] = "open"
+        servo_commands["servo2"] = "open"
         socketio.emit('game_started', current_game, namespace='/')
         socketio.emit('servo1_unlock', {}, namespace='/')
         socketio.emit('servo2_unlock', {}, namespace='/')
 
-def save_game_results(game):
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        winner_team = game.get('winner', 'team1')
-        losers_team = 'team2' if winner_team == 'team1' else 'team1'
-        all_players = game.get(f"{winner_team}_players", []) + game.get(f"{losers_team}_players", [])
-        real_players = [p for p in all_players if not is_guest_player(p)]
-        team1_score = game.get("team1_score", 0)
-        team2_score = game.get("team2_score", 0)
-        for player in real_players:
-            q_update = "UPDATE users SET total_games = total_games + 1 WHERE username = %s" if USE_POSTGRES else "UPDATE users SET total_games = total_games + 1 WHERE username = ?"
-            cur.execute(q_update, (player,))
-            player_team = 'team1' if player in game.get('team1_players', []) else 'team2'
-            player_score = team1_score if player_team == 'team1' else team2_score
-            q_score = "INSERT INTO scores (username, score) VALUES (%s, %s)" if USE_POSTGRES else "INSERT INTO scores (username, score) VALUES (?, ?)"
-            cur.execute(q_score, (player, player_score))
-            q_goals = "UPDATE users SET total_goals = total_goals + %s WHERE username = %s" if USE_POSTGRES else "UPDATE users SET total_goals = total_goals + ? WHERE username = ?"
-            cur.execute(q_goals, (player_score, player))
-        conn.commit(); cur.close(); conn.close()
-        logger.info("✅ Résultats sauvegardés")
-    except Exception as e:
-        logger.error(f"Erreur save_game_results: {e}")
-
 @socketio.on('reset_game')
 def handle_reset():
-    global current_game, rematch_votes
+    global current_game, rematch_votes, servo_commands
     username = session.get('username')
     if not is_admin(username):
-        emit('error', {'message': 'Seuls les admins peuvent reset'}); return
+        emit('error', {'message': 'Admin requis'}); return
     current_game = {"team1_score": 0, "team2_score": 0, "team1_players": [], "team2_players": [], "active": False}
     rematch_votes = {"team1": [], "team2": []}
-servo_commands = {"servo1": "none", "servo2": "none"}
+    servo_commands["servo1"] = "close"
+    servo_commands["servo2"] = "close"
     socketio.emit('game_reset', current_game, namespace='/')
 
 @socketio.on('arduino_goal')
 def handle_arduino_goal(data):
-    global current_game
+    global current_game, servo_commands
     ARDUINO_SECRET = os.environ.get('ARDUINO_SECRET', 'babyfoot-arduino-secret-2024')
     if data.get('secret') != ARDUINO_SECRET:
         emit('error', {'message': 'Secret invalide'}); return
@@ -1032,33 +824,31 @@ def handle_arduino_goal(data):
         handle_arduino_goal.last_goal_time = {}
     import time
     now = time.time()
-    client_id = request.sid
-    if client_id in handle_arduino_goal.last_goal_time:
-        if now - handle_arduino_goal.last_goal_time[client_id] < 2: return
-    handle_arduino_goal.last_goal_time[client_id] = now
-    try:
-        if not current_game.get('active'): return
-        team = data.get('team')
-        if team not in ['team1', 'team2']: return
-        current_game[f"{team}_score"] += 1
-        if current_game[f"{team}_score"] == 9:
-            servo_adverse = 'servo1' if team == 'team2' else 'servo2'
-            socketio.emit(f'{servo_adverse}_lock', {}, namespace='/')
-        if current_game[f"{team}_score"] >= 10:
-            current_game['winner'] = team
-            current_game['active'] = False
-            try: save_game_results(current_game)
-            except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
-            socketio.emit('game_ended', current_game, namespace='/')
-            import threading
-            def ask_rematch_delayed():
-                import time; time.sleep(2)
-                socketio.emit('rematch_prompt', {}, namespace='/')
-            threading.Thread(target=ask_rematch_delayed, daemon=True).start()
-        else:
-            socketio.emit('score_updated', current_game, namespace='/')
-    except Exception as e:
-        logger.error(f"❌ ERREUR arduino_goal: {e}\n{traceback.format_exc()}")
+    if request.sid in handle_arduino_goal.last_goal_time and now - handle_arduino_goal.last_goal_time[request.sid] < 2: return
+    handle_arduino_goal.last_goal_time[request.sid] = now
+    if not current_game.get('active'): return
+    team = data.get('team')
+    if team not in ['team1', 'team2']: return
+    current_game[f"{team}_score"] += 1
+    if current_game[f"{team}_score"] == 9:
+        servo_adverse = 'servo1' if team == 'team2' else 'servo2'
+        servo_commands[servo_adverse] = 'close'
+        socketio.emit(f'{servo_adverse}_lock', {}, namespace='/')
+    if current_game[f"{team}_score"] >= 10:
+        current_game['winner'] = team
+        current_game['active'] = False
+        servo_commands["servo1"] = "close"
+        servo_commands["servo2"] = "close"
+        try: save_game_results(current_game)
+        except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
+        socketio.emit('game_ended', current_game, namespace='/')
+        import threading
+        def ask_rematch_delayed():
+            import time; time.sleep(2)
+            socketio.emit('rematch_prompt', {}, namespace='/')
+        threading.Thread(target=ask_rematch_delayed, daemon=True).start()
+    else:
+        socketio.emit('score_updated', current_game, namespace='/')
 
 @socketio.on('arduino_ping')
 def handle_arduino_ping(data):
@@ -1073,6 +863,31 @@ def handle_get_game_state(data):
         'team1_players': current_game.get('team1_players', []),
         'team2_players': current_game.get('team2_players', []),
     })
+
+def save_game_results(game):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        winner_team = game.get('winner', 'team1')
+        losers_team = 'team2' if winner_team == 'team1' else 'team1'
+        all_players = game.get(f"{winner_team}_players", []) + game.get(f"{losers_team}_players", [])
+        real_players = [p for p in all_players if not is_guest_player(p)]
+        t1_score = game.get("team1_score", 0)
+        t2_score = game.get("team2_score", 0)
+        for player in real_players:
+            player_score = t1_score if player in game.get('team1_players', []) else t2_score
+            if USE_POSTGRES:
+                cur.execute("UPDATE users SET total_games = total_games + 1 WHERE username = %s", (player,))
+                cur.execute("INSERT INTO scores (username, score) VALUES (%s, %s)", (player, player_score))
+                cur.execute("UPDATE users SET total_goals = total_goals + %s WHERE username = %s", (player_score, player))
+            else:
+                cur.execute("UPDATE users SET total_games = total_games + 1 WHERE username = ?", (player,))
+                cur.execute("INSERT INTO scores (username, score) VALUES (?, ?)", (player, player_score))
+                cur.execute("UPDATE users SET total_goals = total_goals + ? WHERE username = ?", (player_score, player))
+        conn.commit(); cur.close(); conn.close()
+        logger.info("✅ Résultats sauvegardés")
+    except Exception as e:
+        logger.error(f"Erreur save_game_results: {e}")
 
 if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
