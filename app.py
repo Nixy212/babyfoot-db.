@@ -499,7 +499,7 @@ def api_arduino_goal():
     import time
     now = time.time()
     client_ip = request.remote_addr
-    if client_ip in arduino_last_goal_time and now - arduino_last_goal_time[client_ip] < 2:
+    if client_ip in arduino_last_goal_time and now - arduino_last_goal_time[client_ip] < 1:  # ✅ 1s au lieu de 2s
         logger.warning(f"⚠️ But trop rapide ignoré (client {client_ip})")
         return jsonify({"success": False, "message": "Trop rapide"}), 429
     arduino_last_goal_time[client_ip] = now
@@ -742,14 +742,22 @@ def handle_unlock_servo1():
     username = session.get('username')
     if not is_admin(username):
         emit('error', {'message': 'Admin requis'}); return
+    
+    # ✅ Envoyer OPEN
     servo_commands["servo1"].append("open")
     socketio.emit('servo1_unlock', {}, namespace='/')
     logger.info(f"🔓 SERVO1 déverrouillé par {username}")
+    
+    # ✅ Planifier le close MAIS ne l'envoyer que si le jeu n'est pas actif
     import threading
     def relock():
-        import time; time.sleep(5)
-        servo_commands["servo1"].append("close")
-        socketio.emit('servo1_lock', {}, namespace='/')
+        import time
+        time.sleep(5)
+        # Ne fermer que si aucune partie en cours
+        if not current_game.get('active'):
+            servo_commands["servo1"].append("close")
+            socketio.emit('servo1_lock', {}, namespace='/')
+            logger.info(f"🔒 SERVO1 refermé automatiquement")
     threading.Thread(target=relock, daemon=True).start()
 
 @socketio.on('unlock_servo2')
@@ -758,14 +766,22 @@ def handle_unlock_servo2():
     username = session.get('username')
     if not is_admin(username):
         emit('error', {'message': 'Admin requis'}); return
+    
+    # ✅ Envoyer OPEN
     servo_commands["servo2"].append("open")
     socketio.emit('servo2_unlock', {}, namespace='/')
     logger.info(f"🔓 SERVO2 déverrouillé par {username}")
+    
+    # ✅ Planifier le close MAIS ne l'envoyer que si le jeu n'est pas actif
     import threading
     def relock():
-        import time; time.sleep(5)
-        servo_commands["servo2"].append("close")
-        socketio.emit('servo2_lock', {}, namespace='/')
+        import time
+        time.sleep(5)
+        # Ne fermer que si aucune partie en cours
+        if not current_game.get('active'):
+            servo_commands["servo2"].append("close")
+            socketio.emit('servo2_lock', {}, namespace='/')
+            logger.info(f"🔒 SERVO2 refermé automatiquement")
     threading.Thread(target=relock, daemon=True).start()
 
 @socketio.on('stop_game')
