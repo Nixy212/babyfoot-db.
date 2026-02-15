@@ -745,19 +745,21 @@ def handle_unlock_servo1():
     
     # ✅ Envoyer OPEN
     servo_commands["servo1"].append("open")
+    logger.info(f"🔓 SERVO1 OPEN ajouté à la queue par {username}")
+    logger.info(f"   Queue actuelle: {servo_commands}")
     socketio.emit('servo1_unlock', {}, namespace='/')
-    logger.info(f"🔓 SERVO1 déverrouillé par {username}")
     
-    # ✅ Planifier le close MAIS ne l'envoyer que si le jeu n'est pas actif
+    # ✅ Refermer après 3 secondes
     import threading
     def relock():
         import time
-        time.sleep(5)
-        # Ne fermer que si aucune partie en cours
+        time.sleep(3)  # ✅ 3 secondes
         if not current_game.get('active'):
             servo_commands["servo1"].append("close")
             socketio.emit('servo1_lock', {}, namespace='/')
-            logger.info(f"🔒 SERVO1 refermé automatiquement")
+            logger.info(f"🔒 SERVO1 CLOSE ajouté après 3s")
+        else:
+            logger.info(f"⚠️ Partie active, SERVO1 reste ouvert")
     threading.Thread(target=relock, daemon=True).start()
 
 @socketio.on('unlock_servo2')
@@ -769,19 +771,21 @@ def handle_unlock_servo2():
     
     # ✅ Envoyer OPEN
     servo_commands["servo2"].append("open")
+    logger.info(f"🔓 SERVO2 OPEN ajouté à la queue par {username}")
+    logger.info(f"   Queue actuelle: {servo_commands}")
     socketio.emit('servo2_unlock', {}, namespace='/')
-    logger.info(f"🔓 SERVO2 déverrouillé par {username}")
     
-    # ✅ Planifier le close MAIS ne l'envoyer que si le jeu n'est pas actif
+    # ✅ Refermer après 3 secondes
     import threading
     def relock():
         import time
-        time.sleep(5)
-        # Ne fermer que si aucune partie en cours
+        time.sleep(3)  # ✅ 3 secondes
         if not current_game.get('active'):
             servo_commands["servo2"].append("close")
             socketio.emit('servo2_lock', {}, namespace='/')
-            logger.info(f"🔒 SERVO2 refermé automatiquement")
+            logger.info(f"🔒 SERVO2 CLOSE ajouté après 3s")
+        else:
+            logger.info(f"⚠️ Partie active, SERVO2 reste ouvert")
     threading.Thread(target=relock, daemon=True).start()
 
 @socketio.on('stop_game')
