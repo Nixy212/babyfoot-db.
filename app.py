@@ -250,6 +250,13 @@ def live_score():
 def stats():
     if "username" not in session: return redirect(url_for('login_page'))
     return render_template("stats.html")
+
+@app.route("/stats/<username>")
+@handle_errors
+def stats_user(username):
+    """Alias pour /user_stats/<username> (compatibilité)"""
+    return user_stats(username)
+
 @app.route("/top")
 def top():
     if "username" not in session: return redirect(url_for('login_page'))
@@ -342,6 +349,25 @@ def reservations_all():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT * FROM reservations ORDER BY id DESC")
+    rows = cur.fetchall()
+    cur.close(); conn.close()
+    return jsonify([row_to_dict(r) for r in rows])
+
+@app.route("/reservations_today")
+@handle_errors
+def reservations_today():
+    """Retourne les réservations du jour actuel"""
+    today = datetime.now().strftime('%A')
+    days_fr = {
+        'Monday': 'Lundi', 'Tuesday': 'Mardi', 'Wednesday': 'Mercredi',
+        'Thursday': 'Jeudi', 'Friday': 'Vendredi', 'Saturday': 'Samedi', 'Sunday': 'Dimanche'
+    }
+    day_fr = days_fr.get(today, today)
+    
+    conn = get_db_connection()
+    cur = conn.cursor()
+    q = "SELECT * FROM reservations WHERE day = %s ORDER BY time" if USE_POSTGRES else "SELECT * FROM reservations WHERE day = ? ORDER BY time"
+    cur.execute(q, (day_fr,))
     rows = cur.fetchall()
     cur.close(); conn.close()
     return jsonify([row_to_dict(r) for r in rows])
@@ -744,8 +770,11 @@ def handle_start_game(data):
     global current_game, rematch_votes, servo_commands
     try:
         username = session.get('username', '')
-        if not is_admin(username) and not has_active_reservation(username):
-            emit('error', {'message': 'Réservation active ou admin requis'}); return
+        # ✅ Admins peuvent TOUJOURS lancer, les autres ont besoin d'une réservation
+        if not is_admin(username):
+            if not has_active_reservation(username):
+                emit('error', {'message': 'Réservation active requise (ou être admin)'}); return
+        
         team1 = [p for p in data.get('team1', []) if p and p.strip()]
         team2 = [p for p in data.get('team2', []) if p and p.strip()]
         if not team1 or not team2:
