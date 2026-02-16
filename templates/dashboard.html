@@ -35,10 +35,7 @@
       from { transform: translateX(400px); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
     }
-    .notification-buttons {
-      display: flex;
-      gap: 0.5rem;
-    }
+    .notification-buttons { display: flex; gap: 0.5rem; }
     .notification-buttons button {
       padding: 0.5rem 1rem;
       border: none;
@@ -48,35 +45,20 @@
       font-size: 0.9rem;
       transition: all 0.2s;
     }
-    .btn-accept {
-      background: linear-gradient(135deg, #cd7f32 0%, #ffd700 100%);
-      color: white;
-    }
-    .btn-accept:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(205, 127, 50, 0.4);
-    }
-    .btn-decline {
-      background: #e74c3c;
-      color: white;
-    }
-    .btn-decline:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
-    }
+    .btn-accept { background: linear-gradient(135deg, #cd7f32 0%, #ffd700 100%); color: white; }
+    .btn-accept:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(205,127,50,0.4); }
+    .btn-decline { background: #e74c3c; color: white; }
+    .btn-decline:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(231,76,60,0.4); }
     #invitation-section {
       margin-top: 1.5rem;
       padding: 1.5rem;
-      background: linear-gradient(135deg, rgba(205, 127, 50, 0.2) 0%, rgba(255, 215, 0, 0.2) 100%);
+      background: linear-gradient(135deg, rgba(205,127,50,0.2) 0%, rgba(255,215,0,0.2) 100%);
       border: 1px solid var(--border-accent);
       border-radius: 12px;
       color: var(--text-primary);
       display: none;
     }
-    #invitation-section h3 {
-      color: var(--bronze);
-      margin-top: 0;
-    }
+    #invitation-section h3 { color: var(--bronze); margin-top: 0; }
     #servo-controls {
       margin-top: 1.5rem;
       padding: 1.5rem;
@@ -113,7 +95,7 @@
         <div class="nav-avatar" id="navAv">?</div>
         <span class="nav-username" id="navUsername"></span>
       </div>
-      <a href="/admin" id="adminBtn" class="btn" style="margin-left:1rem;background:linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);color:white;display:none">⚙️ Admin</a>
+      <a href="/admin" id="adminBtn" class="btn" style="margin-left:1rem;background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;display:none">⚙️ Admin</a>
       <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()">🚪 Déconnexion</button>
     </div>
   </div>
@@ -138,10 +120,8 @@ function toggleMenu() {
   document.getElementById("mobileMenu").classList.toggle("open");
   document.body.style.overflow = document.getElementById("mobileMenu").classList.contains("open") ? "hidden" : "";
 }
-
 function logout() {
-  fetch('/api/logout', {method: 'POST'})
-    .then(() => location.href = '/');
+  fetch('/api/logout', {method: 'POST'}).then(() => location.href = '/');
 }
 </script>
 
@@ -160,7 +140,6 @@ function logout() {
           <a href="/reservation" class="btn btn-primary btn-full">Réserver</a>
         </div>
       </div>
-
       <div class="card card-hover">
         <div class="card-header"><h3>🎮 Jouer</h3></div>
         <div class="card-body">
@@ -168,7 +147,6 @@ function logout() {
           <a href="/live-score" class="btn btn-primary btn-full">Partie Live</a>
         </div>
       </div>
-
       <div class="card card-hover">
         <div class="card-header"><h3>📊 Stats</h3></div>
         <div class="card-body">
@@ -181,22 +159,22 @@ function logout() {
     <div id="invitation-section" class="fade-up" style="animation-delay:.1s">
       <h3>👥 Créer un Lobby</h3>
       <p id="lobby-description">Créez un lobby vide, puis invitez des joueurs depuis le lobby</p>
-      <button id="create-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg, #cd7f32 0%, #ffd700 100%);color:white;font-weight:bold" onclick="createEmptyLobby()">🎮 Créer un Lobby Vide</button>
-      <button id="rejoin-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg, #cd7f32 0%, #ffd700 100%);color:white;font-weight:bold;display:none" onclick="rejoinLobby()">🔄 Rejoindre le Lobby</button>
+      <button id="create-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold" onclick="createEmptyLobby()">🎮 Créer un Lobby Vide</button>
+      <button id="rejoin-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold;display:none" onclick="rejoinLobby()">🔄 Rejoindre le Lobby</button>
     </div>
 
     <div id="servo-controls" class="fade-up" style="animation-delay:.15s">
       <h3>🎮 Contrôles Servo</h3>
       <p>Débloquez le servo pour lancer une balle</p>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
-        <button class="btn btn-primary" onclick="unlockServo1()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">
-          🔓 Servo 1<br><small style="font-size: 0.8em; opacity: 0.9;">(Équipe 1)</small>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
+        <button class="btn btn-primary" onclick="unlockServo1()" style="background:linear-gradient(135deg,#3498db 0%,#2980b9 100%)">
+          🔓 Servo 1<br><small style="font-size:0.8em;opacity:0.9">(Équipe 1)</small>
         </button>
-        <button class="btn btn-primary" onclick="unlockServo2()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">
-          🔓 Servo 2<br><small style="font-size: 0.8em; opacity: 0.9;">(Équipe 2)</small>
+        <button class="btn btn-primary" onclick="unlockServo2()" style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%)">
+          🔓 Servo 2<br><small style="font-size:0.8em;opacity:0.9">(Équipe 2)</small>
         </button>
       </div>
-      <div id="servo-feedback" style="margin-top: 1rem; padding: 0.75rem; border-radius: 8px; display: none; text-align: center;"></div>
+      <div id="servo-feedback" style="margin-top:1rem;padding:0.75rem;border-radius:8px;display:none;text-align:center"></div>
     </div>
 
     <div class="card fade-up" style="animation-delay:.2s;margin-top:1.5rem">
@@ -207,16 +185,22 @@ function logout() {
     </div>
 
     <div class="card fade-up" style="animation-delay:.25s;margin-top:1.5rem">
-      <div class="card-header"><h3>📅 Réservations à venir</h3></div>
+      <div class="card-header">
+        <h3>📅 Réservations à venir</h3>
+        <a href="/reservation" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">+ Réserver →</a>
+      </div>
       <div class="card-body">
-        <div id="reservations"></div>
+        <div id="reservations"><p style="color:var(--text-muted);text-align:center">Chargement…</p></div>
       </div>
     </div>
 
     <div class="card fade-up" style="animation-delay:.3s;margin-top:1.5rem">
-      <div class="card-header"><h3>👤 Mes Statistiques</h3></div>
+      <div class="card-header">
+        <h3>👤 Mes Statistiques</h3>
+        <a href="/stats" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">Tout voir →</a>
+      </div>
       <div class="card-body">
-        <div id="userStats"></div>
+        <div id="userStats"><p style="color:var(--text-muted);text-align:center">Chargement…</p></div>
       </div>
     </div>
   </div>
@@ -236,34 +220,26 @@ async function loadCurrentUser() {
       currentUsername = user.username;
       isAdmin = user.is_admin;
       hasReservation = user.has_reservation;
-      
       document.getElementById('navUsername').textContent = user.username;
       document.getElementById('navAv').textContent = user.username[0].toUpperCase();
-      
-      // Afficher le bouton Admin si l'utilisateur est admin
       if (isAdmin) {
         document.getElementById('adminBtn').style.display = 'inline-block';
         document.getElementById('adminBtnMobile').style.display = 'block';
       }
-      
       if (isAdmin || hasReservation) {
         document.getElementById('invitation-section').style.display = 'block';
         document.getElementById('servo-controls').style.display = 'block';
       }
-      
       await checkActiveLobby();
       loadUserStats(user.username);
     }
-  } catch (e) {
-    console.error('Erreur chargement user:', e);
-  }
+  } catch (e) { console.error('Erreur chargement user:', e); }
 }
 
 async function checkActiveLobby() {
   try {
     const res = await fetch('/api/active_lobby');
     const lobby = await res.json();
-    
     if (lobby.active && (lobby.host === currentUsername || lobby.accepted.includes(currentUsername))) {
       document.getElementById('create-lobby-btn').style.display = 'none';
       document.getElementById('rejoin-lobby-btn').style.display = 'block';
@@ -273,70 +249,45 @@ async function checkActiveLobby() {
       document.getElementById('rejoin-lobby-btn').style.display = 'none';
       document.getElementById('lobby-description').textContent = 'Créez un lobby vide, puis invitez des joueurs depuis le lobby';
     }
-  } catch (e) {
-    console.error('Erreur vérification lobby:', e);
-  }
+  } catch (e) { console.error('Erreur vérification lobby:', e); }
 }
 
-function rejoinLobby() {
-  location.href = '/lobby';
-}
-
-function createEmptyLobby() {
-  socket.emit('create_lobby', { invited: [] });
-}
+function rejoinLobby() { location.href = '/lobby'; }
+function createEmptyLobby() { socket.emit('create_lobby', { invited: [] }); }
 
 function unlockServo1() {
   const feedback = document.getElementById('servo-feedback');
   const btn = event.target;
-  
-  btn.disabled = true;
-  btn.style.opacity = '0.5';
-  
+  btn.disabled = true; btn.style.opacity = '0.5';
   feedback.style.display = 'block';
-  feedback.style.background = 'rgba(52, 152, 219, 0.1)';
+  feedback.style.background = 'rgba(52,152,219,0.1)';
   feedback.style.border = '1px solid #3498db';
-  feedback.textContent = '🔓 Déverrouillage Servo 1 en cours... (5 secondes)';
-  
+  feedback.textContent = '🔓 Déverrouillage Servo 1 en cours… (5 secondes)';
   socket.emit('unlock_servo1');
-  
   setTimeout(() => {
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    feedback.style.background = 'rgba(39, 174, 96, 0.1)';
+    btn.disabled = false; btn.style.opacity = '1';
+    feedback.style.background = 'rgba(39,174,96,0.1)';
     feedback.style.border = '1px solid #27ae60';
     feedback.textContent = '✅ Servo 1 reverrouillé automatiquement';
-    
-    setTimeout(() => {
-      feedback.style.display = 'none';
-    }, 3000);
+    setTimeout(() => { feedback.style.display = 'none'; }, 3000);
   }, 5000);
 }
 
 function unlockServo2() {
   const feedback = document.getElementById('servo-feedback');
   const btn = event.target;
-  
-  btn.disabled = true;
-  btn.style.opacity = '0.5';
-  
+  btn.disabled = true; btn.style.opacity = '0.5';
   feedback.style.display = 'block';
-  feedback.style.background = 'rgba(231, 76, 60, 0.1)';
+  feedback.style.background = 'rgba(231,76,60,0.1)';
   feedback.style.border = '1px solid #e74c3c';
-  feedback.textContent = '🔓 Déverrouillage Servo 2 en cours... (5 secondes)';
-  
+  feedback.textContent = '🔓 Déverrouillage Servo 2 en cours… (5 secondes)';
   socket.emit('unlock_servo2');
-  
   setTimeout(() => {
-    btn.disabled = false;
-    btn.style.opacity = '1';
-    feedback.style.background = 'rgba(39, 174, 96, 0.1)';
+    btn.disabled = false; btn.style.opacity = '1';
+    feedback.style.background = 'rgba(39,174,96,0.1)';
     feedback.style.border = '1px solid #27ae60';
     feedback.textContent = '✅ Servo 2 reverrouillé automatiquement';
-    
-    setTimeout(() => {
-      feedback.style.display = 'none';
-    }, 3000);
+    setTimeout(() => { feedback.style.display = 'none'; }, 3000);
   }, 5000);
 }
 
@@ -350,14 +301,12 @@ async function loadLeaderboard() {
       return;
     }
     el.innerHTML = data.slice(0, 10).map((p, i) => `
-      <div style="display:flex;justify-content:space-between;padding:0.75rem;border-bottom:1px solid var(--border-subtle)">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;border-bottom:1px solid var(--border-subtle)">
         <span><strong style="color:var(--bronze)">#${i + 1}</strong> ${p.username}</span>
-        <span style="color:var(--text-tertiary)">${p.total_goals} buts</span>
+        <span style="color:var(--text-tertiary)">${p.total_goals} buts · ${p.total_games} parties</span>
       </div>
     `).join('');
-  } catch (e) {
-    console.error('Erreur leaderboard:', e);
-  }
+  } catch (e) { console.error('Erreur leaderboard:', e); }
 }
 
 async function loadReservations() {
@@ -366,38 +315,52 @@ async function loadReservations() {
     const data = await res.json();
     const el = document.getElementById('reservations');
     if (!data || data.length === 0) {
-      el.innerHTML = '<p style="color:var(--text-muted);text-align:center">Aucune réservation pour aujourd\'hui</p>';
+      el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:0.5rem 0">Aucune réservation à venir</p>';
       return;
     }
-    el.innerHTML = data.map(r => `
-      <div style="padding:0.75rem;border-bottom:1px solid var(--border-subtle)">
-        <div style="font-weight:600;color:var(--text-primary)">${r.time} - ${r.mode}</div>
-        <div style="color:var(--text-tertiary);font-size:0.9rem">Par ${r.reserved_by}</div>
-      </div>
-    `).join('');
-  } catch (e) {
-    console.error('Erreur réservations:', e);
-  }
+    el.innerHTML = data.map(r => {
+      const isMine = r.reserved_by === currentUsername;
+      return `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;border-bottom:1px solid var(--border-subtle)">
+          <div>
+            <div style="font-weight:600;color:var(--text-primary)">${r.day} · ${r.time}</div>
+            <div style="color:var(--text-tertiary);font-size:0.85rem">${r.mode} — par ${r.reserved_by}</div>
+          </div>
+          ${isMine ? '<span style="font-size:0.75rem;padding:3px 10px;border-radius:20px;background:rgba(205,127,50,0.15);color:var(--bronze);font-weight:600">Vous</span>' : ''}
+        </div>
+      `;
+    }).join('');
+  } catch (e) { console.error('Erreur réservations:', e); }
 }
 
 async function loadUserStats(username) {
   try {
-    const res = await fetch(`/stats/${username}`);
+    const res = await fetch(`/user_stats/${username}`);
+    if (!res.ok) throw new Error();
     const data = await res.json();
     document.getElementById('userStats').innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;text-align:center">
-        <div style="text-align:center">
-          <div style="font-size:2rem;font-weight:700;color:var(--bronze)">${data.total_goals || 0}</div>
-          <div style="color:var(--text-tertiary)">Buts marqués</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;text-align:center">
+        <div>
+          <div style="font-size:2rem;font-weight:700;color:var(--bronze)">${data.total_goals ?? 0}</div>
+          <div style="color:var(--text-tertiary);font-size:0.85rem">Buts marqués</div>
         </div>
-        <div style="text-align:center">
-          <div style="font-size:2rem;font-weight:700;color:var(--bronze)">${data.total_games || 0}</div>
-          <div style="color:var(--text-tertiary)">Parties jouées</div>
+        <div>
+          <div style="font-size:2rem;font-weight:700;color:var(--bronze)">${data.total_games ?? 0}</div>
+          <div style="color:var(--text-tertiary);font-size:0.85rem">Parties jouées</div>
         </div>
+        <div>
+          <div style="font-size:2rem;font-weight:700;color:var(--bronze)">${data.ratio ?? 0}</div>
+          <div style="color:var(--text-tertiary);font-size:0.85rem">Buts / partie</div>
+        </div>
+      </div>
+      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;color:var(--text-tertiary)">
+        <span>Meilleur score : <strong style="color:var(--text-primary)">${data.best_score || '—'}</strong></span>
+        <a href="/stats" style="color:var(--bronze);font-weight:600;text-decoration:none">Détails →</a>
       </div>
     `;
   } catch (e) {
-    console.error('Erreur stats user:', e);
+    document.getElementById('userStats').innerHTML =
+      '<p style="color:var(--text-muted);text-align:center">Stats indisponibles</p>';
   }
 }
 
@@ -407,7 +370,6 @@ function showNotification(message, type) {
   notif.className = 'notification';
   notif.innerHTML = `<div style="flex:1;color:var(--text-primary)">${message}</div>`;
   bar.appendChild(notif);
-  
   setTimeout(() => {
     notif.style.animation = 'slideOut 0.3s ease';
     setTimeout(() => notif.remove(), 300);
@@ -415,12 +377,9 @@ function showNotification(message, type) {
 }
 
 socket.on('lobby_created', (data) => {
-  // Ne rediriger que si c'est nous qui avons créé le lobby ou si nous sommes invités
   if (data.host === currentUsername || data.invited.includes(currentUsername)) {
-    showNotification('Lobby créé ! Redirection...', 'success');
+    showNotification('Lobby créé ! Redirection…', 'success');
     setTimeout(() => location.href = '/lobby', 500);
-  } else {
-    console.log('Lobby créé par', data.host, 'mais nous ne sommes pas concernés');
   }
 });
 
@@ -446,7 +405,6 @@ function acceptLobby() {
   socket.emit('accept_lobby');
   setTimeout(() => location.href = '/lobby', 500);
 }
-
 function declineLobby() {
   socket.emit('decline_lobby');
   document.querySelectorAll('.notification').forEach(n => n.remove());
