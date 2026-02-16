@@ -73,7 +73,7 @@
               <select id="t2p2" class="input"><option value="">Joueur 2 (optionnel)</option></select>
             </div>
           </div>
-          <button id="btnStart" class="btn btn-primary btn-full btn-lg">Lancer la partie</button>
+          <button id="btnStart" class="btn btn-primary btn-full btn-lg" onclick="startGame()">Lancer la partie</button>
           <button class="btn btn-secondary btn-full" style="margin-top:1rem" onclick="unlockServo()">🔓 Débloquer Servo</button>
         </div>
       </div>
@@ -308,6 +308,8 @@ socket.on('rematch_cancelled', () => {
 
 loadUser();
 loadUsers();
+
+document.getElementById('btnStart').addEventListener('click', startGame);
 </script>
 </body>
 </html>
