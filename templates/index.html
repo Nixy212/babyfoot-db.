@@ -10,6 +10,7 @@
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
 </head>
 <body>
+
 <nav class="nav">
   <div class="nav-inner">
     <a href="/" class="nav-brand">
@@ -23,11 +24,26 @@
       <a href="/top" class="nav-link">Classement</a>
       <a href="/scores" class="nav-link">Scores</a>
     </div>
+    <!-- Burger pour visiteurs mobile -->
+    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
     <div class="nav-right">
-      <a href="/login" class="nav-link">Se connecter</a>
+      <a href="/login" class="btn btn-primary" style="font-size:0.875rem;padding:8px 18px">Se connecter</a>
     </div>
   </div>
 </nav>
+
+<!-- Mobile menu visiteurs -->
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
+  <a href="/">🏠 Accueil</a>
+  <a href="#features" onclick="toggleMenu()">✨ Fonctionnalités</a>
+  <a href="/top">🏆 Classement</a>
+  <a href="/scores">📊 Scores</a>
+  <a href="/login" style="background:rgba(205,127,50,0.15);border-color:rgba(205,127,50,0.4);color:var(--bronze);font-weight:700">🔑 Se connecter</a>
+  <a href="/register">📝 Créer un compte</a>
+</div>
 
 <div class="hero">
   <div class="hero-bg-animated">
@@ -42,7 +58,7 @@
       <em class="gradient-shine">Dominez.</em>
     </h1>
     <p class="hero-body">
-      Réservez vos créneaux, suivez vos scores en temps réel et déverrouillez 
+      Réservez vos créneaux, suivez vos scores en temps réel et déverrouillez
       la balle depuis votre téléphone. Une expérience de jeu moderne et connectée.
     </p>
     <div class="hero-cta">
@@ -79,7 +95,7 @@
 </div>
 
 <section class="features" id="features">
-  <div class="container" style="text-align:center;margin-bottom:var(--space-xl);">
+  <div class="container" style="text-align:center;margin-bottom:var(--space-xl)">
     <div class="section-eyebrow">Fonctionnalités</div>
     <h2 class="section-title">Tout ce dont vous avez besoin</h2>
     <p class="section-sub">Une plateforme complète pour gérer votre baby-foot de A à Z</p>
@@ -112,10 +128,30 @@
         <p>Top 10 mis à jour après chaque partie. Votre position en temps réel.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon">1v1 / 2v2</div>
+        <div class="feat-icon">⚽</div>
         <h3>Multi-modes</h3>
-        <p>Jouez en duel ou en équipe. La plateforme s'adapte à votre configuration.</p>
+        <p>Jouez en duel 1v1 ou en équipe 2v2. La plateforme s'adapte à votre configuration.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA inscription -->
+<section style="padding:4rem 0;text-align:center;position:relative;z-index:10">
+  <div class="container">
+    <h2 style="font-size:2rem;font-weight:800;margin-bottom:1rem;color:var(--text-primary)">
+      Prêt à jouer ?
+    </h2>
+    <p style="color:var(--text-tertiary);margin-bottom:2rem;font-size:1.1rem">
+      Créez votre compte gratuitement et rejoignez le club
+    </p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+      <a href="/register" class="btn btn-primary btn-lg btn-shine">
+        <span>Créer un compte</span>
+      </a>
+      <a href="/login" class="btn btn-secondary btn-lg">
+        <span>Se connecter</span>
+      </a>
     </div>
   </div>
 </section>
@@ -126,18 +162,32 @@
 
 <script src="{{ url_for('static', filename='animations.js') }}"></script>
 <script>
+function toggleMenu() {
+  document.getElementById('burger').classList.toggle('open');
+  document.getElementById('mobileMenu').classList.toggle('open');
+  document.body.style.overflow = document.getElementById('mobileMenu').classList.contains('open') ? 'hidden' : '';
+}
+
 async function loadPublicStats() {
   try {
     const res = await fetch('/api/public_stats');
     if (!res.ok) throw new Error();
     const data = await res.json();
+
     const games = data.total_games ?? 0;
-    document.getElementById('stat-parties').textContent = games > 0 ? games + (games >= 10 ? '+' : '') : '0';
-    document.getElementById('stat-joueurs').textContent = data.active_players ?? 0;
-    const mins = data.avg_duration_minutes ?? null;
-    document.getElementById('stat-temps').textContent = mins !== null ? mins + 'min' : '—';
-  } catch (e) {}
+    document.getElementById('stat-parties').textContent = games > 0 ? games + '+' : '0';
+
+    const players = data.active_players ?? 0;
+    document.getElementById('stat-joueurs').textContent = players > 0 ? players : '0';
+
+    document.getElementById('stat-temps').textContent = '15min';
+  } catch(e) {
+    document.getElementById('stat-parties').textContent = '0';
+    document.getElementById('stat-joueurs').textContent = '0';
+    document.getElementById('stat-temps').textContent = '15min';
+  }
 }
+
 loadPublicStats();
 </script>
 </body>
