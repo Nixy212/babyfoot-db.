@@ -16,7 +16,27 @@ logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdo
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'babyfoot-secret-key-2024-change-me')
+
+# ═══════════════════════════════════════════════════════════════
+# 🔒 SECRETS - OBLIGATOIRES via Railway Variables
+# ═══════════════════════════════════════════════════════════════
+SECRET_KEY = os.environ.get('SECRET_KEY')
+ARDUINO_SECRET_GLOBAL = os.environ.get('ARDUINO_SECRET')
+
+if not SECRET_KEY:
+    logger.error("❌ SECRET_KEY manquant ! Configurez-le dans Railway → Variables")
+    raise ValueError("SECRET_KEY non défini dans les variables d'environnement")
+
+if not ARDUINO_SECRET_GLOBAL:
+    logger.error("❌ ARDUINO_SECRET manquant ! Configurez-le dans Railway → Variables")
+    raise ValueError("ARDUINO_SECRET non défini dans les variables d'environnement")
+
+app.secret_key = SECRET_KEY
+logger.info("✅ Secrets chargés depuis variables d'environnement")
+
+# ═══════════════════════════════════════════════════════════════
+# Configuration Flask
+# ═══════════════════════════════════════════════════════════════
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False
@@ -67,7 +87,7 @@ active_lobby = {
 
 team_swap_requests = {}
 rematch_votes = {"team1": [], "team2": []}
-servo_commands = {"servo1": [], "servo2": []}
+servo_commands = {"servo1": [], "servo2": []}  # Queue de commandes (liste)
 
 # ── DB ───────────────────────────────────────────────────────
 def get_db_connection():
@@ -446,65 +466,6 @@ def api_has_active_game():
 def api_active_lobby():
     return jsonify(active_lobby)
 
-# ── Nouvelles routes ─────────────────────────────────────────
-@app.route("/api/public_stats")
-@handle_errors
-def api_public_stats():
-    """Stats publiques pour la page d'accueil"""
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT SUM(total_games) as total FROM users")
-    row = row_to_dict(cur.fetchone())
-    total_raw = row.get('total') or 0
-    total_games = max(0, int(total_raw) // 2)
-    cur.execute("SELECT COUNT(*) as cnt FROM users WHERE total_games > 0")
-    row2 = row_to_dict(cur.fetchone())
-    active_players = int(row2.get('cnt') or 0)
-    cur.close()
-    conn.close()
-    return jsonify({
-        "total_games": total_games,
-        "active_players": active_players,
-        "avg_duration_minutes": 15
-    })
-
-@app.route("/reservations_today")
-@handle_errors
-def reservations_today():
-    """Réservations du jour + lendemain pour le dashboard"""
-    if "username" not in session:
-        return jsonify([])
-    conn = get_db_connection()
-    cur = conn.cursor()
-    today = datetime.now().strftime('%A')
-    days_fr = {
-        'Monday': 'Lundi', 'Tuesday': 'Mardi', 'Wednesday': 'Mercredi',
-        'Thursday': 'Jeudi', 'Friday': 'Vendredi', 'Saturday': 'Samedi', 'Sunday': 'Dimanche'
-    }
-    day_fr = days_fr.get(today, today)
-    tomorrow = (datetime.now() + timedelta(days=1)).strftime('%A')
-    day_fr_tomorrow = days_fr.get(tomorrow, tomorrow)
-    if USE_POSTGRES:
-        cur.execute(
-            "SELECT day, time, mode, reserved_by FROM reservations WHERE day = %s OR day = %s ORDER BY time ASC LIMIT 5",
-            (day_fr, day_fr_tomorrow)
-        )
-    else:
-        cur.execute(
-            "SELECT day, time, mode, reserved_by FROM reservations WHERE day = ? OR day = ? ORDER BY time ASC LIMIT 5",
-            (day_fr, day_fr_tomorrow)
-        )
-    rows = [row_to_dict(r) for r in cur.fetchall()]
-    cur.close()
-    conn.close()
-    return jsonify(rows)
-
-@app.route("/stats/<username>")
-@handle_errors
-def stats_by_username(username):
-    """Alias de /user_stats/<username> pour compatibilité"""
-    return user_stats(username)
-
 # ── Arduino HTTP endpoints ────────────────────────────────────
 arduino_last_goal_time = {}
 
@@ -518,22 +479,31 @@ def api_arduino_status():
 
 @app.route("/api/arduino/commands", methods=["GET"])
 def api_arduino_commands():
+    """ESP32 poll - retourne et retire UNE SEULE commande de la queue"""
     global servo_commands
+    
+    # ✅ Nettoyage auto si ESP32 n'a pas poll depuis 10s (reboot détecté)
     import time
     now = time.time()
     if not hasattr(api_arduino_commands, 'last_poll'):
         api_arduino_commands.last_poll = 0
+    
     if now - api_arduino_commands.last_poll > 10:
         servo_commands["servo1"].clear()
         servo_commands["servo2"].clear()
         logger.info("🧹 Queue servos nettoyée (reboot ESP32 détecté)")
+    
     api_arduino_commands.last_poll = now
+    
+    # ✅ Pop une seule commande, garder les autres dans la queue
     cmd1 = servo_commands["servo1"].pop(0) if servo_commands["servo1"] else "none"
     cmd2 = servo_commands["servo2"].pop(0) if servo_commands["servo2"] else "none"
+    
     return jsonify({"servo1": cmd1, "servo2": cmd2})
 
 @app.route("/api/arduino/servo", methods=["POST"])
 def api_arduino_servo():
+    """Dashboard/Admin commandent un servo via HTTP"""
     global servo_commands
     username = session.get('username')
     if not is_admin(username):
@@ -551,32 +521,43 @@ def api_arduino_servo():
 def api_arduino_goal():
     global current_game
     data = request.get_json(silent=True) or {}
-    ARDUINO_SECRET = os.environ.get("ARDUINO_SECRET", "babyfoot-arduino-secret-2024")
+    
+    # Debug
     logger.info(f"📥 Requête but Arduino: {data}")
-    if data.get("secret") != ARDUINO_SECRET:
+    
+    if data.get("secret") != ARDUINO_SECRET_GLOBAL:
         logger.warning(f"❌ Secret invalide: {data.get('secret')}")
         return jsonify({"success": False, "message": "Secret invalide"}), 403
+    
     import time
     now = time.time()
     client_ip = request.remote_addr
-    if client_ip in arduino_last_goal_time and now - arduino_last_goal_time[client_ip] < 1:
+    if client_ip in arduino_last_goal_time and now - arduino_last_goal_time[client_ip] < 1:  # ✅ 1s au lieu de 2s
         logger.warning(f"⚠️ But trop rapide ignoré (client {client_ip})")
         return jsonify({"success": False, "message": "Trop rapide"}), 429
     arduino_last_goal_time[client_ip] = now
+    
     if not current_game.get("active"):
         logger.warning(f"⚠️ But reçu mais aucune partie active")
         return jsonify({"success": False, "message": "Aucune partie en cours", "game_active": False}), 200
+    
     team = data.get("team")
     if team not in ["team1", "team2"]:
         logger.warning(f"❌ Équipe invalide: {team}")
         return jsonify({"success": False, "message": "Équipe invalide"}), 400
+    
+    # ✅ Incrémenter le score
     current_game[f"{team}_score"] += 1
-    logger.info(f"⚽ BUT {team.upper()} - Score: T1={current_game['team1_score']} T2={current_game['team2_score']}")
+    logger.info(f"⚽ BUT {team.upper()} - Nouveau score: T1={current_game['team1_score']} T2={current_game['team2_score']}")
+    
+    # ✅ Fermer le servo adverse à 9 buts
     if current_game[f"{team}_score"] == 9:
         servo_adverse = 'servo1' if team == 'team2' else 'servo2'
         servo_commands[servo_adverse].append('close')
         logger.info(f"🔒 {team} a 9 buts → fermeture {servo_adverse}")
         socketio.emit(f"{servo_adverse}_lock", {}, namespace="/")
+    
+    # ✅ Fin de partie à 10 buts
     if current_game[f"{team}_score"] >= 10:
         current_game["winner"] = team
         current_game["active"] = False
@@ -596,11 +577,16 @@ def api_arduino_goal():
         threading.Thread(target=ask_rematch, daemon=True).start()
         return jsonify({"success": True, "game_ended": True, "winner": team})
     else:
+        # ✅ Broadcast du score mis à jour
         socketio.emit("score_updated", current_game, namespace="/")
-        logger.info(f"✅ Score broadcast")
+        logger.info(f"✅ Score broadcast à tous les clients")
         return jsonify({
-            "success": True, "game_ended": False,
-            "scores": {"team1": current_game["team1_score"], "team2": current_game["team2_score"]}
+            "success": True,
+            "game_ended": False,
+            "scores": {
+                "team1": current_game["team1_score"],
+                "team2": current_game["team2_score"]
+            }
         })
 
 # ── Socket.IO ────────────────────────────────────────────────
@@ -789,23 +775,22 @@ def handle_unlock_servo1():
     username = session.get('username')
     if not is_admin(username):
         emit('error', {'message': 'Admin requis'}); return
-    if current_game.get('active'):
-        emit('error', {'message': 'Impossible pendant une partie'}); return
-    servo_commands["servo1"].clear()
+    
+    # ✅ Envoyer OPEN
     servo_commands["servo1"].append("open")
-    logger.info(f"🔓 SERVO1 → OPEN par {username}")
     socketio.emit('servo1_unlock', {}, namespace='/')
+    logger.info(f"🔓 SERVO1 déverrouillé par {username}")
+    
+    # ✅ Planifier le close MAIS ne l'envoyer que si le jeu n'est pas actif
     import threading
     def relock():
         import time
-        time.sleep(3.0)
-        servo_commands["servo1"].clear()
-        servo_commands["servo1"].append("close")
-        socketio.emit('servo1_lock', {}, namespace='/')
-        logger.info(f"🔒 SERVO1 → CLOSE après 3s")
-        time.sleep(0.5)
-        servo_commands["servo1"].clear()
-        servo_commands["servo1"].append("close")
+        time.sleep(5)
+        # Ne fermer que si aucune partie en cours
+        if not current_game.get('active'):
+            servo_commands["servo1"].append("close")
+            socketio.emit('servo1_lock', {}, namespace='/')
+            logger.info(f"🔒 SERVO1 refermé automatiquement")
     threading.Thread(target=relock, daemon=True).start()
 
 @socketio.on('unlock_servo2')
@@ -814,23 +799,22 @@ def handle_unlock_servo2():
     username = session.get('username')
     if not is_admin(username):
         emit('error', {'message': 'Admin requis'}); return
-    if current_game.get('active'):
-        emit('error', {'message': 'Impossible pendant une partie'}); return
-    servo_commands["servo2"].clear()
+    
+    # ✅ Envoyer OPEN
     servo_commands["servo2"].append("open")
-    logger.info(f"🔓 SERVO2 → OPEN par {username}")
     socketio.emit('servo2_unlock', {}, namespace='/')
+    logger.info(f"🔓 SERVO2 déverrouillé par {username}")
+    
+    # ✅ Planifier le close MAIS ne l'envoyer que si le jeu n'est pas actif
     import threading
     def relock():
         import time
-        time.sleep(3.0)
-        servo_commands["servo2"].clear()
-        servo_commands["servo2"].append("close")
-        socketio.emit('servo2_lock', {}, namespace='/')
-        logger.info(f"🔒 SERVO2 → CLOSE après 3s")
-        time.sleep(0.5)
-        servo_commands["servo2"].clear()
-        servo_commands["servo2"].append("close")
+        time.sleep(5)
+        # Ne fermer que si aucune partie en cours
+        if not current_game.get('active'):
+            servo_commands["servo2"].append("close")
+            socketio.emit('servo2_lock', {}, namespace='/')
+            logger.info(f"🔒 SERVO2 refermé automatiquement")
     threading.Thread(target=relock, daemon=True).start()
 
 @socketio.on('stop_game')
@@ -917,8 +901,8 @@ def handle_reset():
 @socketio.on('arduino_goal')
 def handle_arduino_goal(data):
     global current_game, servo_commands
-    ARDUINO_SECRET = os.environ.get('ARDUINO_SECRET', 'babyfoot-arduino-secret-2024')
-    if data.get('secret') != ARDUINO_SECRET:
+    
+    if data.get('secret') != ARDUINO_SECRET_GLOBAL:
         emit('error', {'message': 'Secret invalide'}); return
     if not hasattr(handle_arduino_goal, 'last_goal_time'):
         handle_arduino_goal.last_goal_time = {}
