@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='live-score-styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -345,7 +346,7 @@ function showWinner(game) {
   
   // Lancer les confettis de victoire
   if (typeof launchConfetti === 'function') {
-    launchConfetti(150);
+    launchConfetti(4000, 150);
   }
 
   setTimeout(() => {
