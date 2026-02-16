@@ -606,7 +606,8 @@ def user_stats(username):
     if 'text/html' in request.accept_mimetypes:
         current_user = session.get('username')
         if is_admin(current_user):
-            return render_template('user_stats.html')
+            # Utiliser le template stats.html avec les données de l'utilisateur spécifique
+            return render_template('stats.html', user_stats=stats_data, target_username=username)
         else:
             return redirect(url_for('dashboard'))
     
