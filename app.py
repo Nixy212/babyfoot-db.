@@ -860,68 +860,6 @@ def api_arduino_goal():
             "success": True, "game_ended": False,
             "scores": {"team1": current_game["team1_score"], "team2": current_game["team2_score"]}
         })
-@app.route('/api/delete_user', methods=['POST'])
-@handle_errors
-def delete_user():
-    """Supprime un utilisateur (admin seulement)"""
-    admin_username = session.get('username')
-    
-    # Vérifier que l'utilisateur est admin
-    if not is_admin(admin_username):
-        return jsonify({"success": False, "message": "Accès refusé"}), 403
-    
-    data = request.get_json()
-    username_to_delete = data.get('username')
-    
-    if not username_to_delete:
-        return jsonify({"success": False, "message": "Nom d'utilisateur requis"}), 400
-    
-    # Empêcher de se supprimer soi-même
-    if username_to_delete == admin_username:
-        return jsonify({"success": False, "message": "Vous ne pouvez pas vous supprimer vous-même"}), 400
-    
-    # Empêcher de supprimer les comptes de test
-    protected_accounts = ['alice', 'bob', 'charlie', 'diana']
-    if username_to_delete in protected_accounts:
-        return jsonify({"success": False, "message": f"Le compte '{username_to_delete}' est protégé"}), 400
-    
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
-        # Vérifier que l'utilisateur existe
-        q_check = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
-        cur.execute(q_check, (username_to_delete,))
-        user = cur.fetchone()
-        
-        if not user:
-            cur.close()
-            conn.close()
-            return jsonify({"success": False, "message": "Utilisateur introuvable"}), 404
-        
-        # Supprimer l'utilisateur (CASCADE va supprimer ses scores)
-        q_delete = "DELETE FROM users WHERE username = %s" if USE_POSTGRES else "DELETE FROM users WHERE username = ?"
-        cur.execute(q_delete, (username_to_delete,))
-        
-        # Supprimer ses réservations aussi
-        q_res = "DELETE FROM reservations WHERE reserved_by = %s" if USE_POSTGRES else "DELETE FROM reservations WHERE reserved_by = ?"
-        cur.execute(q_res, (username_to_delete,))
-        
-        conn.commit()
-        cur.close()
-        conn.close()
-        
-        logger.info(f"✅ Admin {admin_username} a supprimé le compte {username_to_delete}")
-        
-        return jsonify({
-            "success": True,
-            "message": f"Compte '{username_to_delete}' supprimé avec succès"
-        })
-        
-    except Exception as e:
-        logger.error(f"Erreur suppression utilisateur: {e}")
-        return jsonify({"success": False, "message": "Erreur serveur"}), 500
-# ── Socket.IO ────────────────────────────────────────────────
 @socketio.on('connect')
 def handle_connect():
     username = session.get('username', 'Anonymous')
