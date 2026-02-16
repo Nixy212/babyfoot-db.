@@ -86,14 +86,47 @@
 
   /* Navigation */
   .nav { height: 60px; }
-  .nav-inner { padding: 0 16px; }
   .nav-links { display: none !important; }
   .nav-username { display: none; }
   .burger { display: flex !important; }
-  .nav-brand { font-size: 0.95rem; gap: 6px; }
-  .nav-brand img { width: 30px; height: 30px; }
-  .nav-avatar { width: 32px; height: 32px; font-size: 0.75rem; }
   .logo-pulse { display: none; }
+
+  /* Cacher le texte "Baby-Foot Club", garder seulement le logo */
+  .nav-brand .brand-text { display: none !important; }
+  /* Pour index.html où le texte est un nœud texte direct dans <a> */
+  .nav-brand { font-size: 0 !important; gap: 0 !important; }
+  .nav-brand img { width: 32px; height: 32px; font-size: initial; }
+  .nav-brand .logo-wrapper { flex-shrink: 0; }
+
+  /* Avatar à gauche, burger à droite */
+  .nav-inner {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+  /* Logo/brand en premier */
+  .nav-brand { order: 1; flex-shrink: 0; }
+  /* Séparateur masqué */
+  .nav-sep { display: none !important; order: 2; }
+  /* Avatar au centre-gauche, pousse le reste */
+  .nav-right {
+    order: 3;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  /* Sur index.html, nav-right n'existe pas, on gère le lien login */
+  .nav-inner > a.nav-link { order: 3; margin-left: auto; }
+  /* Burger tout à droite */
+  .burger { order: 4; margin-left: 8px; }
+
+  /* Masquer les boutons admin et déconnexion dans la nav sur mobile */
+  .nav-right .btn-ghost { display: none; }
+  .nav-right #adminBtn { display: none !important; }
+
+  .nav-avatar { width: 36px; height: 36px; font-size: 0.8rem; flex-shrink: 0; }
 
   /* Page */
   .page { padding-top: 60px; }
@@ -140,7 +173,7 @@
   input[type="email"],
   select {
     padding: 14px 12px;
-    font-size: 16px; /* Empêche zoom iOS */
+    font-size: 16px;
     min-height: 48px;
   }
 
@@ -203,53 +236,17 @@
   .unlock-btn { padding: 16px !important; font-size: 1.1rem !important; }
 
   /* ===== LOBBY MOBILE ===== */
-  .team-container {
-    grid-template-columns: 1fr !important;
-    gap: 12px !important;
-  }
-  .team-box {
-    padding: 16px !important;
-    min-height: auto !important;
-  }
-  .team-box h3 {
-    font-size: 1.2rem !important;
-  }
-  .player-item {
-    padding: 12px !important;
-    font-size: 0.9rem;
-    flex-wrap: wrap;
-  }
-  .player-item > div {
-    width: 100%;
-    margin-top: 8px;
-    display: flex;
-    gap: 6px;
-  }
-  .player-item button {
-    flex: 1;
-    padding: 8px !important;
-    font-size: 0.8rem !important;
-  }
-  .player-selector {
-    max-height: 150px !important;
-  }
-  .player-chip {
-    padding: 10px 14px !important;
-    font-size: 0.9rem;
-  }
-  .search-box input {
-    font-size: 16px !important;
-  }
-  .status-bar {
-    flex-direction: column !important;
-    gap: 12px;
-    text-align: center;
-  }
-  #swapRequestNotif {
-    left: 12px !important;
-    right: 12px !important;
-    max-width: none !important;
-  }
+  .team-container { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .team-box { padding: 16px !important; min-height: auto !important; }
+  .team-box h3 { font-size: 1.2rem !important; }
+  .player-item { padding: 12px !important; font-size: 0.9rem; flex-wrap: wrap; }
+  .player-item > div { width: 100%; margin-top: 8px; display: flex; gap: 6px; }
+  .player-item button { flex: 1; padding: 8px !important; font-size: 0.8rem !important; }
+  .player-selector { max-height: 150px !important; }
+  .player-chip { padding: 10px 14px !important; font-size: 0.9rem; }
+  .search-box input { font-size: 16px !important; }
+  .status-bar { flex-direction: column !important; gap: 12px; text-align: center; }
+  #swapRequestNotif { left: 12px !important; right: 12px !important; max-width: none !important; }
 
   /* Reservation grille équipes */
   .card-body > div[style*="grid-template-columns:1fr 1fr"] {
@@ -257,11 +254,7 @@
   }
 
   /* Leaderboard */
-  .podium-item-modern {
-    padding: 12px;
-    flex-direction: row;
-    gap: 12px;
-  }
+  .podium-item-modern { padding: 12px; flex-direction: row; gap: 12px; }
   .lb-rank { min-width: 28px; font-size: 0.9rem; }
   .lb-avatar { width: 36px; height: 36px; font-size: 0.9rem; }
   .lb-name { font-size: 0.9rem; }
@@ -283,11 +276,7 @@
   }
 
   /* Winner overlay */
-  .winner-box {
-    padding: 24px 16px !important;
-    margin: 16px;
-    border-radius: 20px;
-  }
+  .winner-box { padding: 24px 16px !important; margin: 16px; border-radius: 20px; }
   .winner-emoji { font-size: 3rem !important; }
   .winner-ttl { font-size: 1.4rem !important; }
 
@@ -317,9 +306,7 @@
 
 /* ===== TACTILE ===== */
 @media (hover: none) and (pointer: coarse) {
-  .btn, .nav-link, .nav-avatar, .slot-pill, .dd-item {
-    min-height: 44px;
-  }
+  .btn, .nav-link, .nav-avatar, .slot-pill, .dd-item { min-height: 44px; }
   .btn:active { transform: scale(0.97); opacity: 0.9; }
   .btn:hover, .card:hover, .nav-link:hover { transform: none; }
 }
@@ -341,6 +328,9 @@
 
 /* ===== SAFE AREA (iPhone X+) ===== */
 @supports (padding: max(0px)) {
-  .nav-inner { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  .nav-inner {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+  }
   .mobile-menu { padding-bottom: max(24px, env(safe-area-inset-bottom)); }
 }
