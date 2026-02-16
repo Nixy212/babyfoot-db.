@@ -239,17 +239,23 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
 });
 
 async function init() {
-  const [ud, res] = await Promise.all([
+  const [ud, resArray] = await Promise.all([
     fetch('/current_user').then(r=>r.json()),
     fetch('/reservations_all').then(r=>r.json())
   ]);
   currentUser = ud.username;
-  reservations = res;
+  
+  // ✅ Transformer array en objet groupé par jour
+  reservations = {};
+  resArray.forEach(r => {
+    if (!reservations[r.day]) reservations[r.day] = {};
+    reservations[r.day][r.time] = r;
+  });
+  
   if (currentUser) {
     document.getElementById('navAv').textContent = currentUser[0].toUpperCase();
     document.getElementById('navUsername').textContent = currentUser;
   }
-  ['t1p1','t1p2','t2p1','t2p2'].forEach(setupDropdown);
   selectDay(0);
 }
 init();
