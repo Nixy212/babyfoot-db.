@@ -14,7 +14,7 @@
   <div class="nav-inner">
     <a href="/" class="nav-brand">
       <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
-      Baby-Foot Club
+      <span class="brand-text">Baby-Foot Club</span>
     </a>
     <div class="nav-sep"></div>
     <div class="nav-links">
@@ -35,20 +35,16 @@
     <div class="glow-orb orb-2"></div>
     <div class="glow-orb orb-3"></div>
   </div>
-  
   <div class="hero-inner">
     <div class="hero-eyebrow">⚽ Plateforme Baby-Foot connectée</div>
-    
     <h1 class="hero-title">
       Jouez.<br>
       <em class="gradient-shine">Dominez.</em>
     </h1>
-    
     <p class="hero-body">
       Réservez vos créneaux, suivez vos scores en temps réel et déverrouillez 
       la balle depuis votre téléphone. Une expérience de jeu moderne et connectée.
     </p>
-    
     <div class="hero-cta">
       <a href="/register" class="btn btn-primary btn-lg btn-shine">
         <span>Commencer maintenant</span>
@@ -63,20 +59,19 @@
         <span>Découvrir</span>
       </a>
     </div>
-    
     <div class="hero-stats">
       <div class="stat-box">
-        <div class="stat-value">250+</div>
+        <div class="stat-value" id="stat-parties">—</div>
         <div class="stat-label">Parties jouées</div>
       </div>
       <div class="stat-divider"></div>
       <div class="stat-box">
-        <div class="stat-value">48</div>
+        <div class="stat-value" id="stat-joueurs">—</div>
         <div class="stat-label">Joueurs actifs</div>
       </div>
       <div class="stat-divider"></div>
       <div class="stat-box">
-        <div class="stat-value">15min</div>
+        <div class="stat-value" id="stat-temps">—</div>
         <div class="stat-label">Temps moyen</div>
       </div>
     </div>
@@ -130,5 +125,20 @@
 </footer>
 
 <script src="{{ url_for('static', filename='animations.js') }}"></script>
+<script>
+async function loadPublicStats() {
+  try {
+    const res = await fetch('/api/public_stats');
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const games = data.total_games ?? 0;
+    document.getElementById('stat-parties').textContent = games > 0 ? games + (games >= 10 ? '+' : '') : '0';
+    document.getElementById('stat-joueurs').textContent = data.active_players ?? 0;
+    const mins = data.avg_duration_minutes ?? null;
+    document.getElementById('stat-temps').textContent = mins !== null ? mins + 'min' : '—';
+  } catch (e) {}
+}
+loadPublicStats();
+</script>
 </body>
 </html>
