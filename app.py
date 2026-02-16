@@ -232,6 +232,34 @@ def is_admin(username):
 
 def is_guest_player(username):
     return username in ["Joueur1", "Joueur2", "Joueur3", "Joueur4"]
+def handle_errors(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except ValueError as e:
+            return jsonify({"success": False, "message": str(e)}), 400
+        except Exception as e:
+            logger.error(f"Erreur {f.__name__}: {e}\n{traceback.format_exc()}")
+            return jsonify({"success": False, "message": "Erreur serveur"}), 500
+    return decorated
+
+def validate_username(u):
+    if not u or not isinstance(u, str): raise ValueError("Nom d'utilisateur requis")
+    u = u.strip()
+    if len(u) < 3: raise ValueError("Minimum 3 caractères")
+    if len(u) > 20: raise ValueError("Maximum 20 caractères")
+    if not u.replace('_','').replace('-','').isalnum(): raise ValueError("Lettres, chiffres, - et _ uniquement")
+    return u
+
+def validate_password(p):
+    if not p or not isinstance(p, str): raise ValueError("Mot de passe requis")
+    if len(p) < 6: raise ValueError("Minimum 6 caractères")
+    return p
+
+# ── Pages ────────────────────────────────────────────────────
+@app.route("/")
+def index(): return render_template("index.html")
 # ═══════════════════════════════════════════════════════════
 # MODIFICATION 1 : Fonction has_active_reservation
 # LIGNE 236-254 : REMPLACER COMPLÈTEMENT
@@ -360,34 +388,6 @@ try:
 except Exception as e:
     logger.error(f"Erreur init DB: {e}")
 
-def handle_errors(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        try:
-            return f(*args, **kwargs)
-        except ValueError as e:
-            return jsonify({"success": False, "message": str(e)}), 400
-        except Exception as e:
-            logger.error(f"Erreur {f.__name__}: {e}\n{traceback.format_exc()}")
-            return jsonify({"success": False, "message": "Erreur serveur"}), 500
-    return decorated
-
-def validate_username(u):
-    if not u or not isinstance(u, str): raise ValueError("Nom d'utilisateur requis")
-    u = u.strip()
-    if len(u) < 3: raise ValueError("Minimum 3 caractères")
-    if len(u) > 20: raise ValueError("Maximum 20 caractères")
-    if not u.replace('_','').replace('-','').isalnum(): raise ValueError("Lettres, chiffres, - et _ uniquement")
-    return u
-
-def validate_password(p):
-    if not p or not isinstance(p, str): raise ValueError("Mot de passe requis")
-    if len(p) < 6: raise ValueError("Minimum 6 caractères")
-    return p
-
-# ── Pages ────────────────────────────────────────────────────
-@app.route("/")
-def index(): return render_template("index.html")
 @app.route("/login")
 def login_page(): return render_template("login.html")
 @app.route("/register")
