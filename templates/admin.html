@@ -1,3 +1,7 @@
+<!-- =========================================
+     ADMIN.HTML - AVEC BOUTON SUPPRESSION
+     Remplace le fichier templates/admin.html
+     ========================================= -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -57,7 +61,7 @@
 </div>
 
 <div class="page">
-  <div class="container" style="max-width:680px">
+  <div class="container" style="max-width:900px">
 
     <div class="page-header fade-up">
       <h1>⚙️ Administration</h1>
@@ -104,7 +108,7 @@
         <div id="userCount" style="font-size:0.8rem;color:var(--text-tertiary)"></div>
       </div>
       <div class="card-body">
-        <div id="usersList" style="display:flex;flex-direction:column;gap:0.5rem">
+        <div id="usersList" style="display:flex;flex-direction:column;gap:0.75rem">
           <div style="text-align:center;padding:1rem">
             <div class="loading-spinner" style="margin:0 auto 0.5rem"></div>
             <p style="color:var(--text-tertiary);font-size:0.875rem">Chargement...</p>
@@ -163,6 +167,9 @@
   </div>
 </div>
 
+<!-- Toast container pour notifications -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
 <script>
 const socket = io();
 
@@ -176,13 +183,24 @@ function logout() {
   fetch('/api/logout', {method:'POST'}).then(() => location.href = '/');
 }
 
+function showToast(message, type = 'inf') {
+  const toastWrap = document.getElementById('toast-wrap');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  toastWrap.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3200);
+}
+
 // ── Init nav ──
 fetch('/current_user').then(r => r.json()).then(d => {
   if (d && d.username) {
     document.getElementById('navAv').textContent = d.username[0].toUpperCase();
     document.getElementById('navUsername').textContent = d.username;
     if (!d.is_admin) {
-      // Redirige si pas admin
       location.href = '/dashboard';
     }
   } else {
@@ -233,7 +251,7 @@ socket.on('error', (data) => {
   setTimeout(() => { result.style.display = 'none'; }, 5000);
 });
 
-// ── Liste utilisateurs ──
+// ── Liste utilisateurs AVEC BOUTON SUPPRESSION ──
 async function loadUsers() {
   try {
     const users = await fetch('/users_list').then(r => r.json());
@@ -246,20 +264,73 @@ async function loadUsers() {
     }
 
     container.innerHTML = users.map(u => `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem 1rem;background:var(--bg-tertiary);border-radius:10px;border:1px solid var(--border-subtle)">
-        <div style="display:flex;align-items:center;gap:0.75rem">
-          <div style="width:32px;height:32px;border-radius:50%;background:var(--gradient-bronze);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;color:white">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.875rem 1rem;background:var(--bg-tertiary);border-radius:10px;border:1px solid var(--border-subtle);transition:all 0.2s">
+        <div style="display:flex;align-items:center;gap:0.875rem">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--gradient-bronze);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;color:white;box-shadow:var(--shadow-sm)">
             ${u[0].toUpperCase()}
           </div>
-          <span style="font-weight:600;color:var(--text-primary)">${u}</span>
+          <span style="font-weight:600;color:var(--text-primary);font-size:1rem">${u}</span>
         </div>
-        <a href="/user_stats/${u}" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">
-          Voir stats →
-        </a>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <a href="/user_stats/${u}" class="btn btn-secondary" style="padding:0.5rem 1rem;font-size:0.8125rem;text-decoration:none">
+            📊 Stats
+          </a>
+          <button 
+            onclick="deleteUser('${u}')" 
+            class="btn" 
+            style="padding:0.5rem 1rem;font-size:0.8125rem;background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);font-weight:600"
+            title="Supprimer ce compte">
+            🗑️ Supprimer
+          </button>
+        </div>
       </div>
     `).join('');
   } catch(e) {
     console.error('Erreur chargement users:', e);
+  }
+}
+
+// ── SUPPRESSION D'UTILISATEUR ──
+async function deleteUser(username) {
+  // Comptes protégés
+  const protectedAccounts = ['alice', 'bob', 'charlie', 'diana'];
+  if (protectedAccounts.includes(username)) {
+    showToast(`⚠️ Le compte "${username}" est protégé et ne peut pas être supprimé`, 'err');
+    return;
+  }
+
+  // Confirmation
+  const confirmed = confirm(
+    `⚠️ ATTENTION ⚠️\n\n` +
+    `Voulez-vous vraiment supprimer le compte "${username}" ?\n\n` +
+    `Cette action supprimera :\n` +
+    `- Le compte utilisateur\n` +
+    `- Tous ses scores\n` +
+    `- Toutes ses réservations\n\n` +
+    `Cette action est IRRÉVERSIBLE !`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch('/api/delete_user', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      showToast(`✅ Compte "${username}" supprimé avec succès`, 'ok');
+      // Recharger la liste
+      setTimeout(() => loadUsers(), 500);
+    } else {
+      showToast(`❌ Erreur : ${data.message}`, 'err');
+    }
+  } catch (e) {
+    showToast('❌ Erreur de connexion au serveur', 'err');
+    console.error('Erreur suppression:', e);
   }
 }
 
