@@ -15,7 +15,7 @@ import sys
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get('SECRET_KEY', 'babyfoot-secret-key-2024-change-me')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -23,6 +23,9 @@ app.config['SESSION_COOKIE_SECURE'] = False
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_PATH'] = '/'
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
+
+# Configuration pour les fichiers statiques en production
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000  # Cache 1 an pour les fichiers statiques
 
 socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True,
                     ping_timeout=60, ping_interval=25, async_mode="eventlet", manage_session=False)
@@ -438,6 +441,21 @@ def health_check():
         return jsonify({"status": "healthy", "database": "connected", "timestamp": datetime.now().isoformat()}), 200
     except Exception as e:
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
+
+@app.route("/debug/static")
+def debug_static():
+    """Route de debug pour vérifier que les fichiers statiques sont accessibles"""
+    import os
+    static_path = os.path.join(app.root_path, 'static')
+    files_info = {
+        "static_folder": app.static_folder,
+        "static_url_path": app.static_url_path,
+        "static_path_exists": os.path.exists(static_path),
+        "root_path": app.root_path
+    }
+    if os.path.exists(static_path):
+        files_info["static_files"] = os.listdir(static_path)
+    return jsonify(files_info), 200
 
 @app.route("/debug/game")
 def debug_game():
