@@ -1,7 +1,0 @@
-[build]
-builder = "NIXPACKS"
-
-[deploy]
-startCommand = "gunicorn -c gunicorn_config.py app:app"
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 10
