@@ -1,5 +1,11 @@
-[phases.build]
-cmds = ["pip install -r requirements.txt"]
+[phases.setup]
+nixPkgs = ['python311', 'postgresql']
+
+[phases.install]
+cmds = [
+    'pip install --upgrade pip',
+    'pip install -r requirements.txt'
+]
 
 [start]
-cmd = "gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 120 app:app"
+cmd = 'gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 120 app:app'
