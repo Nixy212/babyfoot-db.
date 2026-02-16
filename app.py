@@ -232,26 +232,125 @@ def is_admin(username):
 
 def is_guest_player(username):
     return username in ["Joueur1", "Joueur2", "Joueur3", "Joueur4"]
+# ═══════════════════════════════════════════════════════════
+# MODIFICATION 1 : Fonction has_active_reservation
+# LIGNE 236-254 : REMPLACER COMPLÈTEMENT
+# ═══════════════════════════════════════════════════════════
 
 def has_active_reservation(username):
+    """Vérifie si l'utilisateur a une réservation ACTIVE maintenant"""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
+        
+        # Jour actuel
         today = datetime.now().strftime('%A')
         days_fr = {
             'Monday':'Lundi','Tuesday':'Mardi','Wednesday':'Mercredi',
             'Thursday':'Jeudi','Friday':'Vendredi','Saturday':'Samedi','Sunday':'Dimanche'
         }
         day_fr = days_fr.get(today, today)
+        
+        # Heure actuelle
+        now = datetime.now()
+        current_time = now.strftime('%H:%M')
+        
+        # Récupérer les réservations du jour
         q = "SELECT * FROM reservations WHERE reserved_by = %s AND day = %s" if USE_POSTGRES else "SELECT * FROM reservations WHERE reserved_by = ? AND day = ?"
         cur.execute(q, (username, day_fr))
-        result = cur.fetchone()
+        reservations = cur.fetchall()
         cur.close()
         conn.close()
-        return result is not None
+        
+        # Vérifier si une réservation est active maintenant
+        for res in reservations:
+            res_dict = row_to_dict(res)
+            res_time = res_dict['time']  # Format: "14:00"
+            
+            # Parser l'heure de réservation
+            res_hour, res_min = map(int, res_time.split(':'))
+            res_datetime = now.replace(hour=res_hour, minute=res_min, second=0, microsecond=0)
+            
+            # Réservation dure 25 minutes
+            res_end = res_datetime + timedelta(minutes=25)
+            
+            # Vérifier si on est dans le créneau
+            if res_datetime <= now <= res_end:
+                return True
+        
+        return False
+        
     except Exception as e:
         logger.error(f"Erreur has_active_reservation: {e}")
         return False
+
+
+# ═══════════════════════════════════════════════════════════
+# MODIFICATION 2 : Route suppression utilisateur
+# AJOUTER APRÈS LA LIGNE 600 (après les autres routes /api/)
+# ═══════════════════════════════════════════════════════════
+
+@app.route('/api/delete_user', methods=['POST'])
+@handle_errors
+def delete_user():
+    """Supprime un utilisateur (admin seulement)"""
+    admin_username = session.get('username')
+    
+    # Vérifier que l'utilisateur est admin
+    if not is_admin(admin_username):
+        return jsonify({"success": False, "message": "Accès refusé"}), 403
+    
+    data = request.get_json()
+    username_to_delete = data.get('username')
+    
+    if not username_to_delete:
+        return jsonify({"success": False, "message": "Nom d'utilisateur requis"}), 400
+    
+    # Empêcher de se supprimer soi-même
+    if username_to_delete == admin_username:
+        return jsonify({"success": False, "message": "Vous ne pouvez pas vous supprimer vous-même"}), 400
+    
+    # Empêcher de supprimer les comptes de test
+    protected_accounts = ['alice', 'bob', 'charlie', 'diana']
+    if username_to_delete in protected_accounts:
+        return jsonify({"success": False, "message": f"Le compte '{username_to_delete}' est protégé"}), 400
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Vérifier que l'utilisateur existe
+        q_check = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
+        cur.execute(q_check, (username_to_delete,))
+        user = cur.fetchone()
+        
+        if not user:
+            cur.close()
+            conn.close()
+            return jsonify({"success": False, "message": "Utilisateur introuvable"}), 404
+        
+        # Supprimer l'utilisateur (CASCADE va supprimer ses scores)
+        q_delete = "DELETE FROM users WHERE username = %s" if USE_POSTGRES else "DELETE FROM users WHERE username = ?"
+        cur.execute(q_delete, (username_to_delete,))
+        
+        # Supprimer ses réservations aussi
+        q_res = "DELETE FROM reservations WHERE reserved_by = %s" if USE_POSTGRES else "DELETE FROM reservations WHERE reserved_by = ?"
+        cur.execute(q_res, (username_to_delete,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        logger.info(f"✅ Admin {admin_username} a supprimé le compte {username_to_delete}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Compte '{username_to_delete}' supprimé avec succès"
+        })
+        
+    except Exception as e:
+        logger.error(f"Erreur suppression utilisateur: {e}")
+        return jsonify({"success": False, "message": "Erreur serveur"}), 500
 
 try:
     init_database()
@@ -451,9 +550,11 @@ def leaderboard():
     cur.close(); conn.close()
     return jsonify([row_to_dict(r) for r in rows])
 
+
 @app.route("/user_stats/<username>")
 @handle_errors
 def user_stats(username):
+    """Stats utilisateur - HTML pour navigation, JSON pour API"""
     conn = get_db_connection()
     cur = conn.cursor()
     q = "SELECT * FROM users WHERE username = %s" if USE_POSTGRES else "SELECT * FROM users WHERE username = ?"
@@ -461,14 +562,19 @@ def user_stats(username):
     user = row_to_dict(cur.fetchone())
     if not user:
         cur.close(); conn.close()
+        if 'text/html' in request.accept_mimetypes:
+            return redirect(url_for('admin'))
         return jsonify(None), 404
+    
     q2 = "SELECT score, date FROM scores WHERE username = %s ORDER BY date DESC LIMIT 20" if USE_POSTGRES else "SELECT score, date FROM scores WHERE username = ? ORDER BY date DESC LIMIT 20"
     cur.execute(q2, (username,))
     scores_rows = [row_to_dict(r) for r in cur.fetchall()]
     cur.close(); conn.close()
+    
     total_games = user.get('total_games', 0)
     total_goals = user.get('total_goals', 0)
-    return jsonify({
+    
+    stats_data = {
         "username": user['username'],
         "total_games": total_games,
         "total_goals": total_goals,
@@ -476,7 +582,18 @@ def user_stats(username):
         "best_score": max([s['score'] for s in scores_rows], default=0),
         "average_score": round(sum([s['score'] for s in scores_rows]) / len(scores_rows), 2) if scores_rows else 0,
         "recent_scores": scores_rows
-    })
+    }
+    
+    # Si la requête accepte HTML (navigateur), retourner la page
+    if 'text/html' in request.accept_mimetypes:
+        current_user = session.get('username')
+        if is_admin(current_user):
+            return render_template('user_stats.html')
+        else:
+            return redirect(url_for('dashboard'))
+    
+    # Sinon retourner JSON (pour fetch)
+    return jsonify(stats_data)
 
 @app.route("/scores_all")
 @handle_errors
@@ -743,7 +860,67 @@ def api_arduino_goal():
             "success": True, "game_ended": False,
             "scores": {"team1": current_game["team1_score"], "team2": current_game["team2_score"]}
         })
-
+@app.route('/api/delete_user', methods=['POST'])
+@handle_errors
+def delete_user():
+    """Supprime un utilisateur (admin seulement)"""
+    admin_username = session.get('username')
+    
+    # Vérifier que l'utilisateur est admin
+    if not is_admin(admin_username):
+        return jsonify({"success": False, "message": "Accès refusé"}), 403
+    
+    data = request.get_json()
+    username_to_delete = data.get('username')
+    
+    if not username_to_delete:
+        return jsonify({"success": False, "message": "Nom d'utilisateur requis"}), 400
+    
+    # Empêcher de se supprimer soi-même
+    if username_to_delete == admin_username:
+        return jsonify({"success": False, "message": "Vous ne pouvez pas vous supprimer vous-même"}), 400
+    
+    # Empêcher de supprimer les comptes de test
+    protected_accounts = ['alice', 'bob', 'charlie', 'diana']
+    if username_to_delete in protected_accounts:
+        return jsonify({"success": False, "message": f"Le compte '{username_to_delete}' est protégé"}), 400
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Vérifier que l'utilisateur existe
+        q_check = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
+        cur.execute(q_check, (username_to_delete,))
+        user = cur.fetchone()
+        
+        if not user:
+            cur.close()
+            conn.close()
+            return jsonify({"success": False, "message": "Utilisateur introuvable"}), 404
+        
+        # Supprimer l'utilisateur (CASCADE va supprimer ses scores)
+        q_delete = "DELETE FROM users WHERE username = %s" if USE_POSTGRES else "DELETE FROM users WHERE username = ?"
+        cur.execute(q_delete, (username_to_delete,))
+        
+        # Supprimer ses réservations aussi
+        q_res = "DELETE FROM reservations WHERE reserved_by = %s" if USE_POSTGRES else "DELETE FROM reservations WHERE reserved_by = ?"
+        cur.execute(q_res, (username_to_delete,))
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        logger.info(f"✅ Admin {admin_username} a supprimé le compte {username_to_delete}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Compte '{username_to_delete}' supprimé avec succès"
+        })
+        
+    except Exception as e:
+        logger.error(f"Erreur suppression utilisateur: {e}")
+        return jsonify({"success": False, "message": "Erreur serveur"}), 500
 # ── Socket.IO ────────────────────────────────────────────────
 @socketio.on('connect')
 def handle_connect():
