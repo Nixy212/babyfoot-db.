@@ -228,8 +228,12 @@ async function loadCurrentUser() {
       }
       if (isAdmin || hasReservation) {
         document.getElementById('invitation-section').style.display = 'block';
+      }
+      if (isAdmin) {
         document.getElementById('servo-controls').style.display = 'block';
       }
+
+  
       await checkActiveLobby();
       loadUserStats(user.username);
     }
