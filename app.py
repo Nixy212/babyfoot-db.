@@ -461,10 +461,25 @@ def api_arduino_status():
 def api_arduino_commands():
     """ESP32 poll - retourne et retire UNE SEULE commande de la queue"""
     global servo_commands
+    
+    # ✅ Si l'ESP32 n'a rien poll depuis 10s, vider la queue (reboot détecté)
+    import time
+    now = time.time()
+    if not hasattr(api_arduino_commands, 'last_poll'):
+        api_arduino_commands.last_poll = 0
+    
+    if now - api_arduino_commands.last_poll > 10:
+        # ESP32 vient de rebooter, vider les anciennes commandes
+        servo_commands["servo1"].clear()
+        servo_commands["servo2"].clear()
+        logger.info("🧹 Queue servos nettoyée (reboot ESP32 détecté)")
+    
+    api_arduino_commands.last_poll = now
+    
     # ✅ Pop une seule commande, garder les autres dans la queue
     cmd1 = servo_commands["servo1"].pop(0) if servo_commands["servo1"] else "none"
     cmd2 = servo_commands["servo2"].pop(0) if servo_commands["servo2"] else "none"
-    # ❌ NE PAS vider la queue entière !
+    
     return jsonify({"servo1": cmd1, "servo2": cmd2})
 
 @app.route("/api/arduino/servo", methods=["POST"])
