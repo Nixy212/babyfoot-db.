@@ -7,11 +7,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body style="font-family: 'DM Sans', sans-serif;">
+
 <nav class="nav nav-glass">
   <div class="nav-inner">
     <a href="/dashboard" class="nav-brand">
@@ -29,7 +30,7 @@
       <a href="/stats" class="nav-link"><span class="nav-link-icon">📊</span><span>Stats</span></a>
       <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
     </div>
-        <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
+    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
     <div class="nav-right">
@@ -37,33 +38,20 @@
         <div class="nav-avatar" id="navAv">?</div>
         <span class="nav-username" id="navUsername"></span>
       </div>
+      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()">🚪 Déconnexion</button>
     </div>
   </div>
 </nav>
-<!-- Mobile Menu -->
+
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
   <a href="/dashboard">🏠 Dashboard</a>
-  <a href="/reservation">📅 Réserver</a>
+  <a href="/reservation" class="active">📅 Réserver</a>
   <a href="/live-score">🎮 Partie Live</a>
   <a href="/stats">📊 Stats</a>
   <a href="/top">🏆 Top 10</a>
-  <a href="#" onclick="fetch(\`/api/logout\`,{method:\`POST\`}).then(()=>location.href=\`/\`)">🚪 Déconnexion</a>
+  <a href="#" onclick="logout()">🚪 Déconnexion</a>
 </div>
-<script id="burger-script">
-function toggleMenu() {
-  document.getElementById("burger").classList.toggle("open");
-  document.getElementById("mobileMenu").classList.toggle("open");
-  document.body.style.overflow = document.getElementById("mobileMenu").classList.contains("open") ? "hidden" : "";
-}
-document.querySelectorAll(".mobile-menu a").forEach(a => a.addEventListener("click", () => {
-  if (!a.getAttribute("onclick")) toggleMenu();
-}));
-const path = window.location.pathname;
-document.querySelectorAll(".mobile-menu a").forEach(a => {
-  if (a.getAttribute("href") === path) a.classList.add("active");
-});
-</script>
 
 <div class="page">
   <div class="container" style="max-width:900px">
@@ -72,35 +60,35 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
       <p>Créneaux de 25 minutes — Aujourd'hui et demain uniquement</p>
     </div>
 
-    <!-- Sélection du jour -->
+    <!-- Étape 1 : Jour -->
     <div class="card fade-up" style="animation-delay:.05s;margin-bottom:1.5rem">
       <div class="card-header"><h3>01 — Choisir le jour</h3></div>
       <div class="card-body" style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
         <button id="btnToday" class="btn btn-primary" onclick="selectDay(0)">Aujourd'hui</button>
         <button id="btnTomorrow" class="btn btn-secondary" onclick="selectDay(1)">Demain</button>
-        <span id="dayLabel" style="display:flex;align-items:center;font-size:0.9375rem;color:var(--text-secondary);margin-left:0.5rem;font-weight:600"></span>
+        <span id="dayLabel" style="font-size:0.9375rem;color:var(--text-secondary);margin-left:0.5rem;font-weight:600"></span>
       </div>
     </div>
 
-    <!-- Créneaux -->
+    <!-- Étape 2 : Créneau -->
     <div class="card fade-up" style="animation-delay:.08s;margin-bottom:1.5rem">
       <div class="card-header">
-        <h3>02 — Choisir l'horaire <small style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-tertiary);font-size:0.8125rem">(créneaux 25 min)</small></h3>
+        <h3>02 — Choisir l'horaire <small style="font-weight:400;color:var(--text-tertiary);font-size:0.8125rem">(créneaux 25 min)</small></h3>
         <span id="selectedBadge" style="display:none" class="tag tag-brn"></span>
       </div>
       <div class="card-body">
         <div class="slot-grid" id="slotsGrid"></div>
-        <div id="slotHelp" style="margin-top:1rem;font-size:0.8125rem;color:var(--text-tertiary);display:flex;flex-wrap:wrap;gap:1rem">
+        <div style="margin-top:1rem;font-size:0.8125rem;color:var(--text-tertiary);display:flex;flex-wrap:wrap;gap:1rem">
           <span style="display:inline-flex;align-items:center;gap:0.375rem">
             <span style="width:12px;height:12px;background:var(--bg-tertiary);border:1px solid var(--border-normal);border-radius:4px"></span>
             Disponible
           </span>
           <span style="display:inline-flex;align-items:center;gap:0.375rem">
-            <span style="width:12px;height:12px;background:linear-gradient(135deg, rgba(205, 127, 50, 0.2) 0%, rgba(255, 191, 0, 0.1) 100%);border:1px solid var(--bronze);border-radius:4px"></span>
+            <span style="width:12px;height:12px;background:linear-gradient(135deg,rgba(205,127,50,0.2),rgba(255,191,0,0.1));border:1px solid var(--bronze);border-radius:4px"></span>
             Sélectionné
           </span>
           <span style="display:inline-flex;align-items:center;gap:0.375rem">
-            <span style="width:12px;height:12px;background:linear-gradient(135deg, rgba(205, 127, 50, 0.15) 0%, rgba(255, 191, 0, 0.08) 100%);border:2px solid rgba(205, 127, 50, 0.4);border-radius:4px"></span>
+            <span style="width:12px;height:12px;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(255,191,0,0.08));border:2px solid rgba(205,127,50,0.4);border-radius:4px"></span>
             Mon créneau
           </span>
           <span style="display:inline-flex;align-items:center;gap:0.375rem">
@@ -111,24 +99,21 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
       </div>
     </div>
 
-    <!-- Config partie -->
+    <!-- Étape 3 : Mode -->
     <div class="card fade-up" style="animation-delay:.1s;margin-bottom:1.5rem">
       <div class="card-header"><h3>03 — Mode de jeu</h3></div>
       <div class="card-body">
-        <div style="margin-bottom:0.5rem">
-          <label class="label">Choisir le mode</label>
-          <p style="font-size:0.875rem;color:var(--text-3);margin-bottom:1rem">
-            Les équipes seront définies lors du lancement de la partie
-          </p>
-          <div style="display:flex;gap:0.75rem">
-            <button id="m1v1" class="btn btn-primary" onclick="setMode('1v1')">1 vs 1</button>
-            <button id="m2v2" class="btn btn-secondary" onclick="setMode('2v2')">2 vs 2</button>
-          </div>
+        <p style="font-size:0.875rem;color:var(--text-tertiary);margin-bottom:1rem">
+          Les équipes seront définies lors du lancement de la partie
+        </p>
+        <div style="display:flex;gap:0.75rem">
+          <button id="m1v1" class="btn btn-primary" onclick="setMode('1v1')">1 vs 1</button>
+          <button id="m2v2" class="btn btn-secondary" onclick="setMode('2v2')">2 vs 2</button>
         </div>
       </div>
     </div>
 
-    <!-- Bouton confirm -->
+    <!-- Bouton confirmer -->
     <button id="confirmBtn" class="btn btn-primary btn-full btn-lg fade-up" style="animation-delay:.12s">
       Confirmer la réservation
     </button>
@@ -141,41 +126,62 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
 <div class="toast-wrap" id="tw"></div>
 
 <script>
-let allUsers = [], currentUser = '', reservations = {};
-let selectedDayOffset = 0, selectedSlot = null, mode = '1v1';
+let currentUser = '';
+let reservations = {};
+let selectedDayOffset = 0;
+let selectedSlot = null;
+let mode = '1v1';
 
 const DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 const MONTHS = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
 
+function toggleMenu() {
+  document.getElementById('burger').classList.toggle('open');
+  document.getElementById('mobileMenu').classList.toggle('open');
+  document.body.style.overflow = document.getElementById('mobileMenu').classList.contains('open') ? 'hidden' : '';
+}
+
+function logout() {
+  fetch('/api/logout', {method:'POST'}).then(() => location.href = '/');
+}
+
 function toast(msg, type='inf') {
-  const c=document.getElementById('tw'), t=document.createElement('div');
-  t.className=`toast ${type}`; t.textContent=msg; c.appendChild(t);
-  setTimeout(()=>t.remove(), 3200);
+  const c = document.getElementById('tw');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
 }
 
 function getDate(offset) {
-  const d = new Date(); d.setDate(d.getDate()+offset); return d;
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d;
 }
+
 function getDayName(offset) {
   const d = getDate(offset);
-  const name = DAYS[d.getDay()];
-  return `${name} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
-function getDayKey(offset) { return DAYS[getDate(offset).getDay()]; }
+
+function getDayKey(offset) {
+  return DAYS[getDate(offset).getDay()];
+}
 
 function selectDay(offset) {
-  selectedDayOffset = offset; selectedSlot = null;
+  selectedDayOffset = offset;
+  selectedSlot = null;
   document.getElementById('selectedBadge').style.display = 'none';
-  document.getElementById('btnToday').className = offset===0?'btn btn-primary':'btn btn-secondary';
-  document.getElementById('btnTomorrow').className = offset===1?'btn btn-primary':'btn btn-secondary';
+  document.getElementById('btnToday').className = offset === 0 ? 'btn btn-primary' : 'btn btn-secondary';
+  document.getElementById('btnTomorrow').className = offset === 1 ? 'btn btn-primary' : 'btn btn-secondary';
   document.getElementById('dayLabel').textContent = getDayName(offset);
   renderSlots();
 }
 
-// Génère créneaux de 25 min de 8h à 21h (vrais intervalles 25min)
 function genSlots() {
   const slots = [];
-  let t = 8 * 60; // 8h00 en minutes
+  let t = 8 * 60;
   while (t < 21 * 60) {
     const h = Math.floor(t / 60), m = t % 60;
     slots.push(String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0'));
@@ -186,7 +192,7 @@ function genSlots() {
 
 function renderSlots() {
   const dayKey = getDayKey(selectedDayOffset);
-  const dayRes = (reservations[dayKey]) || {};
+  const dayRes = reservations[dayKey] || {};
   const slots = genSlots();
   const grid = document.getElementById('slotsGrid');
 
@@ -194,13 +200,14 @@ function renderSlots() {
     const taken = dayRes[s];
     const isMine = taken && taken.reserved_by === currentUser;
     const isSelected = selectedSlot === s;
+
     if (isMine) {
       return `<div class="slot-pill mine" title="Votre réservation">${s}<br><span style="font-size:0.7rem;opacity:0.8">à vous</span></div>`;
     }
     if (taken) {
       return `<div class="slot-pill taken">${s}<br><span style="font-size:0.7rem;opacity:0.6">occupé</span></div>`;
     }
-    return `<div class="slot-pill ${isSelected?'selected':''}" onclick="pickSlot('${s}')">${s}</div>`;
+    return `<div class="slot-pill ${isSelected ? 'selected' : ''}" onclick="pickSlot('${s}')">${s}</div>`;
   }).join('');
 }
 
@@ -214,50 +221,70 @@ function pickSlot(s) {
 
 function setMode(m) {
   mode = m;
-  document.getElementById('m1v1').className = m==='1v1'?'btn btn-primary':'btn btn-secondary';
-  document.getElementById('m2v2').className = m==='2v2'?'btn btn-primary':'btn btn-secondary';
+  document.getElementById('m1v1').className = m === '1v1' ? 'btn btn-primary' : 'btn btn-secondary';
+  document.getElementById('m2v2').className = m === '2v2' ? 'btn btn-primary' : 'btn btn-secondary';
+}
+
+// Convertit la liste plate en dict {jour: {heure: {reserved_by}}}
+function buildReservationsDict(rows) {
+  const dict = {};
+  rows.forEach(r => {
+    if (!dict[r.day]) dict[r.day] = {};
+    dict[r.day][r.time] = { reserved_by: r.reserved_by, mode: r.mode };
+  });
+  return dict;
 }
 
 document.getElementById('confirmBtn').addEventListener('click', async () => {
   if (!selectedSlot) { toast('Sélectionnez un créneau', 'err'); return; }
   const dayKey = getDayKey(selectedDayOffset);
   const btn = document.getElementById('confirmBtn');
-  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Réservation…';
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Réservation…';
   try {
-    const r = await fetch('/reserve_slot',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({day:dayKey, time:selectedSlot, team1:[], team2:[], mode})
-    }).then(x=>x.json());
+    const r = await fetch('/save_reservation', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({day: dayKey, time: selectedSlot, team1: [], team2: [], mode})
+    }).then(x => x.json());
+
     if (r.success) {
       toast(`✓ Réservé : ${getDayName(selectedDayOffset)} à ${selectedSlot}`, 'ok');
-      setTimeout(()=>window.location.href='/dashboard', 1200);
+      setTimeout(() => window.location.href = '/dashboard', 1200);
     } else {
-      toast(r.message||'Erreur', 'err');
-      btn.disabled=false; btn.textContent='Confirmer la réservation';
+      toast(r.message || 'Erreur', 'err');
+      btn.disabled = false;
+      btn.textContent = 'Confirmer la réservation';
     }
-  } catch { toast('Erreur serveur','err'); btn.disabled=false; btn.textContent='Confirmer la réservation'; }
+  } catch {
+    toast('Erreur serveur', 'err');
+    btn.disabled = false;
+    btn.textContent = 'Confirmer la réservation';
+  }
 });
 
 async function init() {
-  const [ud, resArray] = await Promise.all([
-    fetch('/current_user').then(r=>r.json()),
-    fetch('/reservations_all').then(r=>r.json())
-  ]);
-  currentUser = ud.username;
-  
-  // ✅ Transformer array en objet groupé par jour
-  reservations = {};
-  resArray.forEach(r => {
-    if (!reservations[r.day]) reservations[r.day] = {};
-    reservations[r.day][r.time] = r;
-  });
-  
-  if (currentUser) {
-    document.getElementById('navAv').textContent = currentUser[0].toUpperCase();
-    document.getElementById('navUsername').textContent = currentUser;
+  try {
+    const [ud, rows] = await Promise.all([
+      fetch('/current_user').then(r => r.json()),
+      fetch('/reservations_all').then(r => r.json())
+    ]);
+
+    currentUser = ud.username || '';
+    reservations = buildReservationsDict(rows);
+
+    if (currentUser) {
+      document.getElementById('navAv').textContent = currentUser[0].toUpperCase();
+      document.getElementById('navUsername').textContent = currentUser;
+    }
+
+    selectDay(0);
+  } catch(e) {
+    console.error('Erreur init réservation:', e);
+    toast('Erreur de chargement', 'err');
   }
-  selectDay(0);
 }
+
 init();
 </script>
 </body>
