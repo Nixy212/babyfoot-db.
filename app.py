@@ -368,7 +368,10 @@ def api_register():
     q2 = "INSERT INTO users (username, password) VALUES (%s, %s)" if USE_POSTGRES else "INSERT INTO users (username, password) VALUES (?, ?)"
     cur.execute(q2, (username, hashed))
     conn.commit(); cur.close(); conn.close()
-    return jsonify({"success": True})
+    # ✅ Créer la session automatiquement après inscription
+    session.permanent = True
+    session['username'] = username
+    return jsonify({"success": True, "is_admin": is_admin(username)})
 
 @app.route("/api/login", methods=["POST"])
 @handle_errors
