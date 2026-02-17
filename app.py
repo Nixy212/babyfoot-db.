@@ -120,7 +120,7 @@ def init_database():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(day, time)
             )
-        """)
+        )
         cur.execute("""
             CREATE TABLE IF NOT EXISTS scores (
                 id SERIAL PRIMARY KEY,
@@ -129,8 +129,8 @@ def init_database():
                 date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
             )
-        """)
-        cur.execute("""
+        )
+        cur.execute(
             CREATE TABLE IF NOT EXISTS games (
                 id SERIAL PRIMARY KEY,
                 team1_players TEXT NOT NULL,
@@ -142,9 +142,9 @@ def init_database():
                 started_by VARCHAR(50),
                 date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        )
     else:
-        cur.execute("""
+        cur.execute(
             CREATE TABLE IF NOT EXISTS users (
                 username TEXT PRIMARY KEY,
                 password TEXT NOT NULL,
@@ -152,8 +152,8 @@ def init_database():
                 total_games INTEGER DEFAULT 0,
                 created_at TEXT DEFAULT (datetime('now'))
             )
-        """)
-        cur.execute("""
+        )
+        cur.execute(
             CREATE TABLE IF NOT EXISTS reservations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 day TEXT NOT NULL,
@@ -165,15 +165,15 @@ def init_database():
                 created_at TEXT DEFAULT (datetime('now')),
                 UNIQUE(day, time)
             )
-        """)
-        cur.execute("""
+        )
+        cur.execute(
             CREATE TABLE IF NOT EXISTS scores (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
                 score INTEGER NOT NULL,
                 date TEXT DEFAULT (datetime('now'))
             )
-        """)
+        )
         cur.execute("""
             CREATE TABLE IF NOT EXISTS games (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -186,7 +186,7 @@ def init_database():
                 started_by TEXT,
                 date TEXT DEFAULT (datetime('now'))
             )
-        """)
+        )
     conn.commit()
     cur.close()
     conn.close()
