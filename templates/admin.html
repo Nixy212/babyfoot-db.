@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Baby-Foot Club</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
+  <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body style="font-family: 'DM Sans', sans-serif;">
+
+<nav class="nav nav-glass">
+  <div class="nav-inner">
+    <a href="/dashboard" class="nav-brand">
+      <div class="logo-wrapper">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
+        <div class="logo-pulse"></div>
+      </div>
+      <span class="brand-text">Baby-Foot Club</span>
+    </a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon">🎮</span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon">📊</span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
+      <a href="/admin" class="nav-link active"><span class="nav-link-icon">⚙️</span><span>Admin</span></a>
+    </div>
+    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-right">
+      <div class="user-profile-mini">
+        <div class="nav-avatar" id="navAv">?</div>
+        <span class="nav-username" id="navUsername"></span>
+      </div>
+      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
+  <a href="/dashboard">🏠 Dashboard</a>
+  <a href="/reservation">📅 Réserver</a>
+  <a href="/live-score">🎮 Partie Live</a>
+  <a href="/stats">📊 Stats</a>
+  <a href="/top">🏆 Top 10</a>
+  <a href="/admin" class="active">⚙️ Admin</a>
+  <a href="#" onclick="logout()">🚪 Déconnexion</a>
+</div>
+
+<div class="page">
+  <div class="container" style="max-width:900px">
+
+<div class="page-header fade-up">
+  <h1>⚙️ Administration</h1>
+  <p>Outils de gestion du Baby-Foot Club</p>
+</div>
+
+<!-- CONTRÔLE DES SERVOS -->
+<div class="card fade-up" style="animation-delay:.05s;margin-bottom:1.5rem">
+  <div class="card-header">
+    <h3>🔧 Contrôle des Servos</h3>
+    <div id="servoStatus" style="font-size:0.8rem;color:var(--text-tertiary)">Prêt</div>
+  </div>
+  <div class="card-body">
+    <p style="color:var(--text-tertiary);margin-bottom:1.5rem;font-size:0.9375rem">
+      Déverrouillez manuellement les servomoteurs pour libérer les balles bloquées.
+      Les servos se reverrouillent automatiquement après 5 secondes.
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <button
+        class="btn btn-primary"
+        style="padding:1rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem"
+        onclick="unlockServo(1)"
+        id="btnServo1">
+        🔓 Servo 1
+        <small style="font-size:0.75rem;opacity:0.8;font-weight:400">(Équipe 1)</small>
+      </button>
+      <button
+        class="btn btn-primary"
+        style="padding:1rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem"
+        onclick="unlockServo(2)"
+        id="btnServo2">
+        🔓 Servo 2
+        <small style="font-size:0.75rem;opacity:0.8;font-weight:400">(Équipe 2)</small>
+      </button>
+    </div>
+    <div id="servoResult" style="display:none;padding:1rem;border-radius:10px;font-size:0.9375rem;text-align:center"></div>
+  </div>
+</div>
+
+<!-- GESTION DES UTILISATEURS -->
+<div class="card fade-up" style="animation-delay:.1s;margin-bottom:1.5rem">
+  <div class="card-header">
+    <h3>👥 Utilisateurs inscrits</h3>
+    <div id="userCount" style="font-size:0.8rem;color:var(--text-tertiary)"></div>
+  </div>
+  <div class="card-body">
+    <div id="usersList" style="display:flex;flex-direction:column;gap:0.75rem">
+      <div style="text-align:center;padding:1rem">
+        <div class="loading-spinner" style="margin:0 auto 0.5rem"></div>
+        <p style="color:var(--text-tertiary);font-size:0.875rem">Chargement...</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ÉTAT DU JEU -->
+<div class="card fade-up" style="animation-delay:.15s;margin-bottom:1.5rem">
+  <div class="card-header">
+    <h3>🎮 État du jeu en cours</h3>
+    <button class="btn btn-secondary" style="padding:0.4rem 0.8rem;font-size:0.8rem" onclick="loadGameState()">
+      🔄 Actualiser
+    </button>
+  </div>
+  <div class="card-body">
+    <div id="gameState" style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--text-tertiary);line-height:1.8">
+      Chargement...
+    </div>
+    <div style="margin-top:1rem">
+      <button class="btn" style="background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);width:100%" onclick="forceStopGame()">
+        🛑 Forcer l'arrêt de la partie
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ZONE DANGER -->
+<div class="card fade-up" style="animation-delay:.2s;margin-bottom:1.5rem;border-color:rgba(231,76,60,0.3)">
+  <div class="card-header" style="border-bottom-color:rgba(231,76,60,0.2)">
+    <h3 style="color:#e74c3c">🔥 Zone Danger</h3>
+  </div>
+  <div class="card-body">
+    <h4 style="color:var(--text-primary);margin-top:0;margin-bottom:0.5rem">Reset de la base de données</h4>
+    <p style="color:var(--text-tertiary);margin-bottom:0.75rem;font-size:0.9375rem">
+      ⚠️ Supprime TOUTES les données (utilisateurs, scores, réservations) et recrée uniquement les comptes de base.
+    </p>
+    <p style="color:#e74c3c;font-weight:700;margin-bottom:1.5rem;font-size:0.9375rem">
+      Cette action est IRRÉVERSIBLE !
+    </p>
+    <button
+      class="btn btn-full"
+      style="background:rgba(231,76,60,0.15);color:#e74c3c;border:1px solid rgba(231,76,60,0.4);font-weight:700"
+      onclick="resetDatabase()">
+      🗑️ RESET COMPLET DE LA BASE
+    </button>
+    <div id="resetResult" style="display:none;margin-top:1rem;padding:1rem;border-radius:10px;text-align:center"></div>
+  </div>
+</div>
+
+<div style="text-align:center;margin-top:1rem;margin-bottom:2rem">
+  <a href="/dashboard" class="btn btn-ghost">← Retour au Dashboard</a>
+</div>
+
+  </div>
+</div>
+
+<!-- Toast container pour notifications -->
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+let socket;
+try { socket = io(); } catch(e) { console.warn("Socket.IO non disponible:", e); socket = { emit: () => {}, on: () => {} }; }
+
+function toggleMenu() {
+  document.getElementById('burger').classList.toggle('open');
+  document.getElementById('mobileMenu').classList.toggle('open');
+  document.body.style.overflow = document.getElementById('mobileMenu').classList.contains('open') ? 'hidden' : '';
+}
+
+function logout() {
+  fetch('/api/logout', {method:'POST'}).then(() => location.href = '/');
+}
+
+function showToast(message, type = 'inf') {
+  const toastWrap = document.getElementById('toast-wrap');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  toastWrap.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3200);
+}
+
+// ── Init nav ──
+fetch('/current_user').then(r => r.json()).then(d => {
+  if (d && d.username) {
+    document.getElementById('navAv').textContent = d.username[0].toUpperCase();
+    document.getElementById('navUsername').textContent = d.username;
+    if (!d.is_admin) {
+      location.href = '/dashboard';
+    }
+  } else {
+    location.href = '/login';
+  }
+});
+
+// ── Servos ──
+function unlockServo(num) {
+  const btnId = `btnServo${num}`;
+  const btn = document.getElementById(btnId);
+  const result = document.getElementById('servoResult');
+  const status = document.getElementById('servoStatus');
+
+  btn.disabled = true;
+  btn.style.opacity = '0.5';
+  status.textContent = `Servo ${num} en cours...`;
+
+  result.style.display = 'block';
+  result.style.background = 'rgba(52,152,219,0.1)';
+  result.style.border = '1px solid rgba(52,152,219,0.4)';
+  result.style.color = 'var(--text-primary)';
+  result.textContent = `🔓 Déverrouillage Servo ${num} en cours... (5 secondes)`;
+
+  socket.emit(`unlock_servo${num}`);
+
+  setTimeout(() => {
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    status.textContent = 'Prêt';
+
+    result.style.background = 'rgba(39,174,96,0.1)';
+    result.style.border = '1px solid rgba(39,174,96,0.4)';
+    result.textContent = `✅ Servo ${num} reverrouillé automatiquement`;
+
+    setTimeout(() => { result.style.display = 'none'; }, 3000);
+  }, 5000);
+}
+
+// ── Erreurs socket ──
+socket.on('error', (data) => {
+  const result = document.getElementById('servoResult');
+  result.style.display = 'block';
+  result.style.background = 'rgba(231,76,60,0.1)';
+  result.style.border = '1px solid rgba(231,76,60,0.4)';
+  result.style.color = '#e74c3c';
+  result.textContent = '❌ Erreur : ' + data.message;
+  setTimeout(() => { result.style.display = 'none'; }, 5000);
+});
+
+// ── Liste utilisateurs AVEC BOUTON SUPPRESSION ──
+async function loadUsers() {
+  try {
+    const users = await fetch('/users_list').then(r => r.json());
+    const container = document.getElementById('usersList');
+    document.getElementById('userCount').textContent = `${users.length} comptes`;
+
+    if (!users.length) {
+      container.innerHTML = '<p style="color:var(--text-tertiary);text-align:center">Aucun utilisateur</p>';
+      return;
+    }
+
+    container.innerHTML = users.map(u => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.875rem 1rem;background:var(--bg-tertiary);border-radius:10px;border:1px solid var(--border-subtle);transition:all 0.2s">
+        <div style="display:flex;align-items:center;gap:0.875rem">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--gradient-bronze);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;color:white;box-shadow:var(--shadow-sm)">
+            ${u[0].toUpperCase()}
+          </div>
+          <span style="font-weight:600;color:var(--text-primary);font-size:1rem">${u}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <a href="/user_stats/${u}" class="btn btn-secondary" style="padding:0.5rem 1rem;font-size:0.8125rem;text-decoration:none">
+            📊 Stats
+          </a>
+          <button 
+            onclick="deleteUser('${u}')" 
+            class="btn" 
+            style="padding:0.5rem 1rem;font-size:0.8125rem;background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);font-weight:600"
+            title="Supprimer ce compte">
+            🗑️ Supprimer
+          </button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    console.error('Erreur chargement users:', e);
+  }
+}
+
+// ── SUPPRESSION D'UTILISATEUR ──
+async function deleteUser(username) {
+  // Comptes protégés
+  const protectedAccounts = ['alice', 'bob', 'charlie', 'diana'];
+  if (protectedAccounts.includes(username)) {
+    showToast(`⚠️ Le compte "${username}" est protégé et ne peut pas être supprimé`, 'err');
+    return;
+  }
+
+  // Confirmation
+  const confirmed = confirm(
+    `⚠️ ATTENTION ⚠️\n\n` +
+    `Voulez-vous vraiment supprimer le compte "${username}" ?\n\n` +
+    `Cette action supprimera :\n` +
+    `- Le compte utilisateur\n` +
+    `- Tous ses scores\n` +
+    `- Toutes ses réservations\n\n` +
+    `Cette action est IRRÉVERSIBLE !`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch('/api/delete_user', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ username })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      showToast(`✅ Compte "${username}" supprimé avec succès`, 'ok');
+      // Recharger la liste
+      setTimeout(() => loadUsers(), 500);
+    } else {
+      showToast(`❌ Erreur : ${data.message}`, 'err');
+    }
+  } catch (e) {
+    showToast('❌ Erreur de connexion au serveur', 'err');
+    console.error('Erreur suppression:', e);
+  }
+}
+
+// ── État du jeu ──
+async function loadGameState() {
+  try {
+    const data = await fetch('/debug/game').then(r => r.json());
+    const game = data.current_game;
+    const el = document.getElementById('gameState');
+
+    if (game.active) {
+      el.innerHTML = `
+        <div style="color:#22c55e;font-weight:700;margin-bottom:0.5rem">● Partie en cours</div>
+        <div>Équipe 1 : ${game.team1_players?.join(', ') || '—'} → <strong style="color:var(--bronze)">${game.team1_score} buts</strong></div>
+        <div>Équipe 2 : ${game.team2_players?.join(', ') || '—'} → <strong style="color:var(--bronze)">${game.team2_score} buts</strong></div>
+        <div style="margin-top:0.5rem;color:var(--text-muted)">Lancée par : ${game.started_by || '—'}</div>
+        <div style="color:var(--text-muted)">Depuis : ${game.started_at ? new Date(game.started_at).toLocaleTimeString('fr-FR') : '—'}</div>
+      `;
+    } else {
+      el.innerHTML = '<div style="color:var(--text-tertiary)">⭕ Aucune partie en cours</div>';
+    }
+  } catch(e) {
+    document.getElementById('gameState').textContent = 'Erreur de chargement';
+  }
+}
+
+function forceStopGame() {
+  if (confirm('Forcer l\'arrêt de la partie en cours ?')) {
+    socket.emit('stop_game');
+    setTimeout(loadGameState, 500);
+  }
+}
+
+// ── Reset DB ──
+async function resetDatabase() {
+  const confirmed = confirm(
+    '⚠️ ATTENTION ⚠️\n\n' +
+    'Vous allez SUPPRIMER TOUTES LES DONNÉES :\n' +
+    '- Tous les utilisateurs\n' +
+    '- Tous les scores\n' +
+    '- Toutes les réservations\n\n' +
+    'Cette action est IRRÉVERSIBLE !\n\nÊtes-vous sûr ?'
+  );
+  if (!confirmed) return;
+
+  const doubleCheck = confirm('Dernière confirmation : voulez-vous VRAIMENT tout supprimer ?');
+  if (!doubleCheck) return;
+
+  const result = document.getElementById('resetResult');
+  result.style.display = 'block';
+  result.style.background = 'rgba(255,191,0,0.1)';
+  result.style.border = '1px solid rgba(255,191,0,0.3)';
+  result.style.color = 'var(--text-primary)';
+  result.textContent = '⏳ Reset en cours...';
+
+  try {
+    const res = await fetch('/admin/reset_database', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'}
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      result.style.background = 'rgba(39,174,96,0.1)';
+      result.style.border = '1px solid rgba(39,174,96,0.4)';
+      result.textContent = '✅ Base réinitialisée ! Redirection...';
+      setTimeout(() => location.href = '/dashboard', 2000);
+    } else {
+      result.style.background = 'rgba(231,76,60,0.1)';
+      result.style.border = '1px solid rgba(231,76,60,0.4)';
+      result.style.color = '#e74c3c';
+      result.textContent = '❌ Erreur : ' + data.message;
+    }
+  } catch(e) {
+    result.style.background = 'rgba(231,76,60,0.1)';
+    result.style.border = '1px solid rgba(231,76,60,0.4)';
+    result.style.color = '#e74c3c';
+    result.textContent = '❌ Erreur réseau : ' + e.message;
+  }
+}
+
+// ── Init ──
+loadUsers();
+loadGameState();
+</script>
+
+</body>
+</html>
