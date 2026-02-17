@@ -26,7 +26,7 @@ app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
 
 socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True,
-                    ping_timeout=60, ping_interval=25, async_mode="eventlet", manage_session=False)
+                    ping_timeout=60, ping_interval=25, async_mode="eventlet", manage_session=True)
 
 @app.before_request
 def handle_http_for_arduino():
@@ -1070,8 +1070,12 @@ def handle_unlock_servo2():
 def handle_stop_game():
     global current_game, rematch_votes, servo_commands
     username = get_socket_user()
-    if not is_admin(username):
-        emit('error', {'message': 'Admin requis'}); return
+    
+    # Admin OU celui qui a lancé la partie peut l'arrêter
+    can_stop = is_admin(username) or current_game.get('started_by') == username
+    if not can_stop:
+        emit('error', {'message': 'Seul l\'admin ou l\'hôte de la partie peut l\'arrêter'}); return
+    
     current_game = {
         "team1_score": 0, "team2_score": 0,
         "team1_players": [], "team2_players": [],
@@ -1088,8 +1092,15 @@ def handle_stop_game():
 def handle_score(data):
     global current_game
     try:
+        username = get_socket_user()
         if not current_game.get('active'):
             emit('error', {'message': 'Aucune partie en cours'}); return
+        
+        # Vérification : seuls admin ou celui qui a lancé la partie peuvent marquer
+        can_control = is_admin(username) or current_game.get('started_by') == username
+        if not can_control:
+            emit('error', {'message': 'Vous n\'avez pas le droit de contrôler cette partie'}); return
+        
         team = data.get('team')
         if team not in ['team1', 'team2']:
             emit('error', {'message': 'Equipe invalide'}); return
