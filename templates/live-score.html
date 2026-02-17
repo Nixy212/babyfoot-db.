@@ -93,7 +93,7 @@
       <button id="btnStart" class="btn btn-primary btn-full btn-lg" onclick="startGame()">
         🚀 Lancer la partie
       </button>
-      <button class="btn btn-secondary btn-full" style="margin-top:1rem" onclick="unlockServo()">
+      <button id="btnUnlockServo" class="btn btn-secondary btn-full" style="margin-top:1rem;display:none" onclick="unlockServo()">
         🔓 Débloquer Servo (test)
       </button>
     </div>
@@ -197,6 +197,7 @@ try { socket = io(); } catch(e) { console.warn("Socket.IO non disponible:", e); 
 let currentUser = null;
 let isAdmin = false;
 let canControl = false;
+let lastGame = null;
 
 function toggleMenu() {
   document.getElementById('burger').classList.toggle('open');
@@ -378,6 +379,7 @@ socket.on('game_ended', (game) => {
   const t1 = parsePlayers(game.team1_players);
   const t2 = parsePlayers(game.team2_players);
   const parsed = {...game, team1_players: t1, team2_players: t2};
+  lastGame = parsed;
   if (canControl) updateGameUI(parsed);
   else updateSpectatorUI(parsed);
   showWinner(parsed);
@@ -393,7 +395,10 @@ socket.on('game_reset', () => {
 
 socket.on('rematch_prompt', () => {
   document.getElementById('winnerOverlay').style.display = 'none';
-  if (canControl) {
+  const t1 = parsePlayers(lastGame ? lastGame.team1_players : []);
+  const t2 = parsePlayers(lastGame ? lastGame.team2_players : []);
+  const isInGame = t1.includes(currentUser) || t2.includes(currentUser) || canControl || isAdmin;
+  if (isInGame) {
     document.getElementById('rematchPopup').style.display = 'flex';
   }
 });
@@ -419,6 +424,11 @@ async function init() {
 
     document.getElementById('navUsername').textContent = user.username;
     document.getElementById('navAv').textContent = user.username[0].toUpperCase();
+
+    if (isAdmin) {
+      const servoBtn = document.getElementById('btnUnlockServo');
+      if (servoBtn) servoBtn.style.display = 'block';
+    }
 
     await checkActiveGame();
   } catch(e) {

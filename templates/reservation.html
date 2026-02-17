@@ -202,10 +202,10 @@ function renderSlots() {
     const isSelected = selectedSlot === s;
 
     if (isMine) {
-      return `<div class="slot-pill mine" title="Votre réservation">${s}<br><span style="font-size:0.7rem;opacity:0.8">à vous</span></div>`;
+      return `<div class="slot-pill mine" title="Votre réservation — cliquez pour annuler" onclick="cancelMySlot('${dayKey}','${s}',this)" style="cursor:pointer">${s}<br><span style="font-size:0.7rem;opacity:0.8">à vous · ✕ annuler</span></div>`;
     }
     if (taken) {
-      return `<div class="slot-pill taken">${s}<br><span style="font-size:0.7rem;opacity:0.6">occupé</span></div>`;
+      return `<div class="slot-pill taken" title="Réservé par ${taken.reserved_by}" style="cursor:not-allowed">${s}<br><span style="font-size:0.7rem;opacity:0.6">${taken.reserved_by}</span></div>`;
     }
     return `<div class="slot-pill ${isSelected ? 'selected' : ''}" onclick="pickSlot('${s}')">${s}</div>`;
   }).join('');
@@ -235,9 +235,39 @@ function buildReservationsDict(rows) {
   return dict;
 }
 
-document.getElementById('confirmBtn').addEventListener('click', async () => {
+async function cancelMySlot(dayKey, time, el) {
+  if (!confirm(`Annuler votre réservation du ${getDayName(selectedDayOffset)} à ${time} ?`)) return;
+  el.style.opacity = '0.5';
+  try {
+    const r = await fetch('/cancel_reservation', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({day: dayKey, time})
+    }).then(x => x.json());
+    if (r.success) {
+      toast('✓ Réservation annulée', 'ok');
+      // Mettre à jour localement
+      if (reservations[dayKey]) delete reservations[dayKey][time];
+      renderSlots();
+    } else {
+      toast(r.message || 'Erreur', 'err');
+      el.style.opacity = '1';
+    }
+  } catch {
+    toast('Erreur serveur', 'err');
+    el.style.opacity = '1';
+  }
+}
+
+
   if (!selectedSlot) { toast('Sélectionnez un créneau', 'err'); return; }
   const dayKey = getDayKey(selectedDayOffset);
+  // Vérification locale : créneau déjà pris par quelqu'un d'autre ?
+  const takenBy = (reservations[dayKey] || {})[selectedSlot];
+  if (takenBy && takenBy.reserved_by !== currentUser) {
+    toast(`Ce créneau est déjà pris par ${takenBy.reserved_by}`, 'err');
+    return;
+  }
   const btn = document.getElementById('confirmBtn');
   btn.disabled = true;
   btn.innerHTML = '<span class="spin"></span> Réservation…';
@@ -250,6 +280,11 @@ document.getElementById('confirmBtn').addEventListener('click', async () => {
 
     if (r.success) {
       toast(`✓ Réservé : ${getDayName(selectedDayOffset)} à ${selectedSlot}`, 'ok');
+      // Mettre à jour localement pour refléter immédiatement
+      if (!reservations[dayKey]) reservations[dayKey] = {};
+      reservations[dayKey][selectedSlot] = { reserved_by: currentUser, mode };
+      selectedSlot = null;
+      renderSlots();
       setTimeout(() => window.location.href = '/dashboard', 1200);
     } else {
       toast(r.message || 'Erreur', 'err');

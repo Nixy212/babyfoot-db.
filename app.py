@@ -19,7 +19,7 @@ app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get('SECRET_KEY', 'babyfoot-secret-key-2024-change-me')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('RAILWAY_ENVIRONMENT') is not None or os.environ.get('SESSION_COOKIE_SECURE', '').lower() == 'true'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_PATH'] = '/'
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
@@ -99,7 +99,7 @@ def init_database():
     conn = get_db_connection()
     cur = conn.cursor()
     if USE_POSTGRES:
-        cur.execute(
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 username VARCHAR(50) PRIMARY KEY,
                 password VARCHAR(200) NOT NULL,
@@ -107,8 +107,8 @@ def init_database():
                 total_games INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        )
-        cur.execute(
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS reservations (
                 id SERIAL PRIMARY KEY,
                 day VARCHAR(20) NOT NULL,
@@ -120,8 +120,8 @@ def init_database():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(day, time)
             )
-        )
-        cur.execute(
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS scores (
                 id SERIAL PRIMARY KEY,
                 username VARCHAR(50) NOT NULL,
@@ -129,8 +129,8 @@ def init_database():
                 date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
             )
-        )
-        cur.execute(
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS games (
                 id SERIAL PRIMARY KEY,
                 team1_players TEXT NOT NULL,
@@ -142,9 +142,9 @@ def init_database():
                 started_by VARCHAR(50),
                 date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        )
+        """)
     else:
-        cur.execute(
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 username TEXT PRIMARY KEY,
                 password TEXT NOT NULL,
@@ -152,8 +152,8 @@ def init_database():
                 total_games INTEGER DEFAULT 0,
                 created_at TEXT DEFAULT (datetime('now'))
             )
-        )
-        cur.execute(
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS reservations (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 day TEXT NOT NULL,
@@ -165,16 +165,16 @@ def init_database():
                 created_at TEXT DEFAULT (datetime('now')),
                 UNIQUE(day, time)
             )
-        )
-        cur.execute(
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS scores (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
                 score INTEGER NOT NULL,
                 date TEXT DEFAULT (datetime('now'))
             )
-        )
-        cur.execute(
+        """)
+        cur.execute("""
             CREATE TABLE IF NOT EXISTS games (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 team1_players TEXT NOT NULL,
@@ -186,7 +186,7 @@ def init_database():
                 started_by TEXT,
                 date TEXT DEFAULT (datetime('now'))
             )
-        )
+        """)
     conn.commit()
     cur.close()
     conn.close()
@@ -233,9 +233,13 @@ def cleanup_old_data():
         logger.error(f"Erreur cleanup: {e}")
 
 def schedule_cleanup():
-    import threading
+    import eventlet
     cleanup_old_data()
-    threading.Timer(86400, schedule_cleanup).start()
+    def _loop():
+        while True:
+            eventlet.sleep(86400)
+            cleanup_old_data()
+    eventlet.spawn(_loop)
 
 def is_admin(username):
     return username in ["Imran", "Apoutou", "Hamara", "MDA"]
@@ -619,14 +623,26 @@ def save_reservation():
         return jsonify({"success": False, "message": "Jour et heure requis"}), 400
     conn = get_db_connection()
     cur = conn.cursor()
+    # Vérifier si ce créneau est déjà pris par quelqu'un d'autre
+    q_check = "SELECT reserved_by FROM reservations WHERE day = %s AND time = %s" if USE_POSTGRES else "SELECT reserved_by FROM reservations WHERE day = ? AND time = ?"
+    cur.execute(q_check, (day, time))
+    existing = cur.fetchone()
+    if existing:
+        existing_dict = row_to_dict(existing)
+        if existing_dict['reserved_by'] != reserved_by and not is_admin(reserved_by):
+            cur.close(); conn.close()
+            return jsonify({"success": False, "message": f"Ce créneau est déjà réservé par {existing_dict['reserved_by']}"}), 409
+        # C'est la même personne qui modifie sa propre réservation, ou un admin → on écrase
+        if USE_POSTGRES:
+            cur.execute("DELETE FROM reservations WHERE day = %s AND time = %s", (day, time))
+        else:
+            cur.execute("DELETE FROM reservations WHERE day = ? AND time = ?", (day, time))
     if USE_POSTGRES:
-        cur.execute("DELETE FROM reservations WHERE day = %s AND time = %s", (day, time))
         cur.execute(
             "INSERT INTO reservations (day, time, team1, team2, mode, reserved_by) VALUES (%s, %s, %s, %s, %s, %s)",
             (day, time, team1, team2, mode, reserved_by)
         )
     else:
-        cur.execute("DELETE FROM reservations WHERE day = ? AND time = ?", (day, time))
         cur.execute(
             "INSERT INTO reservations (day, time, team1, team2, mode, reserved_by) VALUES (?, ?, ?, ?, ?, ?)",
             (day, time, json.dumps(team1), json.dumps(team2), mode, reserved_by)
@@ -772,7 +788,8 @@ def api_arduino_servo():
     action = data.get("action")
     if servo not in ["servo1", "servo2"] or action not in ["open", "close"]:
         return jsonify({"success": False, "message": "Parametres invalides"}), 400
-    servo_commands[servo] = action
+    servo_commands[servo].clear()
+    servo_commands[servo].append(action)
     return jsonify({"success": True, "servo": servo, "action": action})
 
 @app.route("/api/arduino/goal", methods=["POST"])
@@ -784,7 +801,7 @@ def api_arduino_goal():
         return jsonify({"success": False, "message": "Secret invalide"}), 403
     import time
     now = time.time()
-    client_ip = request.remote_addr
+    client_ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
     if client_ip in arduino_last_goal_time and now - arduino_last_goal_time[client_ip] < 1:
         return jsonify({"success": False, "message": "Trop rapide"}), 429
     arduino_last_goal_time[client_ip] = now
