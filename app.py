@@ -99,7 +99,7 @@ def init_database():
     conn = get_db_connection()
     cur = conn.cursor()
     if USE_POSTGRES:
-        cur.execute("""
+        cur.execute(
             CREATE TABLE IF NOT EXISTS users (
                 username VARCHAR(50) PRIMARY KEY,
                 password VARCHAR(200) NOT NULL,
@@ -107,8 +107,8 @@ def init_database():
                 total_games INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """)
-        cur.execute("""
+        )
+        cur.execute(
             CREATE TABLE IF NOT EXISTS reservations (
                 id SERIAL PRIMARY KEY,
                 day VARCHAR(20) NOT NULL,
@@ -121,7 +121,7 @@ def init_database():
                 UNIQUE(day, time)
             )
         )
-        cur.execute("""
+        cur.execute(
             CREATE TABLE IF NOT EXISTS scores (
                 id SERIAL PRIMARY KEY,
                 username VARCHAR(50) NOT NULL,
@@ -174,7 +174,7 @@ def init_database():
                 date TEXT DEFAULT (datetime('now'))
             )
         )
-        cur.execute("""
+        cur.execute(
             CREATE TABLE IF NOT EXISTS games (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 team1_players TEXT NOT NULL,
