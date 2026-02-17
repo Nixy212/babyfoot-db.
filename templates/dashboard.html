@@ -58,7 +58,7 @@
       border: 1px solid var(--border-accent);
       border-radius: 12px;
       color: var(--text-primary);
-      display: none;
+      display: block;
     }
     #invitation-section h3 { color: var(--bronze); margin-top: 0; }
     #servo-controls {
@@ -237,8 +237,13 @@ async function loadCurrentUser() {
         document.getElementById('adminBtn').style.display = 'inline-block';
         document.getElementById('adminBtnMobile').style.display = 'block';
       }
-      if (isAdmin || hasReservation) {
-        document.getElementById('invitation-section').style.display = 'block';
+      document.getElementById('invitation-section').style.display = 'block';
+      if (!isAdmin && !hasReservation) {
+        document.getElementById('create-lobby-btn').disabled = true;
+        document.getElementById('create-lobby-btn').style.opacity = '0.4';
+        document.getElementById('create-lobby-btn').style.cursor = 'not-allowed';
+        document.getElementById('create-lobby-btn').title = 'Réservation requise';
+        document.getElementById('lobby-description').textContent = 'Réservez un créneau pour pouvoir créer un lobby';
       }
       if (isAdmin) {
         document.getElementById('servo-controls').style.display = 'block';
