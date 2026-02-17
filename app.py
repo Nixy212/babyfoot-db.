@@ -661,8 +661,13 @@ def cancel_reservation():
     username = session.get("username")
     conn = get_db_connection()
     cur = conn.cursor()
-    q = "DELETE FROM reservations WHERE day = %s AND time = %s AND reserved_by = %s" if USE_POSTGRES else "DELETE FROM reservations WHERE day = ? AND time = ? AND reserved_by = ?"
-    cur.execute(q, (day, time, username))
+    if is_admin(username):
+        # L'admin peut annuler n'importe quelle réservation
+        q = "DELETE FROM reservations WHERE day = %s AND time = %s" if USE_POSTGRES else "DELETE FROM reservations WHERE day = ? AND time = ?"
+        cur.execute(q, (day, time))
+    else:
+        q = "DELETE FROM reservations WHERE day = %s AND time = %s AND reserved_by = %s" if USE_POSTGRES else "DELETE FROM reservations WHERE day = ? AND time = ? AND reserved_by = ?"
+        cur.execute(q, (day, time, username))
     deleted = cur.rowcount
     conn.commit(); cur.close(); conn.close()
     return jsonify({"success": bool(deleted)})

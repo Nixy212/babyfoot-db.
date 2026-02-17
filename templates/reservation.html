@@ -127,6 +127,7 @@
 
 <script>
 let currentUser = '';
+let currentUserIsAdmin = false;
 let reservations = {};
 let selectedDayOffset = 0;
 let selectedSlot = null;
@@ -205,6 +206,10 @@ function renderSlots() {
       return `<div class="slot-pill mine" title="Votre réservation — cliquez pour annuler" onclick="cancelMySlot('${dayKey}','${s}',this)" style="cursor:pointer">${s}<br><span style="font-size:0.7rem;opacity:0.8">à vous · ✕ annuler</span></div>`;
     }
     if (taken) {
+      if (currentUserIsAdmin) {
+        // Admin : peut annuler n'importe quel créneau ou le sélectionner pour réserver à sa place
+        return `<div class="slot-pill" style="border:2px solid #e74c3c;background:rgba(231,76,60,0.1);cursor:pointer" title="Réservé par ${taken.reserved_by} — admin: cliquer pour annuler" onclick="adminCancelSlot('${dayKey}','${s}',this)">${s}<br><span style="font-size:0.7rem;color:#e74c3c">⚠ ${taken.reserved_by} · ✕</span></div>`;
+      }
       return `<div class="slot-pill taken" title="Réservé par ${taken.reserved_by}" style="cursor:not-allowed">${s}<br><span style="font-size:0.7rem;opacity:0.6">${taken.reserved_by}</span></div>`;
     }
     return `<div class="slot-pill ${isSelected ? 'selected' : ''}" onclick="pickSlot('${s}')">${s}</div>`;
@@ -233,6 +238,31 @@ function buildReservationsDict(rows) {
     dict[r.day][r.time] = { reserved_by: r.reserved_by, mode: r.mode };
   });
   return dict;
+}
+
+async function adminCancelSlot(dayKey, time, el) {
+  const taken = (reservations[dayKey] || {})[time];
+  const owner = taken ? taken.reserved_by : '?';
+  if (!confirm(`Annuler la réservation de ${owner} (${getDayName(selectedDayOffset)} à ${time}) ?`)) return;
+  el.style.opacity = '0.5';
+  try {
+    const r = await fetch('/cancel_reservation', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({day: dayKey, time})
+    }).then(x => x.json());
+    if (r.success) {
+      toast(`✓ Réservation de ${owner} annulée`, 'ok');
+      if (reservations[dayKey]) delete reservations[dayKey][time];
+      renderSlots();
+    } else {
+      toast(r.message || 'Erreur', 'err');
+      el.style.opacity = '1';
+    }
+  } catch {
+    toast('Erreur serveur', 'err');
+    el.style.opacity = '1';
+  }
 }
 
 async function cancelMySlot(dayKey, time, el) {
@@ -264,7 +294,7 @@ async function cancelMySlot(dayKey, time, el) {
   const dayKey = getDayKey(selectedDayOffset);
   // Vérification locale : créneau déjà pris par quelqu'un d'autre ?
   const takenBy = (reservations[dayKey] || {})[selectedSlot];
-  if (takenBy && takenBy.reserved_by !== currentUser) {
+  if (takenBy && takenBy.reserved_by !== currentUser && !currentUserIsAdmin) {
     toast(`Ce créneau est déjà pris par ${takenBy.reserved_by}`, 'err');
     return;
   }
@@ -306,6 +336,7 @@ async function init() {
     ]);
 
     currentUser = ud.username || '';
+    currentUserIsAdmin = ud.is_admin || false;
     reservations = buildReservationsDict(rows);
 
     if (currentUser) {

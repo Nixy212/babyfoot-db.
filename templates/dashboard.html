@@ -262,6 +262,15 @@ async function checkActiveLobby() {
         document.getElementById('create-lobby-btn').style.display = 'none';
         document.getElementById('rejoin-lobby-btn').style.display = 'block';
         document.getElementById('lobby-description').textContent = 'Vous êtes dans un lobby actif';
+      } else if (isAdmin) {
+        // Admin : peut toujours créer (le serveur annulera l'ancien lobby)
+        document.getElementById('create-lobby-btn').style.display = 'block';
+        document.getElementById('rejoin-lobby-btn').style.display = 'none';
+        document.getElementById('create-lobby-btn').disabled = false;
+        document.getElementById('create-lobby-btn').style.opacity = '1';
+        document.getElementById('create-lobby-btn').style.cursor = 'pointer';
+        document.getElementById('create-lobby-btn').title = `Lobby en cours (hôte : ${lobby.host}) — vous pouvez le remplacer`;
+        document.getElementById('lobby-description').textContent = `Lobby en cours (hôte : ${lobby.host}) — cliquez pour le remplacer`;
       } else {
         // Un autre lobby est actif, je n'en fais pas partie
         document.getElementById('create-lobby-btn').style.display = 'block';
