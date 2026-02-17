@@ -23,10 +23,7 @@ app.config[‘SESSION_COOKIE_SECURE’] = False
 app.config[‘SESSION_COOKIE_HTTPONLY’] = True
 app.config[‘SESSION_COOKIE_PATH’] = ‘/’
 app.config[‘SESSION_REFRESH_EACH_REQUEST’] = True
-
-# Configuration pour les fichiers statiques en production
-
-app.config[‘SEND_FILE_MAX_AGE_DEFAULT’] = 31536000  # Cache 1 an pour les fichiers statiques
+app.config[‘SEND_FILE_MAX_AGE_DEFAULT’] = 31536000
 
 socketio = SocketIO(app, cors_allowed_origins=”*”, logger=True, engineio_logger=True,
 ping_timeout=60, ping_interval=25, async_mode=“eventlet”, manage_session=False)
@@ -74,20 +71,15 @@ team_swap_requests = {}
 rematch_votes = {“team1”: [], “team2”: []}
 servo_commands = {“servo1”: [], “servo2”: []}
 
-# ── Mapping SID → username (fix manage_session=False) ────────────────────
+# ── Fix manage_session=False : session inaccessible dans SocketIO ─────────────
 
-# Avec manage_session=False, session.get(‘username’) retourne
+# connected_users mappe sid → username au moment du connect (session encore lisible).
 
-# toujours None dans les handlers SocketIO. On stocke le username
+# get_socket_user() remplace session.get(‘username’) dans tous les handlers socket.
 
-# au moment du connect (où la session est encore lisible) et on
-
-# l’utilise via get_socket_user() dans tous les handlers socket.
-
-connected_users = {}  # { sid: username }
+connected_users = {}
 
 def get_socket_user():
-“”“Retourne le username du client socket courant.”””
 return connected_users.get(request.sid)
 
 # ── DB ───────────────────────────────────────────────────────
@@ -140,9 +132,6 @@ date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 FOREIGN KEY (username) REFERENCES users(username) ON DELETE CASCADE
 )
 “””)
-
-# Table games pour stocker les parties complètes
-
 cur.execute(”””
 CREATE TABLE IF NOT EXISTS games (
 id SERIAL PRIMARY KEY,
@@ -187,9 +176,6 @@ score INTEGER NOT NULL,
 date TEXT DEFAULT (datetime(‘now’))
 )
 “””)
-
-# Table games pour stocker les parties complètes
-
 cur.execute(”””
 CREATE TABLE IF NOT EXISTS games (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -206,7 +192,7 @@ date TEXT DEFAULT (datetime(‘now’))
 conn.commit()
 cur.close()
 conn.close()
-logger.info(f”✅ DB initialisée ({‘PostgreSQL’ if USE_POSTGRES else ‘SQLite’})”)
+logger.info(f”DB initialisee ({‘PostgreSQL’ if USE_POSTGRES else ‘SQLite’})”)
 
 def seed_accounts():
 accounts = [
@@ -258,6 +244,7 @@ return username in [“Imran”, “Apoutou”, “Hamara”, “MDA”]
 
 def is_guest_player(username):
 return username in [“Joueur1”, “Joueur2”, “Joueur3”, “Joueur4”]
+
 def handle_errors(f):
 @wraps(f)
 def decorated(*args, **kwargs):
@@ -273,191 +260,100 @@ return decorated
 def validate_username(u):
 if not u or not isinstance(u, str): raise ValueError(“Nom d’utilisateur requis”)
 u = u.strip()
-if len(u) < 3: raise ValueError(“Minimum 3 caractères”)
-if len(u) > 20: raise ValueError(“Maximum 20 caractères”)
+if len(u) < 3: raise ValueError(“Minimum 3 caracteres”)
+if len(u) > 20: raise ValueError(“Maximum 20 caracteres”)
 if not u.replace(’_’,’’).replace(’-’,’’).isalnum(): raise ValueError(“Lettres, chiffres, - et _ uniquement”)
 return u
 
 def validate_password(p):
 if not p or not isinstance(p, str): raise ValueError(“Mot de passe requis”)
-if len(p) < 6: raise ValueError(“Minimum 6 caractères”)
+if len(p) < 6: raise ValueError(“Minimum 6 caracteres”)
 return p
+
+def has_active_reservation(username):
+try:
+conn = get_db_connection()
+cur = conn.cursor()
+today = datetime.now().strftime(’%A’)
+days_fr = {
+‘Monday’:‘Lundi’,‘Tuesday’:‘Mardi’,‘Wednesday’:‘Mercredi’,
+‘Thursday’:‘Jeudi’,‘Friday’:‘Vendredi’,‘Saturday’:‘Samedi’,‘Sunday’:‘Dimanche’
+}
+day_fr = days_fr.get(today, today)
+now = datetime.now()
+q = “SELECT * FROM reservations WHERE reserved_by = %s AND day = %s” if USE_POSTGRES else “SELECT * FROM reservations WHERE reserved_by = ? AND day = ?”
+cur.execute(q, (username, day_fr))
+reservations = cur.fetchall()
+cur.close()
+conn.close()
+for res in reservations:
+res_dict = row_to_dict(res)
+res_time = res_dict[‘time’]
+res_hour, res_min = map(int, res_time.split(’:’))
+res_datetime = now.replace(hour=res_hour, minute=res_min, second=0, microsecond=0)
+res_end = res_datetime + timedelta(minutes=25)
+if res_datetime <= now <= res_end:
+return True
+return False
+except Exception as e:
+logger.error(f”Erreur has_active_reservation: {e}”)
+return False
+
+try:
+init_database()
+seed_accounts()
+schedule_cleanup()
+logger.info(“Systeme initialise”)
+except Exception as e:
+logger.error(f”Erreur init DB: {e}”)
 
 # ── Pages ────────────────────────────────────────────────────
 
 @app.route(”/”)
 def index(): return render_template(“index.html”)
 
-# ═══════════════════════════════════════════════════════════
-
-# MODIFICATION 1 : Fonction has_active_reservation
-
-# LIGNE 236-254 : REMPLACER COMPLÈTEMENT
-
-# ═══════════════════════════════════════════════════════════
-
-def has_active_reservation(username):
-“”“Vérifie si l’utilisateur a une réservation ACTIVE maintenant”””
-try:
-conn = get_db_connection()
-cur = conn.cursor()
-
-```
-    # Jour actuel
-    today = datetime.now().strftime('%A')
-    days_fr = {
-        'Monday':'Lundi','Tuesday':'Mardi','Wednesday':'Mercredi',
-        'Thursday':'Jeudi','Friday':'Vendredi','Saturday':'Samedi','Sunday':'Dimanche'
-    }
-    day_fr = days_fr.get(today, today)
-    
-    # Heure actuelle
-    now = datetime.now()
-    current_time = now.strftime('%H:%M')
-    
-    # Récupérer les réservations du jour
-    q = "SELECT * FROM reservations WHERE reserved_by = %s AND day = %s" if USE_POSTGRES else "SELECT * FROM reservations WHERE reserved_by = ? AND day = ?"
-    cur.execute(q, (username, day_fr))
-    reservations = cur.fetchall()
-    cur.close()
-    conn.close()
-    
-    # Vérifier si une réservation est active maintenant
-    for res in reservations:
-        res_dict = row_to_dict(res)
-        res_time = res_dict['time']  # Format: "14:00"
-        
-        # Parser l'heure de réservation
-        res_hour, res_min = map(int, res_time.split(':'))
-        res_datetime = now.replace(hour=res_hour, minute=res_min, second=0, microsecond=0)
-        
-        # Réservation dure 25 minutes
-        res_end = res_datetime + timedelta(minutes=25)
-        
-        # Vérifier si on est dans le créneau
-        if res_datetime <= now <= res_end:
-            return True
-    
-    return False
-    
-except Exception as e:
-    logger.error(f"Erreur has_active_reservation: {e}")
-    return False
-```
-
-# ═══════════════════════════════════════════════════════════
-
-# MODIFICATION 2 : Route suppression utilisateur
-
-# AJOUTER APRÈS LA LIGNE 600 (après les autres routes /api/)
-
-# ═══════════════════════════════════════════════════════════
-
-@app.route(’/api/delete_user’, methods=[‘POST’])
-@handle_errors
-def delete_user():
-“”“Supprime un utilisateur (admin seulement)”””
-admin_username = session.get(‘username’)
-
-```
-# Vérifier que l'utilisateur est admin
-if not is_admin(admin_username):
-    return jsonify({"success": False, "message": "Accès refusé"}), 403
-
-data = request.get_json()
-username_to_delete = data.get('username')
-
-if not username_to_delete:
-    return jsonify({"success": False, "message": "Nom d'utilisateur requis"}), 400
-
-# Empêcher de se supprimer soi-même
-if username_to_delete == admin_username:
-    return jsonify({"success": False, "message": "Vous ne pouvez pas vous supprimer vous-même"}), 400
-
-# Empêcher de supprimer les comptes de test
-protected_accounts = ['alice', 'bob', 'charlie', 'diana']
-if username_to_delete in protected_accounts:
-    return jsonify({"success": False, "message": f"Le compte '{username_to_delete}' est protégé"}), 400
-
-try:
-    conn = get_db_connection()
-    cur = conn.cursor()
-    
-    # Vérifier que l'utilisateur existe
-    q_check = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
-    cur.execute(q_check, (username_to_delete,))
-    user = cur.fetchone()
-    
-    if not user:
-        cur.close()
-        conn.close()
-        return jsonify({"success": False, "message": "Utilisateur introuvable"}), 404
-    
-    # Supprimer l'utilisateur (CASCADE va supprimer ses scores)
-    q_delete = "DELETE FROM users WHERE username = %s" if USE_POSTGRES else "DELETE FROM users WHERE username = ?"
-    cur.execute(q_delete, (username_to_delete,))
-    
-    # Supprimer ses réservations aussi
-    q_res = "DELETE FROM reservations WHERE reserved_by = %s" if USE_POSTGRES else "DELETE FROM reservations WHERE reserved_by = ?"
-    cur.execute(q_res, (username_to_delete,))
-    
-    conn.commit()
-    cur.close()
-    conn.close()
-    
-    logger.info(f"✅ Admin {admin_username} a supprimé le compte {username_to_delete}")
-    
-    return jsonify({
-        "success": True,
-        "message": f"Compte '{username_to_delete}' supprimé avec succès"
-    })
-    
-except Exception as e:
-    logger.error(f"Erreur suppression utilisateur: {e}")
-    return jsonify({"success": False, "message": "Erreur serveur"}), 500
-```
-
-try:
-init_database()
-seed_accounts()
-schedule_cleanup()
-logger.info(“✅ Système initialisé”)
-except Exception as e:
-logger.error(f”Erreur init DB: {e}”)
-
 @app.route(”/login”)
 def login_page(): return render_template(“login.html”)
+
 @app.route(”/register”)
 def register_page(): return render_template(“register.html”)
+
 @app.route(”/dashboard”)
 def dashboard():
 if “username” not in session: return redirect(url_for(‘login_page’))
 return render_template(“dashboard.html”)
+
 @app.route(”/reservation”)
 def reservation():
 if “username” not in session: return redirect(url_for(‘login_page’))
 return render_template(“reservation.html”)
+
 @app.route(”/lobby”)
 def lobby_page():
 if “username” not in session: return redirect(url_for(‘login_page’))
 return render_template(“lobby.html”)
+
 @app.route(”/admin”)
 def admin_page():
 if “username” not in session: return redirect(url_for(‘login_page’))
 if not is_admin(session.get(‘username’)): return redirect(url_for(‘index’))
 return render_template(“admin.html”)
+
 @app.route(”/live-score”)
 def live_score():
 if “username” not in session: return redirect(url_for(‘login_page’))
 return render_template(“live-score.html”)
+
 @app.route(”/stats”)
 def stats():
 if “username” not in session: return redirect(url_for(‘login_page’))
 return render_template(“stats.html”)
+
 @app.route(”/top”)
 def top():
 if “username” not in session: return redirect(url_for(‘login_page’))
 return render_template(“top.html”)
+
 @app.route(”/scores”)
 def scores():
 if “username” not in session: return redirect(url_for(‘login_page’))
@@ -479,8 +375,6 @@ return jsonify({“status”: “unhealthy”, “error”: str(e)}), 500
 
 @app.route(”/debug/static”)
 def debug_static():
-“”“Route de debug pour vérifier que les fichiers statiques sont accessibles”””
-import os
 static_path = os.path.join(app.root_path, ‘static’)
 files_info = {
 “static_folder”: app.static_folder,
@@ -507,7 +401,7 @@ return jsonify({
 @handle_errors
 def api_register():
 data = request.get_json(silent=True)
-if not data: return jsonify({“success”: False, “message”: “Aucune donnée”}), 400
+if not data: return jsonify({“success”: False, “message”: “Aucune donnee”}), 400
 username = validate_username(data.get(“username”, “”))
 password = validate_password(data.get(“password”, “”))
 conn = get_db_connection()
@@ -516,14 +410,11 @@ q = “SELECT username FROM users WHERE username = %s” if USE_POSTGRES else �
 cur.execute(q, (username,))
 if cur.fetchone():
 cur.close(); conn.close()
-return jsonify({“success”: False, “message”: “Nom d’utilisateur déjà pris”}), 409
+return jsonify({“success”: False, “message”: “Nom d’utilisateur deja pris”}), 409
 hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 q2 = “INSERT INTO users (username, password) VALUES (%s, %s)” if USE_POSTGRES else “INSERT INTO users (username, password) VALUES (?, ?)”
 cur.execute(q2, (username, hashed))
 conn.commit(); cur.close(); conn.close()
-
-# ✅ Créer la session automatiquement après inscription
-
 session.permanent = True
 session[‘username’] = username
 return jsonify({“success”: True, “is_admin”: is_admin(username)})
@@ -573,30 +464,23 @@ return jsonify({“is_admin”: is_admin(username)})
 @app.route(”/reservations_all”)
 @handle_errors
 def reservations_all():
-“””
-Retourne un dict {jour: {heure: {reserved_by, mode}}}
-pour que reservation.html puisse afficher les créneaux pris
-“””
 conn = get_db_connection()
 cur = conn.cursor()
 cur.execute(“SELECT day, time, mode, reserved_by FROM reservations”)
 rows = cur.fetchall()
 cur.close(); conn.close()
-
-```
 result = {}
 for row in rows:
-    r = row_to_dict(row)
-    day = r['day']
-    time = r['time']
-    if day not in result:
-        result[day] = {}
-    result[day][time] = {
-        'reserved_by': r['reserved_by'],
-        'mode': r.get('mode', '2v2')
-    }
+r = row_to_dict(row)
+day = r[‘day’]
+time = r[‘time’]
+if day not in result:
+result[day] = {}
+result[day][time] = {
+‘reserved_by’: r[‘reserved_by’],
+‘mode’: r.get(‘mode’, ‘2v2’)
+}
 return jsonify(result)
-```
 
 @app.route(”/leaderboard”)
 @handle_errors
@@ -611,7 +495,6 @@ return jsonify([row_to_dict(r) for r in rows])
 @app.route(”/user_stats/<username>”)
 @handle_errors
 def user_stats(username):
-“”“Stats utilisateur - HTML pour navigation, JSON pour API”””
 conn = get_db_connection()
 cur = conn.cursor()
 q = “SELECT * FROM users WHERE username = %s” if USE_POSTGRES else “SELECT * FROM users WHERE username = ?”
@@ -620,69 +503,54 @@ user = row_to_dict(cur.fetchone())
 if not user:
 cur.close(); conn.close()
 if ‘text/html’ in request.accept_mimetypes:
-return redirect(url_for(‘admin’))
+return redirect(url_for(‘admin_page’))
 return jsonify(None), 404
-
-```
-q2 = "SELECT score, date FROM scores WHERE username = %s ORDER BY date DESC LIMIT 20" if USE_POSTGRES else "SELECT score, date FROM scores WHERE username = ? ORDER BY date DESC LIMIT 20"
+q2 = “SELECT score, date FROM scores WHERE username = %s ORDER BY date DESC LIMIT 20” if USE_POSTGRES else “SELECT score, date FROM scores WHERE username = ? ORDER BY date DESC LIMIT 20”
 cur.execute(q2, (username,))
 scores_rows = [row_to_dict(r) for r in cur.fetchall()]
 cur.close(); conn.close()
-
-total_games = user.get('total_games', 0)
-total_goals = user.get('total_goals', 0)
-
+total_games = user.get(‘total_games’, 0)
+total_goals = user.get(‘total_goals’, 0)
 stats_data = {
-    "username": user['username'],
-    "total_games": total_games,
-    "total_goals": total_goals,
-    "ratio": round(total_goals / total_games, 2) if total_games > 0 else 0,
-    "best_score": max([s['score'] for s in scores_rows], default=0),
-    "average_score": round(sum([s['score'] for s in scores_rows]) / len(scores_rows), 2) if scores_rows else 0,
-    "recent_scores": scores_rows
+“username”: user[‘username’],
+“total_games”: total_games,
+“total_goals”: total_goals,
+“ratio”: round(total_goals / total_games, 2) if total_games > 0 else 0,
+“best_score”: max([s[‘score’] for s in scores_rows], default=0),
+“average_score”: round(sum([s[‘score’] for s in scores_rows]) / len(scores_rows), 2) if scores_rows else 0,
+“recent_scores”: scores_rows
 }
-
-# Si la requête accepte HTML (navigateur), retourner la page
-if 'text/html' in request.accept_mimetypes:
-    current_user = session.get('username')
-    if is_admin(current_user):
-        # Utiliser le template stats.html avec les données de l'utilisateur spécifique
-        return render_template('stats.html', user_stats=stats_data, target_username=username)
-    else:
-        return redirect(url_for('dashboard'))
-
-# Sinon retourner JSON (pour fetch)
+if ‘text/html’ in request.accept_mimetypes:
+current_u = session.get(‘username’)
+if is_admin(current_u):
+return render_template(‘stats.html’, user_stats=stats_data, target_username=username)
+else:
+return redirect(url_for(‘dashboard’))
 return jsonify(stats_data)
-```
 
 @app.route(”/scores_all”)
 @handle_errors
 def scores_all():
-“”“Retourne les parties complètes depuis la table games”””
 conn = get_db_connection()
 cur = conn.cursor()
 cur.execute(“SELECT * FROM games ORDER BY date DESC LIMIT 50”)
 rows = cur.fetchall()
 cur.close(); conn.close()
-
-```
 result = []
 for row in rows:
-    r = row_to_dict(row)
-    # Parser les players (JSON string en SQLite, array en PostgreSQL)
-    t1 = r.get('team1_players', '[]')
-    t2 = r.get('team2_players', '[]')
-    if isinstance(t1, str):
-        try: t1 = json.loads(t1)
-        except: t1 = [t1]
-    if isinstance(t2, str):
-        try: t2 = json.loads(t2)
-        except: t2 = [t2]
-    r['team1_players'] = t1
-    r['team2_players'] = t2
-    result.append(r)
+r = row_to_dict(row)
+t1 = r.get(‘team1_players’, ‘[]’)
+t2 = r.get(‘team2_players’, ‘[]’)
+if isinstance(t1, str):
+try: t1 = json.loads(t1)
+except: t1 = [t1]
+if isinstance(t2, str):
+try: t2 = json.loads(t2)
+except: t2 = [t2]
+r[‘team1_players’] = t1
+r[‘team2_players’] = t2
+result.append(r)
 return jsonify(result)
-```
 
 @app.route(”/admin/reset_database”, methods=[“POST”])
 def admin_reset_database():
@@ -698,15 +566,50 @@ cur.execute(“DELETE FROM games”)
 cur.execute(“DELETE FROM users”)
 conn.commit(); cur.close(); conn.close()
 seed_accounts()
-return jsonify({“success”: True, “message”: “Base de données réinitialisée”})
+return jsonify({“success”: True, “message”: “Base de donnees reinitialisee”})
 except Exception as e:
 return jsonify({“success”: False, “message”: str(e)}), 500
+
+@app.route(’/api/delete_user’, methods=[‘POST’])
+@handle_errors
+def delete_user():
+admin_username = session.get(‘username’)
+if not is_admin(admin_username):
+return jsonify({“success”: False, “message”: “Acces refuse”}), 403
+data = request.get_json()
+username_to_delete = data.get(‘username’)
+if not username_to_delete:
+return jsonify({“success”: False, “message”: “Nom d’utilisateur requis”}), 400
+if username_to_delete == admin_username:
+return jsonify({“success”: False, “message”: “Vous ne pouvez pas vous supprimer vous-meme”}), 400
+protected_accounts = [‘alice’, ‘bob’, ‘charlie’, ‘diana’]
+if username_to_delete in protected_accounts:
+return jsonify({“success”: False, “message”: f”Le compte ‘{username_to_delete}’ est protege”}), 400
+try:
+conn = get_db_connection()
+cur = conn.cursor()
+q_check = “SELECT username FROM users WHERE username = %s” if USE_POSTGRES else “SELECT username FROM users WHERE username = ?”
+cur.execute(q_check, (username_to_delete,))
+user = cur.fetchone()
+if not user:
+cur.close(); conn.close()
+return jsonify({“success”: False, “message”: “Utilisateur introuvable”}), 404
+q_delete = “DELETE FROM users WHERE username = %s” if USE_POSTGRES else “DELETE FROM users WHERE username = ?”
+cur.execute(q_delete, (username_to_delete,))
+q_res = “DELETE FROM reservations WHERE reserved_by = %s” if USE_POSTGRES else “DELETE FROM reservations WHERE reserved_by = ?”
+cur.execute(q_res, (username_to_delete,))
+conn.commit(); cur.close(); conn.close()
+logger.info(f”Admin {admin_username} a supprime le compte {username_to_delete}”)
+return jsonify({“success”: True, “message”: f”Compte ‘{username_to_delete}’ supprime avec succes”})
+except Exception as e:
+logger.error(f”Erreur suppression utilisateur: {e}”)
+return jsonify({“success”: False, “message”: “Erreur serveur”}), 500
 
 @app.route(”/save_reservation”, methods=[“POST”])
 @handle_errors
 def save_reservation():
 if “username” not in session:
-return jsonify({“success”: False, “message”: “Non authentifié”}), 401
+return jsonify({“success”: False, “message”: “Non authentifie”}), 401
 data = request.get_json(silent=True)
 day = data.get(“day”)
 time = data.get(“time”)
@@ -737,7 +640,7 @@ return jsonify({“success”: True})
 @handle_errors
 def cancel_reservation():
 if “username” not in session:
-return jsonify({“success”: False, “message”: “Non authentifié”}), 401
+return jsonify({“success”: False, “message”: “Non authentifie”}), 401
 data = request.get_json(silent=True)
 day = data.get(“day”)
 time = data.get(“time”)
@@ -778,41 +681,28 @@ return jsonify({
 def api_active_lobby():
 return jsonify(active_lobby)
 
-# ── Stats publiques ───────────────────────────────────────────
-
 @app.route(”/api/public_stats”)
 @handle_errors
 def api_public_stats():
-“”“Stats publiques corrigées pour la page d’accueil”””
 conn = get_db_connection()
 cur = conn.cursor()
-
-```
-# Nombre de parties réelles depuis la table games
-cur.execute("SELECT COUNT(*) as cnt FROM games")
+cur.execute(“SELECT COUNT(*) as cnt FROM games”)
 row = row_to_dict(cur.fetchone())
-total_games = int(row.get('cnt') or 0)
-
-# Joueurs ayant au moins 1 partie
-cur.execute("SELECT COUNT(*) as cnt FROM users WHERE total_games > 0")
+total_games = int(row.get(‘cnt’) or 0)
+cur.execute(“SELECT COUNT(*) as cnt FROM users WHERE total_games > 0”)
 row2 = row_to_dict(cur.fetchone())
-active_players = int(row2.get('cnt') or 0)
-
+active_players = int(row2.get(‘cnt’) or 0)
 cur.close()
 conn.close()
 return jsonify({
-    "total_games": total_games,
-    "active_players": active_players,
-    "avg_duration_minutes": 15
+“total_games”: total_games,
+“active_players”: active_players,
+“avg_duration_minutes”: 15
 })
-```
-
-# ── Réservations dashboard ────────────────────────────────────
 
 @app.route(”/reservations_today”)
 @handle_errors
 def reservations_today():
-“”“Réservations du jour + lendemain pour le dashboard”””
 if “username” not in session:
 return jsonify([])
 conn = get_db_connection()
@@ -867,7 +757,7 @@ api_arduino_commands.last_poll = 0
 if now - api_arduino_commands.last_poll > 10:
 servo_commands[“servo1”].clear()
 servo_commands[“servo2”].clear()
-logger.info(“🧹 Queue servos nettoyée (reboot ESP32 détecté)”)
+logger.info(“Queue servos nettoyee (reboot ESP32 detecte)”)
 api_arduino_commands.last_poll = now
 cmd1 = servo_commands[“servo1”].pop(0) if servo_commands[“servo1”] else “none”
 cmd2 = servo_commands[“servo2”].pop(0) if servo_commands[“servo2”] else “none”
@@ -883,7 +773,7 @@ data = request.get_json(silent=True) or {}
 servo = data.get(“servo”)
 action = data.get(“action”)
 if servo not in [“servo1”, “servo2”] or action not in [“open”, “close”]:
-return jsonify({“success”: False, “message”: “Paramètres invalides”}), 400
+return jsonify({“success”: False, “message”: “Parametres invalides”}), 400
 servo_commands[servo] = action
 return jsonify({“success”: True, “servo”: servo, “action”: action})
 
@@ -904,7 +794,7 @@ if not current_game.get(“active”):
 return jsonify({“success”: False, “message”: “Aucune partie en cours”, “game_active”: False}), 200
 team = data.get(“team”)
 if team not in [“team1”, “team2”]:
-return jsonify({“success”: False, “message”: “Équipe invalide”}), 400
+return jsonify({“success”: False, “message”: “Equipe invalide”}), 400
 current_game[f”{team}_score”] += 1
 if current_game[f”{team}_score”] == 9:
 servo_adverse = ‘servo1’ if team == ‘team2’ else ‘servo2’
@@ -930,11 +820,14 @@ return jsonify({
 “success”: True, “game_ended”: False,
 “scores”: {“team1”: current_game[“team1_score”], “team2”: current_game[“team2_score”]}
 })
+
+# ── SocketIO handlers ─────────────────────────────────────────
+
 @socketio.on(‘connect’)
 def handle_connect():
 username = session.get(‘username’, ‘Anonymous’)
 connected_users[request.sid] = username
-logger.info(f”WS connecté: {username} ({request.sid})”)
+logger.info(f”WS connecte: {username} ({request.sid})”)
 if current_game.get(‘active’):
 join_room(‘game’)
 emit(‘game_recovery’, current_game)
@@ -942,14 +835,14 @@ emit(‘game_recovery’, current_game)
 @socketio.on(‘disconnect’)
 def handle_disconnect():
 connected_users.pop(request.sid, None)
-logger.info(f”WS déconnecté: {request.sid}”)
+logger.info(f”WS deconnecte: {request.sid}”)
 
 @socketio.on(‘create_lobby’)
 def handle_create_lobby(data):
 global active_lobby
 username = get_socket_user()
 if not is_admin(username) and not has_active_reservation(username):
-emit(‘error’, {‘message’: ‘Seuls admins/réservateurs peuvent créer un lobby’}); return
+emit(‘error’, {‘message’: ‘Seuls admins/reservateurs peuvent creer un lobby’}); return
 if active_lobby.get(‘active’):
 socketio.emit(‘lobby_cancelled’, {}, namespace=’/’)
 invited_users = data.get(‘invited’, [])
@@ -968,7 +861,7 @@ global active_lobby
 username = get_socket_user()
 invited_user = data.get(‘user’)
 if username != active_lobby[‘host’] and not is_admin(username):
-emit(‘error’, {‘message’: “Seul l’hôte ou un admin peut inviter”}); return
+emit(‘error’, {‘message’: “Seul l’hote ou un admin peut inviter”}); return
 if len(active_lobby[‘accepted’]) + len(active_lobby[‘invited’]) >= 4:
 emit(‘error’, {‘message’: ‘Lobby complet’}); return
 if invited_user in active_lobby[‘invited’] or invited_user in active_lobby[‘accepted’]: return
@@ -996,7 +889,7 @@ t1, t2 = len(active_lobby[‘team1’]), len(active_lobby[‘team2’])
 if t1 < 2 and t1 <= t2: active_lobby[‘team1’].append(username)
 elif t2 < 2: active_lobby[‘team2’].append(username)
 else:
-emit(‘error’, {‘message’: ‘Équipes complètes’})
+emit(‘error’, {‘message’: ‘Equipes completes’})
 active_lobby[‘accepted’].remove(username)
 active_lobby[‘invited’].append(username)
 return
@@ -1045,9 +938,9 @@ global active_lobby
 username = get_socket_user()
 kicked_user = data.get(‘user’)
 if username != active_lobby[‘host’] and not is_admin(username):
-emit(‘error’, {‘message’: “Seul l’hôte ou un admin peut exclure”}); return
+emit(‘error’, {‘message’: “Seul l’hote ou un admin peut exclure”}); return
 if kicked_user == active_lobby[‘host’]:
-emit(‘error’, {‘message’: “Impossible d’exclure l’hôte”}); return
+emit(‘error’, {‘message’: “Impossible d’exclure l’hote”}); return
 for lst in [‘invited’, ‘accepted’, ‘team1’, ‘team2’]:
 if kicked_user in active_lobby[lst]: active_lobby[lst].remove(kicked_user)
 socketio.emit(‘kicked_from_lobby’, {‘kicked_user’: kicked_user}, namespace=’/’)
@@ -1058,7 +951,7 @@ def handle_cancel_lobby():
 global active_lobby
 username = get_socket_user()
 if username != active_lobby[‘host’] and not is_admin(username):
-emit(‘error’, {‘message’: “Seul l’hôte ou un admin peut annuler”}); return
+emit(‘error’, {‘message’: “Seul l’hote ou un admin peut annuler”}); return
 active_lobby = {
 “host”: None, “invited”: [], “accepted”: [],
 “declined”: [], “team1”: [], “team2”: [], “active”: False
@@ -1070,7 +963,7 @@ def handle_start_game_from_lobby():
 global current_game, active_lobby, rematch_votes, servo_commands
 username = get_socket_user()
 if username != active_lobby[‘host’] and not is_admin(username):
-emit(‘error’, {‘message’: “Seul l’hôte ou un admin peut lancer”}); return
+emit(‘error’, {‘message’: “Seul l’hote ou un admin peut lancer”}); return
 if len(active_lobby[‘accepted’]) < 2:
 emit(‘error’, {‘message’: ‘Au moins 2 joueurs requis’}); return
 current_game = {
@@ -1098,13 +991,13 @@ global current_game, rematch_votes, servo_commands
 try:
 username = get_socket_user() or ‘’
 if not is_admin(username) and not has_active_reservation(username):
-emit(‘error’, {‘message’: ‘Réservation active ou admin requis’}); return
+emit(‘error’, {‘message’: ‘Reservation active ou admin requis’}); return
 team1 = [p for p in data.get(‘team1’, []) if p and p.strip()]
 team2 = [p for p in data.get(‘team2’, []) if p and p.strip()]
 if not team1 or not team2:
-emit(‘error’, {‘message’: ‘Chaque équipe doit avoir au moins un joueur’}); return
+emit(‘error’, {‘message’: ‘Chaque equipe doit avoir au moins un joueur’}); return
 if current_game.get(‘active’):
-emit(‘error’, {‘message’: ‘Une partie est déjà en cours’}); return
+emit(‘error’, {‘message’: ‘Une partie est deja en cours’}); return
 current_game = {
 “team1_score”: 0, “team2_score”: 0,
 “team1_players”: team1, “team2_players”: team2,
@@ -1182,7 +1075,7 @@ if not current_game.get(‘active’):
 emit(‘error’, {‘message’: ‘Aucune partie en cours’}); return
 team = data.get(‘team’)
 if team not in [‘team1’, ‘team2’]:
-emit(‘error’, {‘message’: ‘Équipe invalide’}); return
+emit(‘error’, {‘message’: ‘Equipe invalide’}); return
 current_game[f”{team}_score”] += 1
 if current_game[f”{team}_score”] >= 10:
 current_game[‘winner’] = team
@@ -1212,10 +1105,11 @@ return
 team = None
 if username in current_game.get(‘team1_players’, []): team = ‘team1’
 elif username in current_game.get(‘team2_players’, []): team = ‘team2’
-if not team: emit(‘error’, {‘message’: ‘Pas dans cette partie’}); return
+if not team:
+emit(‘error’, {‘message’: ‘Pas dans cette partie’}); return
 if username not in rematch_votes[team]: rematch_votes[team].append(username)
-if len(rematch_votes[‘team1’]) == len(current_game[‘team1_players’]) and  
-len(rematch_votes[‘team2’]) == len(current_game[‘team2_players’]):
+if (len(rematch_votes[‘team1’]) == len(current_game[‘team1_players’]) and
+len(rematch_votes[‘team2’]) == len(current_game[‘team2_players’])):
 current_game = {
 “team1_score”: 0, “team2_score”: 0,
 “team1_players”: current_game[‘team1_players’],
@@ -1256,7 +1150,7 @@ if not hasattr(handle_arduino_goal, ‘last_goal_time’):
 handle_arduino_goal.last_goal_time = {}
 import time
 now = time.time()
-if request.sid in handle_arduino_goal.last_goal_time and  
+if request.sid in handle_arduino_goal.last_goal_time and   
 now - handle_arduino_goal.last_goal_time[request.sid] < 2: return
 handle_arduino_goal.last_goal_time[request.sid] = now
 if not current_game.get(‘active’): return
@@ -1298,66 +1192,52 @@ emit(‘game_state’, {
 })
 
 def save_game_results(game):
-“”“Sauvegarde les résultats dans users, scores ET games”””
 try:
 conn = get_db_connection()
 cur = conn.cursor()
 winner_team = game.get(‘winner’, ‘team1’)
-losers_team = ‘team2’ if winner_team == ‘team1’ else ‘team1’
 t1_players = game.get(‘team1_players’, [])
 t2_players = game.get(‘team2_players’, [])
-
-```
-    # Parser si string JSON
-    if isinstance(t1_players, str):
-        try: t1_players = json.loads(t1_players)
-        except: t1_players = []
-    if isinstance(t2_players, str):
-        try: t2_players = json.loads(t2_players)
-        except: t2_players = []
-
-    all_players = t1_players + t2_players
-    real_players = [p for p in all_players if not is_guest_player(p)]
-    t1_score = game.get("team1_score", 0)
-    t2_score = game.get("team2_score", 0)
-
-    # Détecter le mode
-    total_players = len(t1_players) + len(t2_players)
-    mode = '2v2' if total_players >= 4 else '1v1'
-
-    # Mettre à jour les stats des joueurs réels
-    for player in real_players:
-        player_score = t1_score if player in t1_players else t2_score
-        if USE_POSTGRES:
-            cur.execute("UPDATE users SET total_games = total_games + 1 WHERE username = %s", (player,))
-            cur.execute("INSERT INTO scores (username, score) VALUES (%s, %s)", (player, player_score))
-            cur.execute("UPDATE users SET total_goals = total_goals + %s WHERE username = %s", (player_score, player))
-        else:
-            cur.execute("UPDATE users SET total_games = total_games + 1 WHERE username = ?", (player,))
-            cur.execute("INSERT INTO scores (username, score) VALUES (?, ?)", (player, player_score))
-            cur.execute("UPDATE users SET total_goals = total_goals + ? WHERE username = ?", (player_score, player))
-
-    # Enregistrer la partie complète dans games
-    t1_json = json.dumps(t1_players)
-    t2_json = json.dumps(t2_players)
-    if USE_POSTGRES:
-        cur.execute(
-            "INSERT INTO games (team1_players, team2_players, team1_score, team2_score, winner, mode, started_by) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-            (t1_json, t2_json, t1_score, t2_score, winner_team, mode, game.get('started_by'))
-        )
-    else:
-        cur.execute(
-            "INSERT INTO games (team1_players, team2_players, team1_score, team2_score, winner, mode, started_by) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (t1_json, t2_json, t1_score, t2_score, winner_team, mode, game.get('started_by'))
-        )
-
-    conn.commit()
-    cur.close()
-    conn.close()
-    logger.info("✅ Résultats sauvegardés (users + scores + games)")
+if isinstance(t1_players, str):
+try: t1_players = json.loads(t1_players)
+except: t1_players = []
+if isinstance(t2_players, str):
+try: t2_players = json.loads(t2_players)
+except: t2_players = []
+all_players = t1_players + t2_players
+real_players = [p for p in all_players if not is_guest_player(p)]
+t1_score = game.get(“team1_score”, 0)
+t2_score = game.get(“team2_score”, 0)
+total_players = len(t1_players) + len(t2_players)
+mode = ‘2v2’ if total_players >= 4 else ‘1v1’
+for player in real_players:
+player_score = t1_score if player in t1_players else t2_score
+if USE_POSTGRES:
+cur.execute(“UPDATE users SET total_games = total_games + 1 WHERE username = %s”, (player,))
+cur.execute(“INSERT INTO scores (username, score) VALUES (%s, %s)”, (player, player_score))
+cur.execute(“UPDATE users SET total_goals = total_goals + %s WHERE username = %s”, (player_score, player))
+else:
+cur.execute(“UPDATE users SET total_games = total_games + 1 WHERE username = ?”, (player,))
+cur.execute(“INSERT INTO scores (username, score) VALUES (?, ?)”, (player, player_score))
+cur.execute(“UPDATE users SET total_goals = total_goals + ? WHERE username = ?”, (player_score, player))
+t1_json = json.dumps(t1_players)
+t2_json = json.dumps(t2_players)
+if USE_POSTGRES:
+cur.execute(
+“INSERT INTO games (team1_players, team2_players, team1_score, team2_score, winner, mode, started_by) VALUES (%s, %s, %s, %s, %s, %s, %s)”,
+(t1_json, t2_json, t1_score, t2_score, winner_team, mode, game.get(‘started_by’))
+)
+else:
+cur.execute(
+“INSERT INTO games (team1_players, team2_players, team1_score, team2_score, winner, mode, started_by) VALUES (?, ?, ?, ?, ?, ?, ?)”,
+(t1_json, t2_json, t1_score, t2_score, winner_team, mode, game.get(‘started_by’))
+)
+conn.commit()
+cur.close()
+conn.close()
+logger.info(“Resultats sauvegardes (users + scores + games)”)
 except Exception as e:
-    logger.error(f"Erreur save_game_results: {e}")
-```
+logger.error(f”Erreur save_game_results: {e}”)
 
 if **name** == “**main**”:
 socketio.run(app, host=“0.0.0.0”, port=int(os.environ.get(“PORT”, 5000)), debug=False)
