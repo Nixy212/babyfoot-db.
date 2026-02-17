@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
@@ -59,115 +60,119 @@
 <div class="page">
   <div class="container" style="max-width:900px">
 
-    <div class="page-header fade-up">
-      <h1>⚙️ Administration</h1>
-      <p>Outils de gestion du Baby-Foot Club</p>
-    </div>
+```
+<div class="page-header fade-up">
+  <h1>⚙️ Administration</h1>
+  <p>Outils de gestion du Baby-Foot Club</p>
+</div>
 
-    <!-- CONTRÔLE DES SERVOS -->
-    <div class="card fade-up" style="animation-delay:.05s;margin-bottom:1.5rem">
-      <div class="card-header">
-        <h3>🔧 Contrôle des Servos</h3>
-        <div id="servoStatus" style="font-size:0.8rem;color:var(--text-tertiary)">Prêt</div>
-      </div>
-      <div class="card-body">
-        <p style="color:var(--text-tertiary);margin-bottom:1.5rem;font-size:0.9375rem">
-          Déverrouillez manuellement les servomoteurs pour libérer les balles bloquées.
-          Les servos se reverrouillent automatiquement après 5 secondes.
-        </p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
-          <button
-            class="btn btn-primary"
-            style="padding:1rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem"
-            onclick="unlockServo(1)"
-            id="btnServo1">
-            🔓 Servo 1
-            <small style="font-size:0.75rem;opacity:0.8;font-weight:400">(Équipe 1)</small>
-          </button>
-          <button
-            class="btn btn-primary"
-            style="padding:1rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem"
-            onclick="unlockServo(2)"
-            id="btnServo2">
-            🔓 Servo 2
-            <small style="font-size:0.75rem;opacity:0.8;font-weight:400">(Équipe 2)</small>
-          </button>
-        </div>
-        <div id="servoResult" style="display:none;padding:1rem;border-radius:10px;font-size:0.9375rem;text-align:center"></div>
-      </div>
+<!-- CONTRÔLE DES SERVOS -->
+<div class="card fade-up" style="animation-delay:.05s;margin-bottom:1.5rem">
+  <div class="card-header">
+    <h3>🔧 Contrôle des Servos</h3>
+    <div id="servoStatus" style="font-size:0.8rem;color:var(--text-tertiary)">Prêt</div>
+  </div>
+  <div class="card-body">
+    <p style="color:var(--text-tertiary);margin-bottom:1.5rem;font-size:0.9375rem">
+      Déverrouillez manuellement les servomoteurs pour libérer les balles bloquées.
+      Les servos se reverrouillent automatiquement après 5 secondes.
+    </p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <button
+        class="btn btn-primary"
+        style="padding:1rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem"
+        onclick="unlockServo(1)"
+        id="btnServo1">
+        🔓 Servo 1
+        <small style="font-size:0.75rem;opacity:0.8;font-weight:400">(Équipe 1)</small>
+      </button>
+      <button
+        class="btn btn-primary"
+        style="padding:1rem;display:flex;flex-direction:column;align-items:center;gap:0.5rem"
+        onclick="unlockServo(2)"
+        id="btnServo2">
+        🔓 Servo 2
+        <small style="font-size:0.75rem;opacity:0.8;font-weight:400">(Équipe 2)</small>
+      </button>
     </div>
+    <div id="servoResult" style="display:none;padding:1rem;border-radius:10px;font-size:0.9375rem;text-align:center"></div>
+  </div>
+</div>
 
-    <!-- GESTION DES UTILISATEURS -->
-    <div class="card fade-up" style="animation-delay:.1s;margin-bottom:1.5rem">
-      <div class="card-header">
-        <h3>👥 Utilisateurs inscrits</h3>
-        <div id="userCount" style="font-size:0.8rem;color:var(--text-tertiary)"></div>
-      </div>
-      <div class="card-body">
-        <div id="usersList" style="display:flex;flex-direction:column;gap:0.75rem">
-          <div style="text-align:center;padding:1rem">
-            <div class="loading-spinner" style="margin:0 auto 0.5rem"></div>
-            <p style="color:var(--text-tertiary);font-size:0.875rem">Chargement...</p>
-          </div>
-        </div>
+<!-- GESTION DES UTILISATEURS -->
+<div class="card fade-up" style="animation-delay:.1s;margin-bottom:1.5rem">
+  <div class="card-header">
+    <h3>👥 Utilisateurs inscrits</h3>
+    <div id="userCount" style="font-size:0.8rem;color:var(--text-tertiary)"></div>
+  </div>
+  <div class="card-body">
+    <div id="usersList" style="display:flex;flex-direction:column;gap:0.75rem">
+      <div style="text-align:center;padding:1rem">
+        <div class="loading-spinner" style="margin:0 auto 0.5rem"></div>
+        <p style="color:var(--text-tertiary);font-size:0.875rem">Chargement...</p>
       </div>
     </div>
+  </div>
+</div>
 
-    <!-- ÉTAT DU JEU -->
-    <div class="card fade-up" style="animation-delay:.15s;margin-bottom:1.5rem">
-      <div class="card-header">
-        <h3>🎮 État du jeu en cours</h3>
-        <button class="btn btn-secondary" style="padding:0.4rem 0.8rem;font-size:0.8rem" onclick="loadGameState()">
-          🔄 Actualiser
-        </button>
-      </div>
-      <div class="card-body">
-        <div id="gameState" style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--text-tertiary);line-height:1.8">
-          Chargement...
-        </div>
-        <div style="margin-top:1rem">
-          <button class="btn" style="background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);width:100%" onclick="forceStopGame()">
-            🛑 Forcer l'arrêt de la partie
-          </button>
-        </div>
-      </div>
+<!-- ÉTAT DU JEU -->
+<div class="card fade-up" style="animation-delay:.15s;margin-bottom:1.5rem">
+  <div class="card-header">
+    <h3>🎮 État du jeu en cours</h3>
+    <button class="btn btn-secondary" style="padding:0.4rem 0.8rem;font-size:0.8rem" onclick="loadGameState()">
+      🔄 Actualiser
+    </button>
+  </div>
+  <div class="card-body">
+    <div id="gameState" style="font-family:'Space Mono',monospace;font-size:0.8rem;color:var(--text-tertiary);line-height:1.8">
+      Chargement...
     </div>
+    <div style="margin-top:1rem">
+      <button class="btn" style="background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);width:100%" onclick="forceStopGame()">
+        🛑 Forcer l'arrêt de la partie
+      </button>
+    </div>
+  </div>
+</div>
 
-    <!-- ZONE DANGER -->
-    <div class="card fade-up" style="animation-delay:.2s;margin-bottom:1.5rem;border-color:rgba(231,76,60,0.3)">
-      <div class="card-header" style="border-bottom-color:rgba(231,76,60,0.2)">
-        <h3 style="color:#e74c3c">🔥 Zone Danger</h3>
-      </div>
-      <div class="card-body">
-        <h4 style="color:var(--text-primary);margin-top:0;margin-bottom:0.5rem">Reset de la base de données</h4>
-        <p style="color:var(--text-tertiary);margin-bottom:0.75rem;font-size:0.9375rem">
-          ⚠️ Supprime TOUTES les données (utilisateurs, scores, réservations) et recrée uniquement les comptes de base.
-        </p>
-        <p style="color:#e74c3c;font-weight:700;margin-bottom:1.5rem;font-size:0.9375rem">
-          Cette action est IRRÉVERSIBLE !
-        </p>
-        <button
-          class="btn btn-full"
-          style="background:rgba(231,76,60,0.15);color:#e74c3c;border:1px solid rgba(231,76,60,0.4);font-weight:700"
-          onclick="resetDatabase()">
-          🗑️ RESET COMPLET DE LA BASE
-        </button>
-        <div id="resetResult" style="display:none;margin-top:1rem;padding:1rem;border-radius:10px;text-align:center"></div>
-      </div>
-    </div>
+<!-- ZONE DANGER -->
+<div class="card fade-up" style="animation-delay:.2s;margin-bottom:1.5rem;border-color:rgba(231,76,60,0.3)">
+  <div class="card-header" style="border-bottom-color:rgba(231,76,60,0.2)">
+    <h3 style="color:#e74c3c">🔥 Zone Danger</h3>
+  </div>
+  <div class="card-body">
+    <h4 style="color:var(--text-primary);margin-top:0;margin-bottom:0.5rem">Reset de la base de données</h4>
+    <p style="color:var(--text-tertiary);margin-bottom:0.75rem;font-size:0.9375rem">
+      ⚠️ Supprime TOUTES les données (utilisateurs, scores, réservations) et recrée uniquement les comptes de base.
+    </p>
+    <p style="color:#e74c3c;font-weight:700;margin-bottom:1.5rem;font-size:0.9375rem">
+      Cette action est IRRÉVERSIBLE !
+    </p>
+    <button
+      class="btn btn-full"
+      style="background:rgba(231,76,60,0.15);color:#e74c3c;border:1px solid rgba(231,76,60,0.4);font-weight:700"
+      onclick="resetDatabase()">
+      🗑️ RESET COMPLET DE LA BASE
+    </button>
+    <div id="resetResult" style="display:none;margin-top:1rem;padding:1rem;border-radius:10px;text-align:center"></div>
+  </div>
+</div>
 
-    <div style="text-align:center;margin-top:1rem;margin-bottom:2rem">
-      <a href="/dashboard" class="btn btn-ghost">← Retour au Dashboard</a>
-    </div>
+<div style="text-align:center;margin-top:1rem;margin-bottom:2rem">
+  <a href="/dashboard" class="btn btn-ghost">← Retour au Dashboard</a>
+</div>
+```
 
   </div>
 </div>
 
 <!-- Toast container pour notifications -->
+
 <div class="toast-wrap" id="toast-wrap"></div>
 
 <script>
-const socket = io();
+let socket;
+try { socket = io(); } catch(e) { console.warn("Socket.IO non disponible:", e); socket = { emit: () => {}, on: () => {} }; }
 
 function toggleMenu() {
   document.getElementById('burger').classList.toggle('open');
@@ -412,5 +417,6 @@ async function resetDatabase() {
 loadUsers();
 loadGameState();
 </script>
+
 </body>
 </html>
