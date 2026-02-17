@@ -287,6 +287,9 @@ async function checkActiveGame() {
 }
 
 function updateGameUI(game) {
+  const oldScore1 = parseInt(document.getElementById('score1').textContent) || 0;
+  const oldScore2 = parseInt(document.getElementById('score2').textContent) || 0;
+  
   document.getElementById('score1').textContent = game.team1_score;
   document.getElementById('score2').textContent = game.team2_score;
   document.getElementById('team1Players').textContent = game.team1_players.join(', ');
@@ -299,6 +302,13 @@ function updateGameUI(game) {
     void el.offsetWidth;
     el.classList.add('bump');
   });
+  
+  // 🎉 Lancer confettis si un but a été marqué
+  if (game.team1_score > oldScore1 || game.team2_score > oldScore2) {
+    if (typeof launchConfetti === 'function') {
+      launchConfetti(2000, 50); // 2 secondes, 50 confettis
+    }
+  }
 }
 
 function updateSpectatorUI(game) {

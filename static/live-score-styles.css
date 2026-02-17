@@ -615,3 +615,34 @@
   font-size: 0.875rem;
   font-weight: 700;
 }
+
+/* Boutons +1 But */
+.score-btn {
+  padding: 1.2rem 2rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #cd7f32 0%, #ffd700 100%);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(205, 127, 50, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.score-btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(205, 127, 50, 0.6);
+}
+
+.score-btn:active {
+  transform: translateY(-1px) scale(1.02);
+}
+
+.score-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
