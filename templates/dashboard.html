@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
@@ -133,82 +134,91 @@ function logout() {
       <p>Bienvenue sur votre espace Baby-Foot</p>
     </div>
 
-    <div class="grid-3 fade-up" style="animation-delay:.05s">
-      <div class="card card-hover">
-        <div class="card-header"><h3>📅 Réserver</h3></div>
-        <div class="card-body">
-          <p>Réservez votre créneau pour jouer</p>
-          <a href="/reservation" class="btn btn-primary btn-full">Réserver</a>
-        </div>
-      </div>
-      <div class="card card-hover">
-        <div class="card-header"><h3>🎮 Jouer</h3></div>
-        <div class="card-body">
-          <p>Lancez une partie en direct</p>
-          <a href="/live-score" class="btn btn-primary btn-full">Partie Live</a>
-        </div>
-      </div>
-      <div class="card card-hover">
-        <div class="card-header"><h3>📊 Stats</h3></div>
-        <div class="card-body">
-          <p>Consultez vos statistiques</p>
-          <a href="/stats" class="btn btn-primary btn-full">Voir Stats</a>
-        </div>
-      </div>
+```
+<div class="grid-3 fade-up" style="animation-delay:.05s">
+  <div class="card card-hover">
+    <div class="card-header"><h3>📅 Réserver</h3></div>
+    <div class="card-body">
+      <p>Réservez votre créneau pour jouer</p>
+      <a href="/reservation" class="btn btn-primary btn-full">Réserver</a>
     </div>
-
-    <div id="invitation-section" class="fade-up" style="animation-delay:.1s">
-      <h3>👥 Créer un Lobby</h3>
-      <p id="lobby-description">Créez un lobby vide, puis invitez des joueurs depuis le lobby</p>
-      <button id="create-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold" onclick="createEmptyLobby()">🎮 Créer un Lobby Vide</button>
-      <button id="rejoin-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold;display:none" onclick="rejoinLobby()">🔄 Rejoindre le Lobby</button>
+  </div>
+  <div class="card card-hover">
+    <div class="card-header"><h3>🎮 Jouer</h3></div>
+    <div class="card-body">
+      <p>Lancez une partie en direct</p>
+      <a href="/live-score" class="btn btn-primary btn-full">Partie Live</a>
     </div>
-
-    <div id="servo-controls" class="fade-up" style="animation-delay:.15s">
-      <h3>🎮 Contrôles Servo</h3>
-      <p>Débloquez le servo pour lancer une balle</p>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
-        <button class="btn btn-primary" onclick="unlockServo1()" style="background:linear-gradient(135deg,#3498db 0%,#2980b9 100%)">
-          🔓 Servo 1<br><small style="font-size:0.8em;opacity:0.9">(Équipe 1)</small>
-        </button>
-        <button class="btn btn-primary" onclick="unlockServo2()" style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%)">
-          🔓 Servo 2<br><small style="font-size:0.8em;opacity:0.9">(Équipe 2)</small>
-        </button>
-      </div>
-      <div id="servo-feedback" style="margin-top:1rem;padding:0.75rem;border-radius:8px;display:none;text-align:center"></div>
-    </div>
-
-    <div class="card fade-up" style="animation-delay:.2s;margin-top:1.5rem">
-      <div class="card-header"><h3>🏆 Top 10 Joueurs</h3></div>
-      <div class="card-body">
-        <div id="leaderboard"></div>
-      </div>
-    </div>
-
-    <div class="card fade-up" style="animation-delay:.25s;margin-top:1.5rem">
-      <div class="card-header">
-        <h3>📅 Réservations à venir</h3>
-        <a href="/reservation" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">+ Réserver →</a>
-      </div>
-      <div class="card-body">
-        <div id="reservations"><p style="color:var(--text-muted);text-align:center">Chargement…</p></div>
-      </div>
-    </div>
-
-    <div class="card fade-up" style="animation-delay:.3s;margin-top:1.5rem">
-      <div class="card-header">
-        <h3>👤 Mes Statistiques</h3>
-        <a href="/stats" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">Tout voir →</a>
-      </div>
-      <div class="card-body">
-        <div id="userStats"><p style="color:var(--text-muted);text-align:center">Chargement…</p></div>
-      </div>
+  </div>
+  <div class="card card-hover">
+    <div class="card-header"><h3>📊 Stats</h3></div>
+    <div class="card-body">
+      <p>Consultez vos statistiques</p>
+      <a href="/stats" class="btn btn-primary btn-full">Voir Stats</a>
     </div>
   </div>
 </div>
 
+<div id="invitation-section" class="fade-up" style="animation-delay:.1s">
+  <h3>👥 Créer un Lobby</h3>
+  <p id="lobby-description">Créez un lobby vide, puis invitez des joueurs depuis le lobby</p>
+  <button id="create-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold" onclick="createEmptyLobby()">🎮 Créer un Lobby Vide</button>
+  <button id="rejoin-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold;display:none" onclick="rejoinLobby()">🔄 Rejoindre le Lobby</button>
+</div>
+
+<div id="servo-controls" class="fade-up" style="animation-delay:.15s">
+  <h3>🎮 Contrôles Servo</h3>
+  <p>Débloquez le servo pour lancer une balle</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
+    <button class="btn btn-primary" onclick="unlockServo1()" style="background:linear-gradient(135deg,#3498db 0%,#2980b9 100%)">
+      🔓 Servo 1<br><small style="font-size:0.8em;opacity:0.9">(Équipe 1)</small>
+    </button>
+    <button class="btn btn-primary" onclick="unlockServo2()" style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%)">
+      🔓 Servo 2<br><small style="font-size:0.8em;opacity:0.9">(Équipe 2)</small>
+    </button>
+  </div>
+  <div id="servo-feedback" style="margin-top:1rem;padding:0.75rem;border-radius:8px;display:none;text-align:center"></div>
+</div>
+
+<div class="card fade-up" style="animation-delay:.2s;margin-top:1.5rem">
+  <div class="card-header"><h3>🏆 Top 10 Joueurs</h3></div>
+  <div class="card-body">
+    <div id="leaderboard"></div>
+  </div>
+</div>
+
+<div class="card fade-up" style="animation-delay:.25s;margin-top:1.5rem">
+  <div class="card-header">
+    <h3>📅 Réservations à venir</h3>
+    <a href="/reservation" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">+ Réserver →</a>
+  </div>
+  <div class="card-body">
+    <div id="reservations"><p style="color:var(--text-muted);text-align:center">Chargement…</p></div>
+  </div>
+</div>
+
+<div class="card fade-up" style="animation-delay:.3s;margin-top:1.5rem">
+  <div class="card-header">
+    <h3>👤 Mes Statistiques</h3>
+    <a href="/stats" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">Tout voir →</a>
+  </div>
+  <div class="card-body">
+    <div id="userStats"><p style="color:var(--text-muted);text-align:center">Chargement…</p></div>
+  </div>
+</div>
+```
+
+  </div>
+</div>
+
 <script>
-const socket = io();
+let socket;
+try {
+  socket = io();
+} catch(e) {
+  console.warn('Socket.IO non disponible:', e);
+  socket = { emit: () => {}, on: () => {} };
+}
 let currentUsername = null;
 let isAdmin = false;
 let hasReservation = false;
@@ -233,8 +243,6 @@ async function loadCurrentUser() {
       if (isAdmin) {
         document.getElementById('servo-controls').style.display = 'block';
       }
-
-  
       await checkActiveLobby();
       loadUserStats(user.username);
     }
@@ -419,5 +427,6 @@ loadCurrentUser();
 loadLeaderboard();
 loadReservations();
 </script>
+
 </body>
 </html>
