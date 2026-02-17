@@ -212,10 +212,25 @@ function logout() {
 <script>
 let socket;
 try {
+  console.log('🔌 Tentative de connexion Socket.IO...');
   socket = io();
+  socket.on('connect', () => {
+    console.log('✅ Socket.IO connecté, ID:', socket.id);
+  });
+  socket.on('connect_error', (err) => {
+    console.error('❌ Erreur connexion Socket.IO:', err);
+  });
+  socket.on('disconnect', () => {
+    console.warn('🔌 Socket.IO déconnecté');
+  });
 } catch(e) {
-  console.warn('Socket.IO non disponible:', e);
-  socket = { emit: () => {}, on: () => {} };
+  console.error('❌ Socket.IO non disponible:', e);
+  alert('⚠️ Connexion temps réel impossible. Rechargez la page.');
+  socket = { 
+    emit: (event, data) => { console.warn(`❌ Socket factice: emit(${event}) ignoré`); },
+    on: () => {},
+    connected: false
+  };
 }
 let currentUsername = null;
 let isAdmin = false;
@@ -290,7 +305,13 @@ async function checkActiveLobby() {
 }
 
 function rejoinLobby() { location.href = '/lobby'; }
-function createEmptyLobby() { socket.emit('create_lobby', { invited: [] }); }
+function createEmptyLobby() { 
+  console.log('🎮 createEmptyLobby appelé');
+  console.log('Socket connecté:', socket.connected);
+  console.log('Socket ID:', socket.id);
+  socket.emit('create_lobby', { invited: [] });
+  console.log('✅ Event create_lobby émis');
+}
 
 function unlockServo1() {
   const feedback = document.getElementById('servo-feedback');

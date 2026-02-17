@@ -193,7 +193,20 @@
 
 <script>
 let socket;
-try { socket = io(); } catch(e) { console.warn("Socket.IO non disponible:", e); socket = { emit: () => {}, on: () => {} }; }
+try {
+  console.log('🔌 [Live-Score] Tentative connexion Socket.IO...');
+  socket = io();
+  socket.on('connect', () => { console.log('✅ [Live-Score] Socket connecté'); });
+  socket.on('connect_error', (err) => { console.error('❌ [Live-Score] Erreur:', err); });
+} catch(e) {
+  console.error('❌ [Live-Score] Socket.IO impossible:', e);
+  alert('⚠️ Connexion temps réel impossible. Rechargez la page.');
+  socket = { 
+    emit: (event) => { console.warn(`❌ Socket factice: emit(${event}) ignoré`); },
+    on: () => {},
+    connected: false
+  };
+}
 let currentUser = null;
 let isAdmin = false;
 let canControl = false;
