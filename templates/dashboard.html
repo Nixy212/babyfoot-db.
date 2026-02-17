@@ -396,19 +396,28 @@ function showNotification(message, type) {
   const bar = document.getElementById('notificationBar');
   const notif = document.createElement('div');
   notif.className = 'notification';
+  const borderColor = type === 'error' ? '#e74c3c' : type === 'success' ? '#27ae60' : 'var(--border-accent)';
+  notif.style.borderLeft = `3px solid ${borderColor}`;
   notif.innerHTML = `<div style="flex:1;color:var(--text-primary)">${message}</div>`;
   bar.appendChild(notif);
   setTimeout(() => {
     notif.style.animation = 'slideOut 0.3s ease';
     setTimeout(() => notif.remove(), 300);
-  }, 3000);
+  }, 4000);
 }
 
 socket.on('lobby_created', (data) => {
-  if (data.host === currentUsername || data.invited.includes(currentUsername)) {
+  if (data.host === currentUsername) {
+    showNotification('Lobby créé ! Redirection…', 'success');
+    setTimeout(() => location.href = '/lobby', 500);
+  } else if (data.invited && data.invited.includes(currentUsername)) {
     showNotification('Lobby créé ! Redirection…', 'success');
     setTimeout(() => location.href = '/lobby', 500);
   }
+});
+
+socket.on('error', (data) => {
+  showNotification('❌ ' + (data.message || 'Erreur'), 'error');
 });
 
 socket.on('lobby_invitation', (data) => {

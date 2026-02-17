@@ -621,6 +621,21 @@ socket.on('kicked_from_lobby', () => {
   location.href = '/dashboard';
 });
 
+
+socket.on('error', (data) => {
+  toast('❌ ' + (data.message || 'Erreur'), 'err');
+});
+
+function toast(msg, type='inf') {
+  let c = document.getElementById('toast-lobby');
+  if (!c) return;
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
 // IMPORTANT: Charger l'utilisateur AVANT le lobby pour éviter la race condition
 async function initPage() {
   console.log('🚀 Initialisation de la page lobby...');
@@ -632,6 +647,8 @@ async function initPage() {
 
 initPage();
 </script>
+
+<div class="toast-wrap" id="toast-lobby"></div>
 
 </body>
 </html>

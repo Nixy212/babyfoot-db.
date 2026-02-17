@@ -407,6 +407,17 @@ socket.on('rematch_cancelled', () => {
   setTimeout(() => location.href = '/dashboard', 500);
 });
 
+socket.on('servo1_unlock', () => {
+  const btn = document.getElementById('btnUnlockServo');
+  if (btn) { btn.textContent = '🔓 Servo déverrouillé (5s)'; btn.style.opacity = '0.6'; }
+});
+socket.on('servo1_lock', () => {
+  const btn = document.getElementById('btnUnlockServo');
+  if (btn) { btn.textContent = '🔓 Débloquer Servo (test)'; btn.style.opacity = '1'; }
+});
+socket.on('servo2_unlock', () => {});
+socket.on('servo2_lock', () => {});
+
 socket.on('error', (data) => {
   alert('Erreur : ' + data.message);
 });

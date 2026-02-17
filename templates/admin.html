@@ -250,6 +250,21 @@ socket.on('error', (data) => {
   setTimeout(() => { result.style.display = 'none'; }, 5000);
 });
 
+socket.on('servo1_unlock', () => {
+  document.getElementById('servoStatus').textContent = 'Servo 1 ouvert ✓';
+});
+socket.on('servo1_lock', () => {
+  document.getElementById('servoStatus').textContent = 'Servo 1 reverrouillé';
+  setTimeout(() => { document.getElementById('servoStatus').textContent = 'Prêt'; }, 2000);
+});
+socket.on('servo2_unlock', () => {
+  document.getElementById('servoStatus').textContent = 'Servo 2 ouvert ✓';
+});
+socket.on('servo2_lock', () => {
+  document.getElementById('servoStatus').textContent = 'Servo 2 reverrouillé';
+  setTimeout(() => { document.getElementById('servoStatus').textContent = 'Prêt'; }, 2000);
+});
+
 // ── Liste utilisateurs AVEC BOUTON SUPPRESSION ──
 async function loadUsers() {
   try {
