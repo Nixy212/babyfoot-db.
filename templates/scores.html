@@ -124,15 +124,30 @@ async function loadScores() {
       const dateStr = date.toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'});
       const timeStr = date.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
 
+      const t1 = parsePlayers(entry.team1_players);
+      const t2 = parsePlayers(entry.team2_players);
+      const winnerTeam = entry.winner === 'team1' ? t1 : t2;
+      const loserTeam = entry.winner === 'team1' ? t2 : t1;
+      const winScore = entry.winner === 'team1' ? entry.team1_score : entry.team2_score;
+      const loseScore = entry.winner === 'team1' ? entry.team2_score : entry.team1_score;
+
       return `
         <div class="score-card">
           <div class="score-header">
             <div class="score-date">${dateStr} · ${timeStr}</div>
+            <div style="font-size:0.75rem;color:var(--text-tertiary)">${entry.mode || '2v2'}</div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0">
-            <div style="font-weight:600;color:var(--text-primary)">${entry.username}</div>
-            <div style="font-size:1.5rem;font-weight:900;font-family:'Space Mono',monospace;color:var(--bronze)">
-              ${entry.score} <span style="font-size:0.8rem;color:var(--text-tertiary);font-weight:400">buts</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;gap:1rem">
+            <div style="flex:1">
+              <div style="font-weight:700;color:#22c55e;font-size:0.85rem;margin-bottom:0.2rem">🏆 Vainqueurs</div>
+              <div style="font-weight:600;color:var(--text-primary)">${winnerTeam.join(' & ')}</div>
+            </div>
+            <div style="font-family:'Space Mono',monospace;font-size:1.5rem;font-weight:900;color:var(--bronze);white-space:nowrap">
+              ${winScore} – ${loseScore}
+            </div>
+            <div style="flex:1;text-align:right">
+              <div style="font-weight:700;color:#e74c3c;font-size:0.85rem;margin-bottom:0.2rem">Perdants</div>
+              <div style="font-weight:600;color:var(--text-primary)">${loserTeam.join(' & ')}</div>
             </div>
           </div>
         </div>

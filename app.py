@@ -768,7 +768,7 @@ def api_arduino_commands():
     now = time.time()
     if not hasattr(api_arduino_commands, 'last_poll'):
         api_arduino_commands.last_poll = 0
-    if now - api_arduino_commands.last_poll > 10:
+    if now - api_arduino_commands.last_poll > 30:
         servo_commands["servo1"].clear()
         servo_commands["servo2"].clear()
         logger.info("Queue servos nettoyee (reboot ESP32 detecte)")
@@ -823,11 +823,10 @@ def api_arduino_goal():
         try: save_game_results(current_game)
         except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
         socketio.emit("game_ended", current_game, namespace="/")
-        import threading
         def ask_rematch():
-            import time; time.sleep(2)
+            import eventlet; eventlet.sleep(2)
             socketio.emit("rematch_prompt", {}, namespace="/")
-        threading.Thread(target=ask_rematch, daemon=True).start()
+        eventlet.spawn(ask_rematch)
         return jsonify({"success": True, "game_ended": True, "winner": team})
     else:
         socketio.emit("score_updated", current_game, namespace="/")
@@ -1039,13 +1038,12 @@ def handle_unlock_servo1():
     servo_commands["servo1"].clear()
     servo_commands["servo1"].append("open")
     socketio.emit('servo1_unlock', {}, namespace='/')
-    import threading
     def relock():
-        import time; time.sleep(3.0)
+        import eventlet; eventlet.sleep(5.0)
         servo_commands["servo1"].clear()
         servo_commands["servo1"].append("close")
         socketio.emit('servo1_lock', {}, namespace='/')
-    threading.Thread(target=relock, daemon=True).start()
+    eventlet.spawn(relock)
 
 @socketio.on('unlock_servo2')
 def handle_unlock_servo2():
@@ -1056,13 +1054,12 @@ def handle_unlock_servo2():
     servo_commands["servo2"].clear()
     servo_commands["servo2"].append("open")
     socketio.emit('servo2_unlock', {}, namespace='/')
-    import threading
     def relock():
-        import time; time.sleep(3.0)
+        import eventlet; eventlet.sleep(5.0)
         servo_commands["servo2"].clear()
         servo_commands["servo2"].append("close")
         socketio.emit('servo2_lock', {}, namespace='/')
-    threading.Thread(target=relock, daemon=True).start()
+    eventlet.spawn(relock)
 
 @socketio.on('stop_game')
 def handle_stop_game():
@@ -1098,11 +1095,10 @@ def handle_score(data):
             try: save_game_results(current_game)
             except Exception as e: logger.error(f"Save error: {e}")
             socketio.emit('game_ended', current_game, namespace='/')
-            import threading
             def ask_rematch():
-                import time; time.sleep(2)
+                import eventlet; eventlet.sleep(2)
                 socketio.emit('rematch_prompt', {}, namespace='/')
-            threading.Thread(target=ask_rematch, daemon=True).start()
+            eventlet.spawn(ask_rematch)
         else:
             socketio.emit('score_updated', current_game, namespace='/')
     except Exception as e:
@@ -1184,11 +1180,10 @@ def handle_arduino_goal(data):
         try: save_game_results(current_game)
         except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
         socketio.emit('game_ended', current_game, namespace='/')
-        import threading
         def ask_rematch_delayed():
-            import time; time.sleep(2)
+            import eventlet; eventlet.sleep(2)
             socketio.emit('rematch_prompt', {}, namespace='/')
-        threading.Thread(target=ask_rematch_delayed, daemon=True).start()
+        eventlet.spawn(ask_rematch_delayed)
     else:
         socketio.emit('score_updated', current_game, namespace='/')
 
