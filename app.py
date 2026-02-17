@@ -15,7 +15,7 @@ import sys
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
 logger = logging.getLogger(**name**)
 
-app = Flask(**name**, static_folder=‘static’, static_url_path=’/static’)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get(‘SECRET_KEY’, ‘babyfoot-secret-key-2024-change-me’)
 app.config[‘PERMANENT_SESSION_LIFETIME’] = timedelta(days=7)
 app.config[‘SESSION_COOKIE_SAMESITE’] = ‘Lax’
