@@ -13,7 +13,7 @@ import traceback
 import sys
 
 logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdout)])
-logger = logging.getLogger(**name**)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.environ.get(‘SECRET_KEY’, ‘babyfoot-secret-key-2024-change-me’)
