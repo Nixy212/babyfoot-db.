@@ -242,11 +242,15 @@ async function checkActiveGame() {
     const res = await fetch('/api/has_active_game');
     const data = await res.json();
 
+    const userIsAdmin = data.is_admin || isAdmin;
+    const userHasReservation = data.has_reservation;
+    const canSetup = userIsAdmin || userHasReservation;
+
     if (data.has_active_game) {
       const game = data.game_data;
       const t1 = parsePlayers(game.team1_players);
       const t2 = parsePlayers(game.team2_players);
-      canControl = isAdmin || game.started_by === currentUser;
+      canControl = userIsAdmin || game.started_by === currentUser;
 
       if (canControl) {
         showArea('gameArea');
@@ -256,7 +260,7 @@ async function checkActiveGame() {
         updateSpectatorUI({...game, team1_players: t1, team2_players: t2});
       }
     } else {
-      if (isAdmin) {
+      if (canSetup) {
         showArea('setupArea');
         document.getElementById('pageSub').textContent = 'Configurer une nouvelle partie';
         loadUsers();
