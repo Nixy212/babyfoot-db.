@@ -2,6 +2,12 @@
 
 <html lang="fr">
 <head>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BabyFoot">
+  <link rel="apple-touch-icon" href="/static/images/logo.svg">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +16,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='lobby-styles.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="/socket.io/socket.io.js" crossorigin="anonymous"></script>
   <script src="{{ url_for('static', filename='confetti.js') }}" defer></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
@@ -298,7 +304,15 @@ function toggleMenu() {
 
 <script>
 let socket;
-try { socket = io(); } catch(e) { console.warn("Socket.IO non disponible:", e); socket = { emit: () => {}, on: () => {} }; }
+try { socket = io({
+    reconnection: true,
+    reconnectionDelay: 1000,       // Attendre 1s avant 1ère tentative
+    reconnectionDelayMax: 10000,   // Max 10s entre tentatives
+    reconnectionAttempts: Infinity, // Toujours réessayer
+    timeout: 20000,                // 20s avant d'abandonner une connexion
+    transports: ['websocket', 'polling'],  // WebSocket d'abord, polling en fallback
+  });
+  if (window.initReconnectIndicator) initReconnectIndicator(socket); } catch(e) { console.warn("Socket.IO non disponible:", e); socket = { emit: () => {}, on: () => {} }; }
 let currentUsername = null;
 let isAdmin = false;
 let lobbyData = null;
@@ -308,24 +322,16 @@ let selectedPlayers = [];
 
 async function loadCurrentUser() {
   try {
-    console.log('👤 loadCurrentUser() démarré');
     const res = await fetch('/current_user');
-    console.log('   Réponse /current_user:', res.status, res.ok);
-    
     if (res.ok) {
       const user = await res.json();
       currentUsername = user.username;
       isAdmin = user.is_admin;
-      
-      console.log('✓ Utilisateur chargé:', currentUsername, '(admin:', isAdmin, ')');
-      
       document.getElementById('navUsername').textContent = user.username;
       document.getElementById('navAv').textContent = user.username[0].toUpperCase();
-    } else {
-      console.error('✕ Erreur fetch /current_user, status:', res.status);
     }
   } catch (e) {
-    console.error('✕ Erreur loadCurrentUser:', e);
+    // silencieux en production
   }
 }
 
@@ -337,7 +343,6 @@ async function loadPlayers() {
     
     renderPlayerSelector();
   } catch (e) {
-    console.error('Erreur:', e);
   }
 }
 
@@ -423,16 +428,12 @@ function kickPlayer(playerUsername) {
 
 async function loadLobby() {
   try {
-    console.log('🔍 loadLobby() démarré');
-    console.log('   currentUsername:', currentUsername);
+
     
     const res = await fetch('/api/active_lobby');
     const data = await res.json();
     
-    console.log('📦 Données lobby reçues:', data);
-    
     if (!data.active) {
-      console.log('✕ Pas de lobby actif, redirection dashboard');
       location.href = '/dashboard';
       return;
     }
@@ -440,26 +441,20 @@ async function loadLobby() {
     // VÉRIFICATION CRITIQUE : L'utilisateur est-il vraiment dans ce lobby ?
     const isInvited = data.invited.includes(currentUsername);
     const isAccepted = data.accepted.includes(currentUsername);
-    
-    console.log('👤 Vérifications:');
-    console.log('   isInvited:', isInvited, '(invited:', data.invited, ')');
-    console.log('   isAccepted:', isAccepted, '(accepted:', data.accepted, ')');
+
+
     
     if (!isInvited && !isAccepted) {
-      console.log('✕ Utilisateur pas dans le lobby, redirection dashboard');
-      console.log('   currentUsername:', currentUsername);
-      console.log('   lobby.invited:', data.invited);
-      console.log('   lobby.accepted:', data.accepted);
+
+
+
       location.href = '/dashboard';
       return;
     }
-    
-    console.log('✓ Utilisateur dans le lobby, chargement UI');
     lobbyData = data;
     updateLobbyUI();
     loadPlayers();
   } catch (e) {
-    console.error('✕ Erreur loadLobby:', e);
     location.href = '/dashboard';
   }
 }
@@ -591,7 +586,6 @@ socket.on('lobby_update', (data) => {
   const isAccepted = data.accepted.includes(currentUsername);
   
   if (!isInvited && !isAccepted) {
-    console.log('Plus dans le lobby, redirection dashboard');
     location.href = '/dashboard';
     return;
   }
@@ -639,11 +633,8 @@ function toast(msg, type='inf') {
 
 // IMPORTANT: Charger l'utilisateur AVANT le lobby pour éviter la race condition
 async function initPage() {
-  console.log('🚀 Initialisation de la page lobby...');
   await loadCurrentUser();
-  console.log('⏳ loadCurrentUser terminé, démarrage loadLobby...');
   await loadLobby();
-  console.log('✓ Initialisation terminée');
 }
 
 initPage();
@@ -653,5 +644,6 @@ initPage();
 
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
+  <script src="/static/pwa.js" defer></script>
 </body>
 </html>

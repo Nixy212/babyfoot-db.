@@ -2,6 +2,12 @@
 
 <html lang="fr">
 <head>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BabyFoot">
+  <link rel="apple-touch-icon" href="/static/images/logo.svg">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +16,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard-styles.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="/socket.io/socket.io.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
   <style>
@@ -213,19 +219,22 @@ function logout() {
 <script>
 let socket;
 try {
-  console.log('🔌 Tentative de connexion Socket.IO...');
-  socket = io();
+  socket = io({
+    reconnection: true,
+    reconnectionDelay: 1000,       // Attendre 1s avant 1ère tentative
+    reconnectionDelayMax: 10000,   // Max 10s entre tentatives
+    reconnectionAttempts: Infinity, // Toujours réessayer
+    timeout: 20000,                // 20s avant d'abandonner une connexion
+    transports: ['websocket', 'polling'],  // WebSocket d'abord, polling en fallback
+  });
+  if (window.initReconnectIndicator) initReconnectIndicator(socket);
   socket.on('connect', () => {
-    console.log('✓ Socket.IO connecté, ID:', socket.id);
   });
   socket.on('connect_error', (err) => {
-    console.error('✕ Erreur connexion Socket.IO:', err);
   });
   socket.on('disconnect', () => {
-    console.warn('🔌 Socket.IO déconnecté');
   });
 } catch(e) {
-  console.error('✕ Socket.IO non disponible:', e);
   alert('⚠️ Connexion temps réel impossible. Rechargez la page.');
   socket = { 
     emit: (event, data) => { console.warn(`✕ Socket factice: emit(${event}) ignoré`); },
@@ -306,12 +315,10 @@ async function checkActiveLobby() {
 }
 
 function rejoinLobby() { location.href = '/lobby'; }
-function createEmptyLobby() { 
-  console.log('<i class="fas fa-gamepad"></i> createEmptyLobby appelé');
-  console.log('Socket connecté:', socket.connected);
-  console.log('Socket ID:', socket.id);
+function createEmptyLobby() {
+
+
   socket.emit('create_lobby', { invited: [] });
-  console.log('✓ Event create_lobby émis');
 }
 
 function unlockServo1() {
@@ -488,5 +495,6 @@ loadReservations();
 
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
+  <script src="/static/pwa.js" defer></script>
 </body>
 </html>

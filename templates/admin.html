@@ -2,6 +2,12 @@
 
 <html lang="fr">
 <head>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BabyFoot">
+  <link rel="apple-touch-icon" href="/static/images/logo.svg">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +18,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="/socket.io/socket.io.js" crossorigin="anonymous"></script>
 </head>
 <body style="font-family: 'DM Sans', sans-serif;">
 
@@ -135,8 +141,8 @@
   </div>
 </div>
 
-<!-- ZONE DANGER -->
-<div class="card fade-up" style="animation-delay:.2s;margin-bottom:1.5rem;border-color:rgba(231,76,60,0.3)">
+<!-- ZONE DANGER — Classe 1 uniquement (Imran) -->
+<div id="dangerZone" class="card fade-up" style="animation-delay:.2s;margin-bottom:1.5rem;border-color:rgba(231,76,60,0.3);display:none">
   <div class="card-header" style="border-bottom-color:rgba(231,76,60,0.2)">
     <h3 style="color:#e74c3c">🔥 Zone Danger</h3>
   </div>
@@ -171,7 +177,14 @@
 
 <script>
 let socket;
-try { socket = io(); } catch(e) { console.warn("Socket.IO non disponible:", e); socket = { emit: () => {}, on: () => {} }; }
+try { socket = io({
+    reconnection: true,
+    reconnectionDelay: 1000,       // Attendre 1s avant 1ère tentative
+    reconnectionDelayMax: 10000,   // Max 10s entre tentatives
+    reconnectionAttempts: Infinity, // Toujours réessayer
+    timeout: 20000,                // 20s avant d'abandonner une connexion
+    transports: ['websocket', 'polling'],  // WebSocket d'abord, polling en fallback
+  }); } catch(e) { console.warn("Socket.IO non disponible:", e); socket = { emit: () => {}, on: () => {} }; }
 
 function toggleMenu() {
   document.getElementById('burger').classList.toggle('open');
@@ -196,13 +209,36 @@ function showToast(message, type = 'inf') {
 }
 
 // ── Init nav ──
+let isSuperAdmin = false;
 fetch('/current_user').then(r => r.json()).then(d => {
   if (d && d.username) {
     document.getElementById('navAv').textContent = d.username[0].toUpperCase();
     document.getElementById('navUsername').textContent = d.username;
     if (!d.is_admin) {
       location.href = '/dashboard';
+      return;
     }
+    isSuperAdmin = d.is_super_admin || false;
+    // Classe 1 uniquement : afficher la zone danger
+    const dangerZone = document.getElementById('dangerZone');
+    if (dangerZone) {
+      dangerZone.style.display = isSuperAdmin ? 'block' : 'none';
+    }
+    // Badge classe visible dans la nav
+    const badge = document.createElement('span');
+    badge.style.cssText = 'font-size:0.7rem;padding:2px 8px;border-radius:20px;font-weight:700;margin-left:0.5rem;vertical-align:middle;';
+    if (isSuperAdmin) {
+      badge.textContent = 'CLASSE 1';
+      badge.style.background = 'rgba(255,215,0,0.2)';
+      badge.style.color = '#ffd700';
+      badge.style.border = '1px solid rgba(255,215,0,0.4)';
+    } else {
+      badge.textContent = 'CLASSE 2';
+      badge.style.background = 'rgba(205,127,50,0.2)';
+      badge.style.color = '#cd7f32';
+      badge.style.border = '1px solid rgba(205,127,50,0.4)';
+    }
+    document.getElementById('navUsername').appendChild(badge);
   } else {
     location.href = '/login';
   }
@@ -434,5 +470,6 @@ loadGameState();
 
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
+  <script src="/static/pwa.js" defer></script>
 </body>
 </html>

@@ -2,6 +2,12 @@
 
 <html lang="fr">
 <head>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BabyFoot">
+  <link rel="apple-touch-icon" href="/static/images/logo.svg">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +19,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="/socket.io/socket.io.js" crossorigin="anonymous"></script>
   <script src="{{ url_for('static', filename='animations.js') }}" defer></script>
   <script src="{{ url_for('static', filename='confetti.js') }}" defer></script>
 </head>
@@ -196,7 +202,15 @@
 let socket;
 try {
   console.log('🔌 [Live-Score] Tentative connexion Socket.IO...');
-  socket = io();
+  socket = io({
+    reconnection: true,
+    reconnectionDelay: 1000,       // Attendre 1s avant 1ère tentative
+    reconnectionDelayMax: 10000,   // Max 10s entre tentatives
+    reconnectionAttempts: Infinity, // Toujours réessayer
+    timeout: 20000,                // 20s avant d'abandonner une connexion
+    transports: ['websocket', 'polling'],  // WebSocket d'abord, polling en fallback
+  });
+  if (window.initReconnectIndicator) initReconnectIndicator(socket);
   socket.on('connect', () => { console.log('✓ [Live-Score] Socket connecté'); });
   socket.on('connect_error', (err) => { console.error('✕ [Live-Score] Erreur:', err); });
 } catch(e) {
@@ -264,13 +278,15 @@ async function checkActiveGame() {
       const t1 = parsePlayers(game.team1_players);
       const t2 = parsePlayers(game.team2_players);
       canControl = userIsAdmin || game.started_by === currentUser;
+      // Stocker l'état courant dans lastGame (utile si partie finit pendant rechargement)
+      lastGame = {...game, team1_players: t1, team2_players: t2};
 
       if (canControl) {
         showArea('gameArea');
-        updateGameUI({...game, team1_players: t1, team2_players: t2});
+        updateGameUI(lastGame);
       } else {
         showArea('spectatorArea');
-        updateSpectatorUI({...game, team1_players: t1, team2_players: t2});
+        updateSpectatorUI(lastGame);
       }
     } else {
       if (canSetup) {
@@ -363,8 +379,45 @@ function startGame() {
   socket.emit('start_game', {team1: t1, team2: t2});
 }
 
-function addPoint(team) {
+function showToast(msg, type = 'info') {
+  let wrap = document.getElementById('ls-toast-wrap');
+  if (!wrap) {
+    wrap = document.createElement('div');
+    wrap.id = 'ls-toast-wrap';
+    wrap.style.cssText = 'position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:0.5rem;align-items:center;pointer-events:none';
+    document.body.appendChild(wrap);
+  }
+  const t = document.createElement('div');
+  const bg = type === 'warn' ? 'rgba(231,152,0,0.95)' : type === 'err' ? 'rgba(231,76,60,0.95)' : 'rgba(39,174,96,0.95)';
+  t.style.cssText = `background:${bg};color:white;padding:0.6rem 1.1rem;border-radius:8px;font-size:0.875rem;font-weight:600;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,0.4)`;
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+
+  // Désactiver le bouton brièvement pour éviter double-clic
+  const btn = document.querySelector(`[data-team="${team}"].score-btn`) ||
+              document.querySelector(`button[onclick="addPoint('${team}')"]`);
+  if (btn) { btn.disabled = true; setTimeout(() => btn.disabled = false, 800); }
+
+  let ackReceived = false;
   socket.emit('update_score', {team});
+
+  // Si pas d'acquittement en 3s, on signale visuellement (connexion lente)
+  const ackTimeout = setTimeout(() => {
+    if (!ackReceived) {
+      showToast('⚠️ Réponse lente — vérifiez la connexion', 'warn');
+    }
+  }, 3000);
+
+  // Écouter l'ack une seule fois
+  socket.once('score_ack', (data) => {
+    if (data.team === team) {
+      ackReceived = true;
+      clearTimeout(ackTimeout);
+    }
+  });
 }
 
 function stopGame() {
@@ -419,6 +472,22 @@ function showWinner(game) {
 }
 
 // ── Socket events ──
+// game_recovery : émis par le serveur à la reconnexion si partie active
+socket.on('game_recovery', (game) => {
+  const t1 = parsePlayers(game.team1_players);
+  const t2 = parsePlayers(game.team2_players);
+  const parsed = {...game, team1_players: t1, team2_players: t2};
+  lastGame = parsed;
+  canControl = isAdmin || game.started_by === currentUser;
+  if (canControl) {
+    showArea('gameArea');
+    updateGameUI(parsed);
+  } else {
+    showArea('spectatorArea');
+    updateSpectatorUI(parsed);
+  }
+});
+
 socket.on('game_started', () => {
   // Fermer tous les overlays/popups
   document.getElementById('winnerOverlay').style.display = 'none';
@@ -518,5 +587,6 @@ init();
 
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
+  <script src="/static/pwa.js" defer></script>
 </body>
 </html>
