@@ -1182,9 +1182,9 @@ def _do_reservation(username, start_time, end_time, duration, mode):
         if USE_POSTGRES:
             cur.execute("""
                 INSERT INTO reservations (day, time, team1, team2, mode, reserved_by, start_time, end_time, duration_minutes)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s::text, %s::text, %s, %s, %s, %s, %s)
                 ON CONFLICT (start_time, reserved_by) DO NOTHING
-            """, (day_fr, time_display, '[]', '[]', mode, username, start_iso, end_iso, duration))
+            """, (day_fr, time_display, json.dumps([]), json.dumps([]), mode, username, start_iso, end_iso, duration))
         else:
             # Verifier doublon exact
             cur.execute(
@@ -1196,7 +1196,7 @@ def _do_reservation(username, start_time, end_time, duration, mode):
             cur.execute("""
                 INSERT INTO reservations (day, time, team1, team2, mode, reserved_by, start_time, end_time, duration_minutes)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (day_fr, time_display, '[]', '[]', mode, username, start_iso, end_iso, duration))
+            """, (day_fr, time_display, json.dumps([]), json.dumps([]), mode, username, start_iso, end_iso, duration))
         conn.commit()
         return jsonify({
             "success": True,
