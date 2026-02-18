@@ -177,10 +177,10 @@ function logout() {
   <h3><i class="fas fa-gamepad"></i> Déverrouillage de la balle</h3>
   <p>En tant qu'admin, vous pouvez débloquer manuellement la balle pour démarrer une partie</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
-    <button class="btn btn-primary" onclick="unlockServo1()" style="background:linear-gradient(135deg,#3498db 0%,#2980b9 100%)">
+    <button class="btn btn-primary" onclick="unlockServo1(this)" style="background:linear-gradient(135deg,#3498db 0%,#2980b9 100%)">
       <span data-bficon="unlock" data-size="20" style="vertical-align:middle"></span> Servo 1<br><small style="font-size:0.8em;opacity:0.9">(Équipe 1)</small>
     </button>
-    <button class="btn btn-primary" onclick="unlockServo2()" style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%)">
+    <button class="btn btn-primary" onclick="unlockServo2(this)" style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%)">
       <span data-bficon="unlock" data-size="20" style="vertical-align:middle"></span> Servo 2<br><small style="font-size:0.8em;opacity:0.9">(Équipe 2)</small>
     </button>
   </div>
@@ -322,9 +322,8 @@ function createEmptyLobby() {
   socket.emit('create_lobby', { invited: [] });
 }
 
-function unlockServo1() {
+function unlockServo1(btn) {
   const feedback = document.getElementById('servo-feedback');
-  const btn = event.target;
   btn.disabled = true; btn.style.opacity = '0.5';
   feedback.style.display = 'block';
   feedback.style.background = 'rgba(52,152,219,0.1)';
@@ -340,9 +339,8 @@ function unlockServo1() {
   }, 5000);
 }
 
-function unlockServo2() {
+function unlockServo2(btn) {
   const feedback = document.getElementById('servo-feedback');
-  const btn = event.target;
   btn.disabled = true; btn.style.opacity = '0.5';
   feedback.style.display = 'block';
   feedback.style.background = 'rgba(231,76,60,0.1)';
@@ -503,13 +501,38 @@ function showNotification(message, type) {
 
 socket.on('lobby_created', (data) => {
   if (data.host === currentUsername) {
+    // Je suis l'hôte → aller au lobby
     showNotification('Lobby créé ! Redirection…', 'success');
     setTimeout(() => location.href = '/lobby', 500);
   } else if (data.invited && data.invited.includes(currentUsername)) {
+    // J'étais dans la liste invited initiale → aller au lobby
     showNotification('Lobby créé ! Redirection…', 'success');
     setTimeout(() => location.href = '/lobby', 500);
   }
+  // Sinon : un autre user a créé un lobby, on rafraîchit juste le bouton
+  else {
+    checkActiveLobby();
+  }
 });
+
+// Lobby annulé → rafraîchir le bouton
+socket.on('lobby_cancelled', () => {
+  checkActiveLobby();
+});
+
+// Lobby mis à jour → rafraîchir si je suis membre
+socket.on('lobby_update', (data) => {
+  if (!currentUsername) return;
+  const isMember = (data.accepted || []).includes(currentUsername)
+                || (data.invited  || []).includes(currentUsername)
+                || data.host === currentUsername;
+  if (isMember) checkActiveLobby();
+  else checkActiveLobby(); // refresher aussi pour les autres (bouton grisé)
+});
+
+// Partie démarrée → rafraîchir état
+socket.on('game_started', () => { checkActiveLobby(); });
+socket.on('game_stopped', () => { checkActiveLobby(); });
 
 socket.on('error', (data) => {
   showNotification('✕ ' + (data.message || 'Erreur'), 'error');

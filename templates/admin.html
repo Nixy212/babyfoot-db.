@@ -210,7 +210,12 @@ function showToast(message, type = 'inf') {
 
 // ── Init nav ──
 let isSuperAdmin = false;
-fetch('/current_user').then(r => r.json()).then(d => {
+fetch('/current_user').then(r => {
+  if (!r.ok) { location.href = '/login'; return null; }
+  return r.json();
+}).then(d => {
+  if (!d || !d.username) { location.href = '/login'; return; }
+  if (!d.is_admin) { location.href = '/dashboard'; return; }
   if (d && d.username) {
     document.getElementById('navAv').textContent = d.username[0].toUpperCase();
     document.getElementById('navUsername').textContent = d.username;

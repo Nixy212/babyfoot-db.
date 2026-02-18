@@ -433,7 +433,10 @@ async function playNow(){
     }).then(x=>x.json());
     if(r.success){
       btn.innerHTML='<span class="spin"></span>&nbsp;Redirection…';
-      window.location.replace('/lobby');
+      // Le serveur a créé la réservation ET le lobby en une seule opération
+      // On redirige directement sans attendre un event socket
+      // (le lobby est déjà actif côté serveur, lobby.html vérifiera /api/active_lobby)
+      setTimeout(() => window.location.replace('/lobby'), 300);
     } else {
       toast(r.message||'Erreur lors de la réservation','err');
       btn.disabled=false;btn.innerHTML='Jouer maintenant';

@@ -402,10 +402,14 @@ function showToast(msg, type = 'info') {
 }
 
 function addPoint(team) {
+  // Vérification permission côté client (double sécurité avec le backend)
+  if (!isAdmin) {
+    showToast('⛔ Seuls les admins peuvent marquer des points', 'err');
+    return;
+  }
   // Désactiver le bouton brièvement pour éviter double-clic
-  const btn = document.querySelector(`[data-team="${team}"].score-btn`) ||
-              document.querySelector(`button[onclick="addPoint('${team}')"]`);
-  if (btn) { btn.disabled = true; setTimeout(() => btn.disabled = false, 800); }
+  const btnEl = document.getElementById(team === 'team1' ? 'btnScore1' : 'btnScore2');
+  if (btnEl) { btnEl.disabled = true; setTimeout(() => btnEl.disabled = false, 800); }
 
   let ackReceived = false;
   socket.emit('update_score', {team});
@@ -485,10 +489,11 @@ socket.on('game_recovery', (game) => {
   const parsed = {...game, team1_players: t1, team2_players: t2};
   lastGame = parsed;
   canControl = isAdmin || game.started_by === currentUser;
-  const canScore = isAdmin;
+  const canScore = isAdmin; // seuls les admins peuvent scorer
   if (canControl) {
     showArea('gameArea');
     updateGameUI(parsed);
+    // Afficher/cacher +1 But selon rôle (admin uniquement)
     const s1 = document.getElementById('btnScore1');
     const s2 = document.getElementById('btnScore2');
     if (s1) s1.style.display = canScore ? '' : 'none';
