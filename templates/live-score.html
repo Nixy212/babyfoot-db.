@@ -143,14 +143,14 @@
           <div class="score-n" id="score1">0</div>
           <div style="font-weight:700;margin-top:0.5rem;color:var(--text-primary)"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#cd7f32;margin-right:5px"></span>Équipe 1</div>
           <div id="team1Players" style="font-size:0.875rem;color:var(--text-tertiary);margin-top:0.5rem;margin-bottom:1rem"></div>
-          <button class="score-btn" onclick="addPoint('team1')">+1 But</button>
+          <button class="score-btn" id="btnScore1" onclick="addPoint('team1')">+1 But</button>
         </div>
         <div class="score-vs">VS</div>
         <div>
           <div class="score-n" id="score2">0</div>
           <div style="font-weight:700;margin-top:0.5rem;color:var(--text-primary)"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#888;margin-right:5px"></span>Équipe 2</div>
           <div id="team2Players" style="font-size:0.875rem;color:var(--text-tertiary);margin-top:0.5rem;margin-bottom:1rem"></div>
-          <button class="score-btn" onclick="addPoint('team2')">+1 But</button>
+          <button class="score-btn" id="btnScore2" onclick="addPoint('team2')">+1 But</button>
         </div>
       </div>
       <div style="margin-top:2rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
@@ -279,12 +279,17 @@ async function checkActiveGame() {
       const t1 = parsePlayers(game.team1_players);
       const t2 = parsePlayers(game.team2_players);
       canControl = userIsAdmin || game.started_by === currentUser;
-      // Stocker l'état courant dans lastGame (utile si partie finit pendant rechargement)
-      lastGame = {...game, team1_players: t1, team2_players: t2};
+      const canScore = userIsAdmin;
+      // Stocker l'état courant dans lastGame (utile si partie finit pendant rechargement)\n      lastGame = {...game, team1_players: t1, team2_players: t2};
 
       if (canControl) {
         showArea('gameArea');
         updateGameUI(lastGame);
+        // Cacher les boutons +1 pour les non-admins (hote peut voir mais pas scorer)
+        const s1 = document.getElementById('btnScore1');
+        const s2 = document.getElementById('btnScore2');
+        if (s1) s1.style.display = canScore ? '' : 'none';
+        if (s2) s2.style.display = canScore ? '' : 'none';
       } else {
         showArea('spectatorArea');
         updateSpectatorUI(lastGame);
@@ -480,9 +485,14 @@ socket.on('game_recovery', (game) => {
   const parsed = {...game, team1_players: t1, team2_players: t2};
   lastGame = parsed;
   canControl = isAdmin || game.started_by === currentUser;
+  const canScore = isAdmin;
   if (canControl) {
     showArea('gameArea');
     updateGameUI(parsed);
+    const s1 = document.getElementById('btnScore1');
+    const s2 = document.getElementById('btnScore2');
+    if (s1) s1.style.display = canScore ? '' : 'none';
+    if (s2) s2.style.display = canScore ? '' : 'none';
   } else {
     showArea('spectatorArea');
     updateSpectatorUI(parsed);
