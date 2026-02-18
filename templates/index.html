@@ -10,99 +10,14 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BabyFoot">
   <link rel="apple-touch-icon" href="/static/images/logo.svg">
-
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
-
-  <!-- Animations de fond : seulement sur desktop -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}" media="(min-width: 769px)">
-
-  <!-- Font Awesome : chargé en non-bloquant -->
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" crossorigin="anonymous">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous"></noscript>
-
   <style>
-    /* ── Critical CSS inline ── */
     body { background: #0a0a0a; color: #f5f5f5; margin: 0; font-family: system-ui, -apple-system, sans-serif; }
-    .nav { position: sticky; top: 0; z-index: 100; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(205,127,50,0.15); }
-    .nav-inner { display: flex; align-items: center; padding: 0 1.25rem; height: 60px; gap: 1rem; }
-    .nav-brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; }
-    .nav-brand img { width: 32px; height: 32px; }
-    .brand-text { font-weight: 700; font-size: 1rem; }
 
-    /* ── Fond type lobby : orbes colorés + grille ── */
-
-    /* Orbes fixes en arrière-plan */
-    .bg-orb {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(80px);
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0;
-      animation: orb-appear 1.2s ease forwards;
-    }
-    .bg-orb-1 {
-      width: 520px; height: 520px;
-      background: radial-gradient(circle, rgba(205,127,50,0.45) 0%, transparent 70%);
-      top: -180px; left: -120px;
-      animation-delay: 0s;
-    }
-    .bg-orb-2 {
-      width: 400px; height: 400px;
-      background: radial-gradient(circle, rgba(255,191,0,0.3) 0%, transparent 70%);
-      top: 30%; right: -100px;
-      animation-delay: 0.3s;
-    }
-    .bg-orb-3 {
-      width: 460px; height: 460px;
-      background: radial-gradient(circle, rgba(184,115,51,0.35) 0%, transparent 70%);
-      bottom: -150px; left: 25%;
-      animation-delay: 0.6s;
-    }
-    @keyframes orb-appear {
-      to { opacity: 1; }
-    }
-
-    /* Grille de fond (même effet que team-box::before du lobby) */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(to right, rgba(205,127,50,0.06) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(205,127,50,0.06) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* Bordure lumineuse en haut */
-    body::after {
-      content: '';
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, transparent 0%, #cd7f32 30%, #ffd700 50%, #cd7f32 70%, transparent 100%);
-      z-index: 1001;
-      pointer-events: none;
-    }
-
-    /* S'assurer que le contenu est au-dessus du fond */
-    .nav, .hero, .features, section, footer { position: relative; z-index: 1; }
-
-    /* Sur mobile : orbes plus petits, pas d'animation pour la perf */
-    @media (max-width: 768px) {
-      body { animation: none !important; }
-      .bg-orb { animation: none; opacity: 0.7; filter: blur(60px); }
-      .bg-orb-1 { width: 280px; height: 280px; top: -80px; left: -60px; }
-      .bg-orb-2 { width: 220px; height: 220px; top: 20%; right: -60px; }
-      .bg-orb-3 { width: 250px; height: 250px; bottom: -80px; left: 15%; }
-      /* Grille plus légère sur mobile */
-      body::before { background-size: 30px 30px; opacity: 0.7; }
-    }
-  
-    /* ── Fond type lobby : grille + orbes ── */
+    /* ── Fond type lobby ── */
     body::before {
       content: '';
       position: fixed;
@@ -148,20 +63,51 @@
       bottom: -120px; left: 25%;
     }
     @media (max-width: 768px) {
+      body { animation: none !important; }
       .bg-orb-1 { width: 260px; height: 260px; top: -80px; left: -60px; filter: blur(50px); }
       .bg-orb-2 { width: 200px; height: 200px; right: -50px; filter: blur(45px); }
       .bg-orb-3 { width: 230px; height: 230px; bottom: -60px; filter: blur(55px); }
+      body::before { background-size: 30px 30px; }
+      .hero-bg-animated, .glow-orb { display: none !important; }
     }
 
-    /* Contenu au-dessus */
+    /* Contenu au-dessus du fond */
     .nav, .hero, .features, section, footer { position: relative; z-index: 1; }
+
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(205,127,50,0.15); }
+    .nav-inner { display: flex; align-items: center; padding: 0 1.25rem; height: 60px; gap: 1rem; }
+    .nav-brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; }
+    .nav-brand img { width: 32px; height: 32px; }
+    .brand-text { font-weight: 700; font-size: 1rem; }
   </style>
 </head>
 <body class="no-fade">
+
 <div class="bg-orb bg-orb-1" aria-hidden="true"></div>
 <div class="bg-orb bg-orb-2" aria-hidden="true"></div>
 <div class="bg-orb bg-orb-3" aria-hidden="true"></div>
 
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-brand">
+      <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
+      <span class="brand-text">Baby-Foot Club</span>
+    </a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a href="/" class="nav-link active">Accueil</a>
+      <a href="#features" class="nav-link">Fonctionnalités</a>
+      <a href="/top" class="nav-link">Classement</a>
+      <a href="/scores" class="nav-link">Scores</a>
+    </div>
+    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-right">
+      <a href="/login" class="btn btn-primary" style="font-size:0.875rem;padding:8px 18px">Se connecter</a>
+    </div>
+  </div>
+</nav>
 
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
@@ -175,7 +121,6 @@
 </div>
 
 <div class="hero">
-  <!-- Orbes masqués sur mobile via CSS inline ci-dessus -->
   <div class="hero-bg-animated">
     <div class="glow-orb orb-1"></div>
     <div class="glow-orb orb-2"></div>
@@ -198,9 +143,7 @@
           <path d="M6 12L10 8L6 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </a>
-      <a href="#features" class="btn btn-secondary btn-lg">
-        <span>Découvrir</span>
-      </a>
+      <a href="#features" class="btn btn-secondary btn-lg"><span>Découvrir</span></a>
     </div>
     <div class="hero-stats">
       <div class="stat-box">
@@ -231,8 +174,8 @@
     <div class="feat-grid">
       <div class="feat-cell">
         <div class="feat-icon">⏱️</div>
-        <h3>Réservation 25 min</h3>
-        <p>Créneaux de 25 minutes, disponibles aujourd'hui et demain. Simple et précis.</p>
+        <h3>Réservation flexible</h3>
+        <p>Choisissez votre heure et votre durée (5, 10 ou 15 min). Simple et précis.</p>
       </div>
       <div class="feat-cell">
         <div class="feat-icon">📡</div>
@@ -263,14 +206,10 @@
   </div>
 </section>
 
-<section style="padding:4rem 0;text-align:center;position:relative;z-index:10">
+<section style="padding:4rem 0;text-align:center">
   <div class="container">
-    <h2 style="font-size:2rem;font-weight:800;margin-bottom:1rem;color:var(--text-primary)">
-      Prêt à jouer ?
-    </h2>
-    <p style="color:var(--text-tertiary);margin-bottom:2rem;font-size:1.1rem">
-      Créez votre compte gratuitement et rejoignez le club
-    </p>
+    <h2 style="font-size:2rem;font-weight:800;margin-bottom:1rem;color:var(--text-primary)">Prêt à jouer ?</h2>
+    <p style="color:var(--text-tertiary);margin-bottom:2rem;font-size:1.1rem">Créez votre compte gratuitement et rejoignez le club</p>
     <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
       <a href="/register" class="btn btn-primary btn-lg btn-shine"><span>Créer un compte</span></a>
       <a href="/login" class="btn btn-secondary btn-lg"><span>Se connecter</span></a>
@@ -278,11 +217,8 @@
   </div>
 </section>
 
-<footer>
-  © 2026 Baby-Foot Club — Tous droits réservés
-</footer>
+<footer>© 2026 Baby-Foot Club — Tous droits réservés</footer>
 
-<!-- Scripts en bas, non-bloquants -->
 <script>
 function toggleMenu() {
   document.getElementById('burger').classList.toggle('open');
@@ -290,15 +226,9 @@ function toggleMenu() {
   document.body.style.overflow = document.getElementById('mobileMenu').classList.contains('open') ? 'hidden' : '';
 }
 
-// Stats avec cache sessionStorage pour éviter re-fetch à chaque visite
 async function loadPublicStats() {
   const cached = sessionStorage.getItem('public_stats');
-  if (cached) {
-    try {
-      applyStats(JSON.parse(cached));
-      return;
-    } catch(e) {}
-  }
+  if (cached) { try { applyStats(JSON.parse(cached)); return; } catch(e) {} }
   try {
     const res = await fetch('/api/public_stats');
     if (!res.ok) throw new Error();
@@ -311,30 +241,22 @@ async function loadPublicStats() {
     document.getElementById('stat-temps').textContent = '15min';
   }
 }
-
 function applyStats(data) {
-  const games = data.total_games ?? 0;
-  document.getElementById('stat-parties').textContent = games > 0 ? games + '+' : '0';
+  const g = data.total_games ?? 0;
+  document.getElementById('stat-parties').textContent = g > 0 ? g + '+' : '0';
   document.getElementById('stat-joueurs').textContent = data.active_players ?? '0';
   document.getElementById('stat-temps').textContent = '15min';
 }
-
 loadPublicStats();
 </script>
 
-<!-- Animations desktop uniquement : chargées en async, pas bloquantes -->
 <script>
 if (window.matchMedia('(min-width: 769px) and (pointer: fine)').matches) {
-  // Charger animations.js et icons.js seulement sur desktop
   ['animations.js', 'icons.js', 'global-animations.js'].forEach(function(src) {
-    var s = document.createElement('script');
-    s.src = '/static/' + src;
-    s.async = true;
-    document.body.appendChild(s);
+    var s = document.createElement('script'); s.src = '/static/' + src; s.async = true; document.body.appendChild(s);
   });
 }
 </script>
-
 <script src="/static/pwa.js" defer></script>
 </body>
 </html>

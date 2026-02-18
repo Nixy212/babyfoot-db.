@@ -8,17 +8,101 @@
   <meta name="apple-mobile-web-app-title" content="BabyFoot">
   <link rel="apple-touch-icon" href="/static/images/logo.svg">
   <meta charset="UTF-8">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Réservation — Baby-Foot Club</title>
+  <title>Reservation — Baby-Foot Club</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
-  <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(to right,rgba(205,127,50,0.07) 1px,transparent 1px),linear-gradient(to bottom,rgba(205,127,50,0.07) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+    body::after{content:'';position:fixed;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#cd7f32 30%,#ffd700 50%,#cd7f32 70%,transparent);z-index:1001;pointer-events:none}
+    .bg-orb{position:fixed;border-radius:50%;pointer-events:none;z-index:0}
+    .bg-orb-1{width:500px;height:500px;background:radial-gradient(circle,rgba(205,127,50,0.35) 0%,transparent 70%);filter:blur(80px);top:-160px;left:-100px}
+    .bg-orb-2{width:380px;height:380px;background:radial-gradient(circle,rgba(255,191,0,0.25) 0%,transparent 70%);filter:blur(70px);top:30%;right:-80px}
+    .bg-orb-3{width:420px;height:420px;background:radial-gradient(circle,rgba(184,115,51,0.3) 0%,transparent 70%);filter:blur(90px);bottom:-120px;left:25%}
+    @media(max-width:768px){.bg-orb-1{width:260px;height:260px;filter:blur(50px)}.bg-orb-2{width:200px;height:200px;filter:blur(45px)}.bg-orb-3{width:230px;height:230px;filter:blur(55px)}}
+    .nav,.page{position:relative;z-index:1}
+
+    /* Status */
+    .status-card{border-radius:16px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:1rem;border:1px solid}
+    .status-free{background:linear-gradient(135deg,rgba(39,174,96,0.12),rgba(39,174,96,0.05));border-color:rgba(39,174,96,0.35)}
+    .status-busy{background:linear-gradient(135deg,rgba(231,76,60,0.12),rgba(231,76,60,0.05));border-color:rgba(231,76,60,0.35)}
+    .status-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0;animation:pdot 2s infinite}
+    .status-free .status-dot{background:#27ae60;box-shadow:0 0 8px rgba(39,174,96,0.6)}
+    .status-busy .status-dot{background:#e74c3c;box-shadow:0 0 8px rgba(231,76,60,0.6)}
+    @keyframes pdot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.7;transform:scale(1.2)}}
+
+    /* Play now */
+    .play-now-card{background:linear-gradient(135deg,rgba(39,174,96,0.15),rgba(39,174,96,0.05));border:1px solid rgba(39,174,96,0.4);border-radius:16px;padding:1.5rem;margin-bottom:1.25rem;display:none}
+    .play-now-card h3{color:#2ecc71;margin:0 0 .75rem;font-size:1.1rem}
+
+    /* Pills */
+    .pill-row{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.4rem}
+    .dpill{padding:.5rem 1.1rem;border-radius:99px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:var(--text-secondary);font-weight:600;font-size:.9rem;cursor:pointer;transition:all .15s;-webkit-appearance:none;font-family:inherit}
+    .dpill:hover{border-color:rgba(205,127,50,.5);color:var(--text-primary)}
+    .dpill.on{background:linear-gradient(135deg,#cd7f32,#b8732f);border-color:#cd7f32;color:#fff;box-shadow:0 2px 12px rgba(205,127,50,.4)}
+    .mpill{padding:.5rem 1.4rem;border-radius:99px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:var(--text-secondary);font-weight:600;cursor:pointer;transition:all .15s;-webkit-appearance:none;font-family:inherit}
+    .mpill.on{background:linear-gradient(135deg,rgba(205,127,50,.2),rgba(205,127,50,.08));border-color:rgba(205,127,50,.5);color:#cd7f32}
+    .pill-label{font-size:.8rem;color:var(--text-muted);margin-bottom:.3rem;text-transform:uppercase;letter-spacing:.06em}
+
+    /* Plan card */
+    .plan-card{background:var(--bg-secondary);border:1px solid var(--border-normal);border-radius:16px;padding:1.5rem;margin-bottom:1.25rem}
+    .plan-card h3{color:var(--bronze);margin:0 0 1.1rem;font-size:1.1rem}
+    .day-tabs{display:flex;gap:.5rem;margin-bottom:1rem}
+    .dtab{flex:1;padding:.65rem;border-radius:10px;border:1.5px solid var(--border-normal);background:transparent;color:var(--text-tertiary);font-weight:600;cursor:pointer;text-align:center;transition:all .15s;-webkit-appearance:none;font-family:inherit}
+    .dtab.on{background:rgba(205,127,50,.12);border-color:rgba(205,127,50,.4);color:#cd7f32}
+    .time-row{display:flex;align-items:center;gap:.75rem;margin-bottom:1rem}
+    input[type=time]{width:100%;padding:.7rem 1rem;background:var(--bg-elevated);border:1.5px solid var(--border-normal);border-radius:10px;color:var(--text-primary);font-size:1.1rem;font-weight:600;outline:none;-webkit-appearance:none;transition:border-color .15s;box-sizing:border-box;font-family:inherit}
+    input[type=time]:focus{border-color:rgba(205,127,50,.5);box-shadow:0 0 0 3px rgba(205,127,50,.1)}
+    .end-label{font-size:.85rem;color:var(--text-tertiary);white-space:nowrap;font-weight:500}
+
+    /* Conflict */
+    .conflict-box{display:none;padding:.6rem .85rem;border-radius:8px;background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:#e74c3c;font-size:.85rem;margin-bottom:1rem}
+
+    /* My resa */
+    .my-resa{background:linear-gradient(135deg,rgba(205,127,50,.15),rgba(205,127,50,.05));border:1px solid rgba(205,127,50,.4);border-radius:16px;padding:1.25rem 1.5rem;margin-bottom:1.25rem;display:none}
+    .my-resa h3{color:#cd7f32;margin:0 0 .5rem}
+
+    /* Timeline */
+    .timeline-wrap{background:var(--bg-secondary);border:1px solid var(--border-normal);border-radius:16px;padding:1.25rem 1.5rem;margin-bottom:1.25rem}
+    .tl-title{color:var(--text-secondary);font-size:.875rem;text-transform:uppercase;letter-spacing:.07em;margin:0 0 1rem}
+    .tl-bar{position:relative;height:36px;background:rgba(255,255,255,.04);border-radius:8px;overflow:hidden;margin-bottom:.4rem}
+    .tl-block{position:absolute;top:0;bottom:0;border-radius:6px;display:flex;align-items:center;padding:0 6px;font-size:.72rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+    .tl-block.mine{background:linear-gradient(135deg,#cd7f32,#b8732f);color:#fff}
+    .tl-block.theirs{background:rgba(231,76,60,.35);border:1px solid rgba(231,76,60,.5);color:#ff6b6b}
+    .tl-block.past{opacity:.35;filter:grayscale(.6)}
+    .tl-labels{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-muted);margin-top:2px}
+    .tl-now{position:absolute;top:0;bottom:0;width:2px;background:#cd7f32;z-index:2;display:none}
+    .tl-now::before{content:'';position:absolute;top:-3px;left:-3px;width:8px;height:8px;border-radius:50%;background:#cd7f32}
+
+    /* Next free */
+    .free-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem}
+    .free-pill{padding:.4rem .85rem;border-radius:99px;background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.3);color:#2ecc71;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s;-webkit-appearance:none;font-family:inherit}
+    .free-pill:hover{background:rgba(39,174,96,.2)}
+
+    /* Confirm btn */
+    .cbtn{width:100%;padding:1rem;border-radius:12px;border:none;background:linear-gradient(135deg,#cd7f32,#b8732f);color:#fff;font-size:1rem;font-weight:700;cursor:pointer;-webkit-appearance:none;transition:opacity .15s,transform .15s;margin-bottom:.75rem;font-family:inherit}
+    .cbtn:disabled{opacity:.4;cursor:not-allowed}
+    .cbtn:not(:disabled):active{transform:scale(.98)}
+    .cbtn.green{background:linear-gradient(135deg,#27ae60,#219a52)}
+
+    /* Separator */
+    .sep{display:flex;align-items:center;gap:.75rem;margin:.25rem 0 1.25rem;font-size:.8rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em}
+    .sep::before,.sep::after{content:'';flex:1;height:1px;background:var(--border-subtle)}
+
+    /* Toast */
+    .toast-wrap{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:.5rem;align-items:center;pointer-events:none}
+    .toast{background:var(--bg-elevated);border:1px solid var(--border-normal);border-radius:10px;padding:.65rem 1.25rem;font-size:.9rem;font-weight:600;color:var(--text-primary);box-shadow:0 4px 20px rgba(0,0,0,.4);animation:tin .25s ease;white-space:nowrap}
+    .toast.ok{border-color:rgba(39,174,96,.4);color:#2ecc71}
+    .toast.err{border-color:rgba(231,76,60,.4);color:#e74c3c}
+    @keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:6px}
+    @keyframes sp{to{transform:rotate(360deg)}}
+  </style>
 </head>
-<body style="font-family: 'DM Sans', sans-serif;">
+<body>
+<div class="bg-orb bg-orb-1" aria-hidden="true"></div>
+<div class="bg-orb bg-orb-2" aria-hidden="true"></div>
+<div class="bg-orb bg-orb-3" aria-hidden="true"></div>
 
 <nav class="nav nav-glass">
   <div class="nav-inner">
@@ -31,101 +115,125 @@
     </a>
     <div class="nav-sep"></div>
     <div class="nav-links">
-      <a href="/dashboard" class="nav-link"><span class="nav-link-icon" data-bficon="home" data-size="18" style="color:currentColor"></span><span>Dashboard</span></a>
-      <a href="/reservation" class="nav-link active"><span class="nav-link-icon" data-bficon="calendar" data-size="18" style="color:currentColor"></span><span>Réserver</span></a>
-      <a href="/live-score" class="nav-link"><span class="nav-link-icon" data-bficon="gamepad" data-size="18" style="color:currentColor"></span><span>Partie Live</span></a>
-      <a href="/stats" class="nav-link"><span class="nav-link-icon" data-bficon="stats" data-size="18" style="color:currentColor"></span><span>Stats</span></a>
-      <a href="/top" class="nav-link"><span class="nav-link-icon" data-bficon="trophy" data-size="18" style="color:currentColor"></span><span>Classement</span></a>
+      <a href="/dashboard" class="nav-link">Dashboard</a>
+      <a href="/reservation" class="nav-link active">Réserver</a>
+      <a href="/live-score" class="nav-link">Partie Live</a>
+      <a href="/stats" class="nav-link">Stats</a>
+      <a href="/top" class="nav-link">Classement</a>
     </div>
-    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
+    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu"><span></span><span></span><span></span></button>
     <div class="nav-right">
       <div class="user-profile-mini">
         <div class="nav-avatar" id="navAv">?</div>
         <span class="nav-username" id="navUsername"></span>
       </div>
-      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</button>
+      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()">Déconnexion</button>
     </div>
   </div>
 </nav>
 
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
-  <a href="/dashboard"><span data-bficon="home" data-size="16"></span> Dashboard</a>
-  <a href="/reservation" class="active"><span data-bficon="calendar" data-size="16"></span> Réserver</a>
-  <a href="/live-score"><span data-bficon="gamepad" data-size="16"></span> Partie Live</a>
-  <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
-  <a href="/top"><span data-bficon="trophy" data-size="16"></span> Classement</a>
-  <a href="#" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</a>
-  <button id="pwa-install-trigger" onclick="triggerPwaInstall()" style="display:none;width:100%;text-align:left;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));border:1px solid rgba(205,127,50,0.4);color:#cd7f32;font-weight:700;font-size:1rem;padding:0.9rem 1.25rem;border-radius:10px;cursor:pointer;margin-top:0.5rem;font-family:inherit;">📲 Installer l'app</button>
+  <a href="/dashboard">Dashboard</a>
+  <a href="/reservation" class="active">Réserver</a>
+  <a href="/live-score">Partie Live</a>
+  <a href="/stats">Stats</a>
+  <a href="/top">Classement</a>
+  <a href="#" onclick="logout()">Déconnexion</a>
+  <button id="pwa-install-trigger" onclick="triggerPwaInstall()" style="display:none;width:100%;text-align:left;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));border:1px solid rgba(205,127,50,0.4);color:#cd7f32;font-weight:700;font-size:1rem;padding:0.9rem 1.25rem;border-radius:10px;cursor:pointer;margin-top:0.5rem;font-family:inherit">📲 Installer l'app</button>
 </div>
 
 <div class="page">
-  <div class="container" style="max-width:900px">
-    <div class="page-header fade-up">
-      <h1><span data-bficon="calendar" data-size="20" style="color:var(--bronze);vertical-align:middle"></span> Réserver un créneau</h1>
-      <p>Créneaux de 25 minutes — Aujourd'hui et demain uniquement</p>
+  <div class="container" style="max-width:680px">
+
+    <div class="page-header" style="padding-top:1.5rem;padding-bottom:1rem;border-bottom:none">
+      <h1 style="font-size:1.6rem;font-weight:800">📅 Réservation</h1>
     </div>
 
-    <!-- Étape 1 : Jour -->
-    <div class="card fade-up" style="animation-delay:.05s;margin-bottom:1.5rem">
-      <div class="card-header"><h3>01 — Choisir le jour</h3></div>
-      <div class="card-body" style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
-        <button id="btnToday" class="btn btn-primary" onclick="selectDay(0)">Aujourd'hui</button>
-        <button id="btnTomorrow" class="btn btn-secondary" onclick="selectDay(1)">Demain</button>
-        <span id="dayLabel" style="font-size:0.9375rem;color:var(--text-secondary);margin-left:0.5rem;font-weight:600"></span>
+    <!-- Statut live -->
+    <div id="statusCard" class="status-card status-free">
+      <div class="status-dot"></div>
+      <div style="flex:1">
+        <div id="statusText" style="font-weight:700;color:var(--text-primary)">Chargement…</div>
+        <div id="statusSub" style="font-size:.82rem;color:var(--text-tertiary);margin-top:2px"></div>
       </div>
+      <div id="statusTime" style="font-size:.8rem;color:var(--text-muted)"></div>
     </div>
 
-    <!-- Étape 2 : Créneau -->
-    <div class="card fade-up" style="animation-delay:.08s;margin-bottom:1.5rem">
-      <div class="card-header">
-        <h3>02 — Choisir l'horaire <small style="font-weight:400;color:var(--text-tertiary);font-size:0.8125rem">(créneaux 25 min)</small></h3>
-        <span id="selectedBadge" style="display:none" class="tag tag-brn"></span>
-      </div>
-      <div class="card-body">
-        <div class="slot-grid" id="slotsGrid"></div>
-        <div style="margin-top:1rem;font-size:0.8125rem;color:var(--text-tertiary);display:flex;flex-wrap:wrap;gap:1rem">
-          <span style="display:inline-flex;align-items:center;gap:0.375rem">
-            <span style="width:12px;height:12px;background:var(--bg-tertiary);border:1px solid var(--border-normal);border-radius:4px"></span>
-            Disponible
-          </span>
-          <span style="display:inline-flex;align-items:center;gap:0.375rem">
-            <span style="width:12px;height:12px;background:linear-gradient(135deg,rgba(205,127,50,0.2),rgba(255,191,0,0.1));border:1px solid var(--bronze);border-radius:4px"></span>
-            Sélectionné
-          </span>
-          <span style="display:inline-flex;align-items:center;gap:0.375rem">
-            <span style="width:12px;height:12px;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(255,191,0,0.08));border:2px solid rgba(205,127,50,0.4);border-radius:4px"></span>
-            Mon créneau
-          </span>
-          <span style="display:inline-flex;align-items:center;gap:0.375rem">
-            <span style="width:12px;height:12px;background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:4px;opacity:0.5"></span>
-            Occupé
-          </span>
+    <!-- Ma réservation active -->
+    <div id="myResaCard" class="my-resa">
+      <h3>✅ Ma réservation</h3>
+      <div id="myResaInfo" style="color:var(--text-primary);font-weight:600;margin-bottom:.75rem"></div>
+      <button onclick="cancelMyResa()" style="padding:.45rem 1rem;border-radius:8px;border:1px solid rgba(231,76,60,.4);background:rgba(231,76,60,.1);color:#e74c3c;font-weight:600;font-size:.85rem;cursor:pointer;-webkit-appearance:none;font-family:inherit">Annuler ma réservation</button>
+    </div>
+
+    <!-- ⚡ JOUER MAINTENANT -->
+    <div id="playNowSection" class="play-now-card">
+      <h3>⚡ Jouer maintenant</h3>
+      <p style="color:var(--text-tertiary);font-size:.875rem;margin-bottom:1rem">Le babyfoot est libre — réservez en un tap</p>
+      <div style="margin-bottom:1rem">
+        <div class="pill-label">Durée</div>
+        <div class="pill-row">
+          <button class="dpill" onclick="setDur('now',5,this)">5 min</button>
+          <button class="dpill on" onclick="setDur('now',10,this)">10 min</button>
+          <button class="dpill" onclick="setDur('now',15,this)">15 min</button>
         </div>
       </div>
+      <div style="margin-bottom:1rem">
+        <div class="pill-label">Mode de jeu</div>
+        <div class="pill-row">
+          <button class="mpill on" id="mN1" onclick="setMode('now','1v1')">1v1</button>
+          <button class="mpill" id="mN2" onclick="setMode('now','2v2')">2v2</button>
+        </div>
+      </div>
+      <div id="nowPreview" style="font-size:.82rem;color:var(--text-tertiary);margin-bottom:.75rem"></div>
+      <button class="cbtn green" id="btnNow" onclick="playNow()">⚡ Jouer maintenant</button>
     </div>
 
-    <!-- Étape 3 : Mode -->
-    <div class="card fade-up" style="animation-delay:.1s;margin-bottom:1.5rem">
-      <div class="card-header"><h3>03 — Mode de jeu</h3></div>
-      <div class="card-body">
-        <p style="font-size:0.875rem;color:var(--text-tertiary);margin-bottom:1rem">
-          Les équipes seront définies lors du lancement de la partie
-        </p>
-        <div style="display:flex;gap:0.75rem">
-          <button id="m1v1" class="btn btn-primary" onclick="setMode('1v1')">1 vs 1</button>
-          <button id="m2v2" class="btn btn-secondary" onclick="setMode('2v2')">2 vs 2</button>
+    <div class="sep">Planifier</div>
+
+    <!-- 🗓 PLANIFIER -->
+    <div class="plan-card">
+      <h3>🗓 Réserver un créneau</h3>
+      <div class="day-tabs">
+        <button class="dtab on" id="tabT" onclick="setDay(0)">Aujourd'hui</button>
+        <button class="dtab" id="tabD" onclick="setDay(1)">Demain</button>
+      </div>
+      <div class="time-row">
+        <div style="flex:1"><input type="time" id="planTime" onchange="onTime()" oninput="onTime()"></div>
+        <div class="end-label" id="endLabel">→ fin : —</div>
+      </div>
+      <div style="margin-bottom:1rem">
+        <div class="pill-label">Durée</div>
+        <div class="pill-row">
+          <button class="dpill" onclick="setDur('plan',5,this)">5 min</button>
+          <button class="dpill on" onclick="setDur('plan',10,this)">10 min</button>
+          <button class="dpill" onclick="setDur('plan',15,this)">15 min</button>
         </div>
+      </div>
+      <div style="margin-bottom:1.1rem">
+        <div class="pill-label">Mode de jeu</div>
+        <div class="pill-row">
+          <button class="mpill on" id="mP1" onclick="setMode('plan','1v1')">1v1</button>
+          <button class="mpill" id="mP2" onclick="setMode('plan','2v2')">2v2</button>
+        </div>
+      </div>
+      <div id="conflict" class="conflict-box"></div>
+      <button class="cbtn" id="btnPlan" onclick="planReserve()">Confirmer la réservation</button>
+    </div>
+
+    <!-- Timeline -->
+    <div class="timeline-wrap">
+      <div class="tl-title" id="tlTitle">Aujourd'hui</div>
+      <div class="tl-bar" id="tlBar"><div class="tl-now" id="tlNow"></div></div>
+      <div class="tl-labels"><span>8h</span><span>10h</span><span>12h</span><span>14h</span><span>16h</span><span>18h</span><span>20h</span></div>
+      <div style="margin-top:.75rem">
+        <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.4rem">Prochains créneaux libres :</div>
+        <div class="free-row" id="freeRow"></div>
       </div>
     </div>
 
-    <!-- Bouton confirmer -->
-    <button id="confirmBtn" class="btn btn-primary btn-full btn-lg fade-up" style="animation-delay:.12s">
-      Confirmer la réservation
-    </button>
-    <div style="text-align:center;margin-top:1rem">
+    <div style="text-align:center;margin-bottom:2rem">
       <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
     </div>
   </div>
@@ -134,399 +242,189 @@
 <div class="toast-wrap" id="tw"></div>
 
 <script>
-let currentUser = '';
-let currentUserIsAdmin = false;
-let reservations = {};
-let selectedDayOffset = 0;
-let selectedSlot = null;
-let mode = '1v1';
+// ── État
+let ME = '', IS_ADMIN = false;
+let durNow = 10, modeNow = '1v1';
+let durPlan = 10, modePlan = '1v1';
+let dayOff = 0;
+let STATUS = null;
+let myId = null;
 
-const DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
-const MONTHS = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
-
-function toggleMenu() {
-  document.getElementById('burger').classList.toggle('open');
-  document.getElementById('mobileMenu').classList.toggle('open');
-  document.body.style.overflow = document.getElementById('mobileMenu').classList.contains('open') ? 'hidden' : '';
-}
-
-function logout() {
-  fetch('/api/logout', {method:'POST'}).then(() => location.href = '/');
-}
-
-function toast(msg, type='inf') {
-  const c = document.getElementById('tw');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.textContent = msg;
-  c.appendChild(t);
-  setTimeout(() => t.remove(), 3200);
-}
-
-function getDate(offset) {
-  const d = new Date();
-  d.setDate(d.getDate() + offset);
-  return d;
-}
-
-function getDayName(offset) {
-  const d = getDate(offset);
-  return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
-}
-
-function getDayKey(offset) {
-  return DAYS[getDate(offset).getDay()];
-}
-
-function selectDay(offset) {
-  selectedDayOffset = offset;
-  selectedSlot = null;
-  document.getElementById('selectedBadge').style.display = 'none';
-  document.getElementById('btnToday').className = offset === 0 ? 'btn btn-primary' : 'btn btn-secondary';
-  document.getElementById('btnTomorrow').className = offset === 1 ? 'btn btn-primary' : 'btn btn-secondary';
-  document.getElementById('dayLabel').textContent = getDayName(offset);
-  renderSlots();
-}
-
-function genSlots() {
-  const slots = [];
-  let t = 8 * 60;
-  while (t < 21 * 60) {
-    const h = Math.floor(t / 60), m = t % 60;
-    slots.push(String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0'));
-    t += 25;
-  }
-  return slots;
-}
-
-function renderSlots() {
-  const dayKey = getDayKey(selectedDayOffset);
-  const dayRes = reservations[dayKey] || {};
-  const slots = genSlots();
-  const grid = document.getElementById('slotsGrid');
-
-  grid.innerHTML = slots.map(s => {
-    const taken = dayRes[s];
-    const isMine = taken && taken.reserved_by === currentUser;
-    const isSelected = selectedSlot === s;
-
-    if (isMine) {
-      return `<div class="slot-pill mine" title="Votre réservation — cliquez pour annuler" onclick="cancelMySlot('${dayKey}','${s}',this)" style="cursor:pointer">${s}<br><span style="font-size:0.7rem;opacity:0.8">à vous · ✕ annuler</span></div>`;
-    }
-    if (taken) {
-      if (currentUserIsAdmin) {
-        // Admin : peut annuler n'importe quel créneau ou le sélectionner pour réserver à sa place
-        return `<div class="slot-pill" style="border:2px solid #e74c3c;background:rgba(231,76,60,0.1);cursor:pointer" title="Réservé par ${taken.reserved_by} — admin: cliquer pour annuler" onclick="adminCancelSlot('${dayKey}','${s}',this)">${s}<br><span style="font-size:0.7rem;color:#e74c3c">⚠ ${taken.reserved_by} · ✕</span></div>`;
-      }
-      return `<div class="slot-pill taken" title="Réservé par ${taken.reserved_by}" style="cursor:not-allowed">${s}<br><span style="font-size:0.7rem;opacity:0.6">${taken.reserved_by}</span></div>`;
-    }
-    return `<div class="slot-pill ${isSelected ? 'selected' : ''}" onclick="pickSlot('${s}')">${s}</div>`;
-  }).join('');
-}
-
-function pickSlot(s) {
-  selectedSlot = s;
-  const badge = document.getElementById('selectedBadge');
-  badge.textContent = `${getDayName(selectedDayOffset)} · ${s}`;
-  badge.style.display = 'inline-flex';
-  renderSlots();
-}
-
-function setMode(m) {
-  mode = m;
-  document.getElementById('m1v1').className = m === '1v1' ? 'btn btn-primary' : 'btn btn-secondary';
-  document.getElementById('m2v2').className = m === '2v2' ? 'btn btn-primary' : 'btn btn-secondary';
-}
-
-// Convertit la liste plate en dict {jour: {heure: {reserved_by}}}
-function buildReservationsDict(rows) {
-  const dict = {};
-  rows.forEach(r => {
-    if (!dict[r.day]) dict[r.day] = {};
-    dict[r.day][r.time] = { reserved_by: r.reserved_by, mode: r.mode };
-  });
-  return dict;
-}
-
-async function adminCancelSlot(dayKey, time, el) {
-  const taken = (reservations[dayKey] || {})[time];
-  const owner = taken ? taken.reserved_by : '?';
-  if (!confirm(`Annuler la réservation de ${owner} (${getDayName(selectedDayOffset)} à ${time}) ?`)) return;
-  el.style.opacity = '0.5';
-  try {
-    const r = await fetch('/cancel_reservation', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({day: dayKey, time})
-    }).then(x => x.json());
-    if (r.success) {
-      toast(`✓ Réservation de ${owner} annulée`, 'ok');
-      if (reservations[dayKey]) delete reservations[dayKey][time];
-      renderSlots();
-    } else {
-      toast(r.message || 'Erreur', 'err');
-      el.style.opacity = '1';
-    }
-  } catch {
-    toast('Erreur serveur', 'err');
-    el.style.opacity = '1';
-  }
-}
-
-async function cancelMySlot(dayKey, time, el) {
-  if (!confirm(`Annuler votre réservation du ${getDayName(selectedDayOffset)} à ${time} ?`)) return;
-  el.style.opacity = '0.5';
-  try {
-    const r = await fetch('/cancel_reservation', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({day: dayKey, time})
-    }).then(x => x.json());
-    if (r.success) {
-      toast('✓ Réservation annulée', 'ok');
-      if (reservations[dayKey]) delete reservations[dayKey][time];
-      renderSlots();
-    } else {
-      toast(r.message || 'Erreur', 'err');
-      el.style.opacity = '1';
-    }
-  } catch {
-    toast('Erreur serveur', 'err');
-    el.style.opacity = '1';
-  }
-}
-
-
-
-async function init() {
-  try {
-    const [ud, rows] = await Promise.all([
-      fetch('/current_user').then(r => r.json()),
-      fetch('/reservations_all').then(r => r.json())
-    ]);
-
-    currentUser = ud.username || '';
-    currentUserIsAdmin = ud.is_admin || false;
-    // /reservations_all retourne déjà {jour: {heure: {reserved_by, mode}}}
-    reservations = rows;
-
-    if (currentUser) {
-      document.getElementById('navAv').textContent = currentUser[0].toUpperCase();
-      document.getElementById('navUsername').textContent = currentUser;
-    }
-
-    selectDay(0);
-
-    // Attacher le bouton confirmer ici (après chargement des données)
-    document.getElementById('confirmBtn').addEventListener('click', async () => {
-      if (!selectedSlot) { toast('Sélectionnez un créneau', 'err'); return; }
-      const dayKey = getDayKey(selectedDayOffset);
-      const takenBy = (reservations[dayKey] || {})[selectedSlot];
-      if (takenBy && takenBy.reserved_by !== currentUser && !currentUserIsAdmin) {
-        toast(`Ce créneau est déjà pris par ${takenBy.reserved_by}`, 'err');
-        return;
-      }
-      const btn = document.getElementById('confirmBtn');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spin"></span> Réservation…';
-      try {
-        const r = await fetch('/save_reservation', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({day: dayKey, time: selectedSlot, team1: [], team2: [], mode})
-        }).then(x => x.json());
-        if (r.success) {
-          toast(`✓ Réservé : ${getDayName(selectedDayOffset)} à ${selectedSlot}`, 'ok');
-          if (!reservations[dayKey]) reservations[dayKey] = {};
-          reservations[dayKey][selectedSlot] = { reserved_by: currentUser, mode };
-          selectedSlot = null;
-          renderSlots();
-          setTimeout(() => window.location.href = '/dashboard', 1200);
-        } else {
-          toast(r.message || 'Erreur', 'err');
-          btn.disabled = false;
-          btn.textContent = 'Confirmer la réservation';
-        }
-      } catch {
-        toast('Erreur serveur', 'err');
-        btn.disabled = false;
-        btn.textContent = 'Confirmer la réservation';
-      }
-    });
-
-  } catch(e) {
-    console.error('Erreur init réservation:', e);
-    toast('Erreur de chargement', 'err');
-  }
-}
-
-init();
-</script>
-
-<script src="{{ url_for('static', filename='icons.js') }}"></script>
-  <script src="/static/pwa.js" defer></script>
-</body>
-</html>
-let durPlan=10, modePlan='1v1';
-let planDayOffset=0;
-let statusData=null, myResaId=null;
-
+// ── Helpers
 function toggleMenu(){document.getElementById('burger').classList.toggle('open');document.getElementById('mobileMenu').classList.toggle('open');document.body.style.overflow=document.getElementById('mobileMenu').classList.contains('open')?'hidden':'';}
 function logout(){fetch('/api/logout',{method:'POST'}).then(()=>location.href='/');}
+function toast(m,t='inf'){const c=document.getElementById('tw'),d=document.createElement('div');d.className='toast '+t;d.textContent=m;c.appendChild(d);setTimeout(()=>d.remove(),3000);}
+function hm(iso){if(!iso)return'—';const d=new Date(iso);return d.getHours().toString().padStart(2,'0')+'h'+d.getMinutes().toString().padStart(2,'0');}
+function hhmm(iso){if(!iso)return'—';const d=new Date(iso);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
 
-function toast(msg,type='inf'){const c=document.getElementById('tw');const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;c.appendChild(t);setTimeout(()=>t.remove(),3000);}
-
-function fmt(iso){if(!iso)return'—';const d=new Date(iso);return d.getHours().toString().padStart(2,'0')+'h'+d.getMinutes().toString().padStart(2,'0');}
-function fmtTime(iso){if(!iso)return'—';const d=new Date(iso);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
-
-function selectDur(ctx,val,el){
-  if(ctx==='now'){durNow=val;document.querySelectorAll('#durPillsNow .dur-pill').forEach(p=>p.classList.remove('active'));}
-  else{durPlan=val;document.querySelectorAll('#durPillsPlan .dur-pill').forEach(p=>p.classList.remove('active'));}
-  el.classList.add('active');
-  if(ctx==='now')updateNowPreview();else{onTimeChange();checkConflict();}
+// ── Sélecteurs pills
+function setDur(ctx,v,el){
+  if(ctx==='now'){durNow=v;document.querySelectorAll('.dpill').forEach(p=>{if(p.closest('#playNowSection'))p.classList.remove('on')});}
+  else{durPlan=v;document.querySelectorAll('.dpill').forEach(p=>{if(p.closest('.plan-card'))p.classList.remove('on')});}
+  el.classList.add('on');
+  if(ctx==='now')updatePreview();else{onTime();checkConflict();}
+}
+function setMode(ctx,v){
+  if(ctx==='now'){modeNow=v;document.getElementById('mN1').classList.toggle('on',v==='1v1');document.getElementById('mN2').classList.toggle('on',v==='2v2');}
+  else{modePlan=v;document.getElementById('mP1').classList.toggle('on',v==='1v1');document.getElementById('mP2').classList.toggle('on',v==='2v2');}
+}
+function setDay(off){
+  dayOff=off;
+  document.getElementById('tabT').classList.toggle('on',off===0);
+  document.getElementById('tabD').classList.toggle('on',off===1);
+  onTime();checkConflict();renderTL();renderFree();
 }
 
-function selectMode(ctx,val){
-  if(ctx==='now'){modeNow=val;document.getElementById('modeNow1v1').classList.toggle('active',val==='1v1');document.getElementById('modeNow2v2').classList.toggle('active',val==='2v2');}
-  else{modePlan=val;document.getElementById('modePlan1v1').classList.toggle('active',val==='1v1');document.getElementById('modePlan2v2').classList.toggle('active',val==='2v2');}
+// ── Preview "jouer maintenant"
+function updatePreview(){
+  const now=new Date(),end=new Date(now.getTime()+durNow*60000);
+  document.getElementById('nowPreview').textContent='De '+hhmm(now.toISOString())+' à '+hhmm(end.toISOString());
 }
 
-function selectPlanDay(offset){
-  planDayOffset=offset;
-  document.getElementById('tabToday').classList.toggle('active',offset===0);
-  document.getElementById('tabTomorrow').classList.toggle('active',offset===1);
-  onTimeChange();checkConflict();renderTimeline();
-}
-
-function updateNowPreview(){
-  const now=new Date();const end=new Date(now.getTime()+durNow*60000);
-  document.getElementById('nowEndPreview').textContent='De maintenant ('+fmtTime(now.toISOString())+') à '+fmtTime(end.toISOString());
-}
-
-function onTimeChange(){
-  const t=document.getElementById('planTime').value;
-  if(!t){document.getElementById('planEndLabel').textContent='→ fin : —';return;}
-  const[h,m]=t.split(':').map(Number);
-  const endM=m+durPlan,endH=h+Math.floor(endM/60),endMin=endM%60;
-  document.getElementById('planEndLabel').textContent='→ fin : '+String(endH).padStart(2,'0')+'h'+String(endMin).padStart(2,'0');
+// ── Time input → afficher heure de fin
+function onTime(){
+  const v=document.getElementById('planTime').value;
+  if(!v){document.getElementById('endLabel').textContent='→ fin : —';return;}
+  const [h,m]=v.split(':').map(Number);
+  const em=m+durPlan,eh=h+Math.floor(em/60),emin=em%60;
+  document.getElementById('endLabel').textContent='→ fin : '+String(eh).padStart(2,'0')+'h'+String(emin).padStart(2,'0');
   checkConflict();
 }
 
+// ── Vérif conflit côté client
 function checkConflict(){
-  const t=document.getElementById('planTime').value;const el=document.getElementById('planConflict');
-  if(!t||!statusData){el.style.display='none';return;}
-  const[h,m]=t.split(':').map(Number);
-  const base=new Date();if(planDayOffset===1)base.setDate(base.getDate()+1);
+  const v=document.getElementById('planTime').value,el=document.getElementById('conflict');
+  if(!v||!STATUS){el.style.display='none';return;}
+  const [h,m]=v.split(':').map(Number);
+  const base=new Date();if(dayOff===1)base.setDate(base.getDate()+1);
   base.setHours(h,m,0,0);
-  const startMs=base.getTime(),endMs=startMs+durPlan*60000;
-  const dayKey=planDayOffset===0?'all_today':'all_tomorrow';
-  for(const r of(statusData[dayKey]||[])){
-    if(r.reserved_by===currentUser)continue;
-    const rS=new Date(r.start_time).getTime(),rE=new Date(r.end_time).getTime();
-    if(startMs<rE&&endMs>rS){el.textContent='⚠ Conflit avec '+r.reserved_by+' ('+fmt(r.start_time)+'–'+fmt(r.end_time)+')';el.style.display='block';return;}
+  const sMs=base.getTime(),eMs=sMs+durPlan*60000;
+  // Créneau dans le passé ?
+  if(dayOff===0&&base<new Date()){el.textContent='⚠ Cette heure est déjà passée';el.style.display='block';return;}
+  // Chevauchement ?
+  const key=dayOff===0?'all_today':'all_tomorrow';
+  for(const r of(STATUS[key]||[])){
+    if(r.reserved_by===ME)continue;
+    const rs=new Date(r.start_time).getTime(),re=new Date(r.end_time).getTime();
+    if(sMs<re&&eMs>rs){el.textContent='⚠ Conflit avec '+r.reserved_by+' ('+hm(r.start_time)+'–'+hm(r.end_time)+')';el.style.display='block';return;}
   }
-  if(planDayOffset===0&&base<new Date()){el.textContent='⚠ Cette heure est déjà passée';el.style.display='block';return;}
   el.style.display='none';
 }
 
-async function refreshStatus(){
+// ── Refresh statut
+async function refresh(){
   try{
-    const data=await fetch('/api/babyfoot_status').then(r=>r.json());
-    statusData=data;updateStatusUI(data);findMyResa(data);renderTimeline();renderNextFree(data);updateNowPreview();
+    const d=await fetch('/api/babyfoot_status').then(r=>r.json());
+    STATUS=d;renderStatus(d);findMyResa(d);renderTL();renderFree();updatePreview();
   }catch(e){console.error(e);}
 }
 
-function updateStatusUI(data){
-  const card=document.getElementById('statusCard'),txt=document.getElementById('statusText'),sub=document.getElementById('statusSub');
-  document.getElementById('statusTime').textContent=fmtTime(data.server_time);
-  if(data.is_free){
-    card.className='status-card status-free';txt.textContent='✅ Babyfoot libre';
-    const nx=data.upcoming[0];
-    sub.textContent=nx?'Prochain : '+fmt(nx.start_time)+' ('+nx.reserved_by+')':'Aucune réservation prévue';
-    document.getElementById('playNowSection').style.display=myResaId?'none':'block';
+function renderStatus(d){
+  const card=document.getElementById('statusCard');
+  const txt=document.getElementById('statusText'),sub=document.getElementById('statusSub');
+  document.getElementById('statusTime').textContent=hhmm(d.server_time);
+  if(d.is_free){
+    card.className='status-card status-free';
+    txt.textContent='✅ Babyfoot libre';
+    const nx=d.upcoming[0];
+    sub.textContent=nx?'Prochain : '+hm(nx.start_time)+' ('+nx.reserved_by+')':'Aucune réservation prévue';
+    document.getElementById('playNowSection').style.display=myId?'none':'block';
   }else{
     card.className='status-card status-busy';
-    const cur=data.current,now=new Date();
-    txt.textContent='🔴 Occupé jusqu\'à '+fmt(cur.end_time);
-    sub.textContent='Par '+cur.reserved_by+' · encore '+Math.max(1,Math.ceil((new Date(cur.end_time)-now)/60000))+' min';
+    const cur=d.current,now=new Date();
+    txt.textContent='🔴 Occupé jusqu\'à '+hm(cur.end_time);
+    const rem=Math.max(1,Math.ceil((new Date(cur.end_time)-now)/60000));
+    sub.textContent='Par '+cur.reserved_by+' · encore '+rem+' min';
     document.getElementById('playNowSection').style.display='none';
   }
 }
 
-function findMyResa(data){
-  const all=[...(data.all_today||[]),...(data.all_tomorrow||[])];
+function findMyResa(d){
+  const all=[...(d.all_today||[]),...(d.all_tomorrow||[])];
   const now=new Date();
-  const mine=all.find(r=>r.reserved_by===currentUser&&new Date(r.end_time)>now);
+  const mine=all.find(r=>r.reserved_by===ME&&new Date(r.end_time)>now);
   const card=document.getElementById('myResaCard');
   if(mine){
-    myResaId=mine.id;
-    const isToday=new Date(mine.start_time).toDateString()===now.toDateString();
-    document.getElementById('myResaInfo').textContent=(isToday?"Aujourd'hui":'Demain')+' · '+fmt(mine.start_time)+' – '+fmt(mine.end_time)+' · '+(mine.duration_minutes||15)+' min · '+mine.mode;
+    myId=mine.id;
+    const today=new Date(mine.start_time).toDateString()===now.toDateString();
+    document.getElementById('myResaInfo').textContent=(today?"Aujourd'hui":'Demain')+' · '+hm(mine.start_time)+' – '+hm(mine.end_time)+' · '+(mine.duration_minutes||15)+' min · '+mine.mode;
     card.style.display='block';
-  }else{myResaId=null;card.style.display='none';}
+    document.getElementById('playNowSection').style.display='none';
+  }else{
+    myId=null;card.style.display='none';
+  }
 }
 
-function renderTimeline(){
-  if(!statusData)return;
-  const dayKey=planDayOffset===0?'all_today':'all_tomorrow';
-  const reservations=statusData[dayKey]||[];
-  const bar=document.getElementById('timelineBar'),nowLine=document.getElementById('nowLine');
-  document.getElementById('timelineTitle').textContent=planDayOffset===0?"Aujourd'hui":'Demain';
-  const START_H=8,END_H=21,TOTAL_MIN=(END_H-START_H)*60;
-  function toP(iso){const d=new Date(iso);const min=(d.getHours()-START_H)*60+d.getMinutes();return Math.max(0,Math.min(100,(min/TOTAL_MIN)*100));}
-  Array.from(bar.children).forEach(c=>{if(c!==nowLine)c.remove();});
+// ── Timeline
+function renderTL(){
+  if(!STATUS)return;
+  const key=dayOff===0?'all_today':'all_tomorrow';
+  const resas=STATUS[key]||[];
+  const bar=document.getElementById('tlBar'),nowEl=document.getElementById('tlNow');
+  document.getElementById('tlTitle').textContent=dayOff===0?"Aujourd'hui":'Demain';
+  const SH=8,EH=21,TOT=(EH-SH)*60;
+  function pct(iso){const d=new Date(iso);return Math.max(0,Math.min(100,((d.getHours()-SH)*60+d.getMinutes())/TOT*100));}
+  Array.from(bar.children).forEach(c=>{if(c!==nowEl)c.remove();});
   const now=new Date();
-  const nowMin=(now.getHours()-START_H)*60+now.getMinutes();
-  if(planDayOffset===0&&nowMin>=0&&nowMin<=TOTAL_MIN){nowLine.style.display='block';nowLine.style.left=((nowMin/TOTAL_MIN)*100)+'%';}
-  else{nowLine.style.display='none';}
-  reservations.forEach(r=>{
-    const left=toP(r.start_time),right=toP(r.end_time),width=right-left;
-    if(width<=0)return;
-    const block=document.createElement('div');block.className='timeline-block';
-    if(new Date(r.end_time)<now&&planDayOffset===0)block.classList.add('past');
-    block.classList.add(r.reserved_by===currentUser?'mine':'others');
-    block.style.left=left+'%';block.style.width=width+'%';
-    block.title=r.reserved_by+' · '+fmt(r.start_time)+'–'+fmt(r.end_time);
-    block.textContent=r.reserved_by===currentUser?'Vous':r.reserved_by;
-    block.onclick=()=>{
-      if(r.reserved_by!==currentUser){
+  const nm=(now.getHours()-SH)*60+now.getMinutes();
+  if(dayOff===0&&nm>=0&&nm<=TOT){nowEl.style.display='block';nowEl.style.left=(nm/TOT*100)+'%';}
+  else nowEl.style.display='none';
+  resas.forEach(r=>{
+    const l=pct(r.start_time),w=pct(r.end_time)-l;
+    if(w<=0)return;
+    const b=document.createElement('div');b.className='tl-block';
+    if(new Date(r.end_time)<now&&dayOff===0)b.classList.add('past');
+    b.classList.add(r.reserved_by===ME?'mine':'theirs');
+    b.style.left=l+'%';b.style.width=w+'%';
+    b.title=r.reserved_by+' · '+hm(r.start_time)+'–'+hm(r.end_time);
+    b.textContent=r.reserved_by===ME?'Vous':r.reserved_by;
+    b.onclick=()=>{
+      if(r.reserved_by!==ME){
         const e=new Date(r.end_time);
         document.getElementById('planTime').value=String(e.getHours()).padStart(2,'0')+':'+String(e.getMinutes()).padStart(2,'0');
-        onTimeChange();
+        onTime();
       }
     };
-    bar.appendChild(block);
+    bar.appendChild(b);
   });
 }
 
-function renderNextFree(data){
-  const container=document.getElementById('nextFreeSlots');
-  const dayKey=planDayOffset===0?'all_today':'all_tomorrow';
+// ── Prochains créneaux libres
+function renderFree(){
+  if(!STATUS)return;
+  const key=dayOff===0?'all_today':'all_tomorrow';
   const now=new Date();
-  let pointer=planDayOffset===0?new Date():new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,8,0);
-  const maxTime=new Date(pointer);maxTime.setHours(21,0,0,0);
-  const sorted=[...(data[dayKey]||[])].filter(r=>new Date(r.end_time)>now).sort((a,b)=>new Date(a.start_time)-new Date(b.start_time));
-  const suggestions=[];
+  let ptr=dayOff===0?new Date():new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,8,0);
+  const max=new Date(ptr);max.setHours(21,0,0,0);
+  const sorted=[...(STATUS[key]||[])].filter(r=>new Date(r.end_time)>now).sort((a,b)=>new Date(a.start_time)-new Date(b.start_time));
+  const sug=[];
   for(const r of sorted){
-    const rS=new Date(r.start_time),rE=new Date(r.end_time);
-    if(rS>pointer&&(rS-pointer)>=5*60000)suggestions.push(new Date(pointer));
-    if(rE>pointer)pointer=rE;
-    if(suggestions.length>=4)break;
+    const rs=new Date(r.start_time),re=new Date(r.end_time);
+    if(rs>ptr&&(rs-ptr)>=5*60000)sug.push(new Date(ptr));
+    if(re>ptr)ptr=re;
+    if(sug.length>=4)break;
   }
-  if(suggestions.length<4&&pointer<maxTime)suggestions.push(new Date(pointer));
-  container.innerHTML=suggestions.slice(0,4).map(s=>{
-    const h=String(s.getHours()).padStart(2,'0'),m=String(s.getMinutes()).padStart(2,'0');
-    return '<button class="next-free-pill" onclick="applyFreeSlot(\''+h+':'+m+'\')">'+h+'h'+m+'</button>';
-  }).join('')||'<span style="font-size:0.82rem;color:var(--text-muted)">Aucun créneau libre</span>';
+  if(sug.length<4&&ptr<max)sug.push(new Date(ptr));
+  const c=document.getElementById('freeRow');
+  c.innerHTML=sug.slice(0,4).map(s=>{
+    const hh=String(s.getHours()).padStart(2,'0'),mm=String(s.getMinutes()).padStart(2,'0');
+    return '<button class="free-pill" onclick="applySlot(\''+hh+':'+mm+'\')">'+hh+'h'+mm+'</button>';
+  }).join('')||'<span style="font-size:.82rem;color:var(--text-muted)">Aucun créneau libre</span>';
 }
 
-function applyFreeSlot(t){document.getElementById('planTime').value=t;onTimeChange();document.getElementById('planTime').scrollIntoView({behavior:'smooth',block:'center'});}
+function applySlot(t){
+  document.getElementById('planTime').value=t;
+  onTime();
+  document.getElementById('planTime').scrollIntoView({behavior:'smooth',block:'center'});
+}
 
+// ── Actions
 async function playNow(){
-  const btn=document.getElementById('btnPlayNow');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Réservation…';
+  const btn=document.getElementById('btnNow');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Réservation…';
   try{
     const r=await fetch('/api/reserve_now',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({duration:durNow,mode:modeNow})}).then(x=>x.json());
-    if(r.success){toast('✅ Réservé jusqu\'à '+fmt(r.end),'ok');await refreshStatus();}
+    if(r.success){toast('✅ Réservé jusqu\'à '+hm(r.end),'ok');await refresh();}
     else toast(r.message||'Erreur','err');
   }catch(e){toast('Erreur réseau','err');}
   btn.disabled=false;btn.innerHTML='⚡ Jouer maintenant';
@@ -535,46 +433,54 @@ async function playNow(){
 async function planReserve(){
   const t=document.getElementById('planTime').value;
   if(!t){toast('Choisissez une heure','err');return;}
-  if(document.getElementById('planConflict').style.display!=='none'){toast('Résolvez le conflit d\'abord','err');return;}
-  const dateObj=new Date();if(planDayOffset===1)dateObj.setDate(dateObj.getDate()+1);
+  if(document.getElementById('conflict').style.display!=='none'){toast('Résolvez le conflit d\'abord','err');return;}
+  const dateObj=new Date();if(dayOff===1)dateObj.setDate(dateObj.getDate()+1);
   const dateStr=dateObj.toISOString().split('T')[0];
-  const btn=document.getElementById('btnPlan');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Réservation…';
+  const btn=document.getElementById('btnPlan');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Réservation…';
   try{
     const r=await fetch('/api/reserve_plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({start_time:t,date:dateStr,duration:durPlan,mode:modePlan})}).then(x=>x.json());
-    if(r.success){toast('✅ Réservé : '+fmt(r.start)+' – '+fmt(r.end),'ok');document.getElementById('planTime').value='';document.getElementById('planEndLabel').textContent='→ fin : —';await refreshStatus();}
-    else toast(r.message||'Erreur','err');
+    if(r.success){
+      toast('✅ Réservé : '+hm(r.start)+' – '+hm(r.end),'ok');
+      document.getElementById('planTime').value='';
+      document.getElementById('endLabel').textContent='→ fin : —';
+      await refresh();
+    }else toast(r.message||'Erreur','err');
   }catch(e){toast('Erreur réseau','err');}
   btn.disabled=false;btn.textContent='Confirmer la réservation';
 }
 
 async function cancelMyResa(){
-  if(!myResaId)return;
+  if(!myId)return;
   if(!confirm('Annuler votre réservation ?'))return;
   try{
-    const r=await fetch('/api/cancel_reservation_v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:myResaId})}).then(x=>x.json());
-    if(r.success){toast('✅ Annulée','ok');await refreshStatus();}
+    const r=await fetch('/api/cancel_reservation_v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:myId})}).then(x=>x.json());
+    if(r.success){toast('✅ Annulée','ok');await refresh();}
     else toast(r.message||'Erreur','err');
   }catch(e){toast('Erreur réseau','err');}
 }
 
+// ── Init
 async function init(){
   try{
-    const user=await fetch('/current_user').then(r=>r.json());
-    if(!user){location.href='/login';return;}
-    currentUser=user.username;isAdmin=user.is_admin;
-    document.getElementById('navAv').textContent=user.username[0].toUpperCase();
-    document.getElementById('navUsername').textContent=user.username;
+    const u=await fetch('/current_user').then(r=>r.json());
+    if(!u){location.href='/login';return;}
+    ME=u.username;IS_ADMIN=u.is_admin;
+    document.getElementById('navAv').textContent=u.username[0].toUpperCase();
+    document.getElementById('navUsername').textContent=u.username;
   }catch(e){console.error(e);}
+  // Heure par défaut = prochain multiple de 5
   const now=new Date();
-  const nm=Math.ceil(now.getMinutes()/5)*5;
+  const nm=Math.ceil((now.getMinutes()+1)/5)*5;
   const nh=now.getHours()+Math.floor(nm/60);
   document.getElementById('planTime').value=String(nh%24).padStart(2,'0')+':'+String(nm%60).padStart(2,'0');
-  await refreshStatus();
-  onTimeChange();
-  setInterval(refreshStatus,30000);
+  await refresh();
+  onTime();
+  setInterval(refresh,30000);
 }
 init();
 </script>
+
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
 <script src="/static/pwa.js" defer></script>
 </body>
