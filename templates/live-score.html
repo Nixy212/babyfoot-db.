@@ -375,14 +375,19 @@ function showWinner(game) {
   document.getElementById('winnerSub').textContent = `Score final : ${winnerScore} - ${loserScore}`;
   document.getElementById('winnerOverlay').style.display = 'flex';
   
-  // Lancer les confettis de victoire
+  // 🎉 MEGA confettis de victoire
   if (typeof launchConfetti === 'function') {
-    launchConfetti(4000, 150);
+    launchConfetti(5000, 300); // 5 secondes, 300 confettis !
+    // Relancer des confettis toutes les secondes pendant 5 secondes
+    setTimeout(() => launchConfetti(1000, 50), 500);
+    setTimeout(() => launchConfetti(1000, 50), 1500);
+    setTimeout(() => launchConfetti(1000, 50), 2500);
+    setTimeout(() => launchConfetti(1000, 50), 3500);
   }
 
   setTimeout(() => {
     document.getElementById('winnerOverlay').style.display = 'none';
-  }, 4000);
+  }, 5000); // 5 secondes au lieu de 4
 }
 
 // ── Socket events ──
