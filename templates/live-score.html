@@ -397,6 +397,11 @@ function showWinner(game) {
 
 // ── Socket events ──
 socket.on('game_started', () => {
+  // Fermer tous les overlays/popups
+  document.getElementById('winnerOverlay').style.display = 'none';
+  document.getElementById('rematchPopup').style.display = 'none';
+  if (winnerOverlayTimer) { clearTimeout(winnerOverlayTimer); winnerOverlayTimer = null; }
+  // Recharger l'état du jeu
   checkActiveGame();
 });
 

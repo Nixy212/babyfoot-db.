@@ -107,12 +107,17 @@ fetch('/current_user').then(r => r.json()).then(d => {
 async function loadScores() {
   const container = document.getElementById('scoresGrid');
   try {
-    const scores = await fetch('/scores_all').then(r => r.json());
+    const res = await fetch('/scores_all');
+    if (res.status === 401) {
+      window.location.href = '/login';
+      return;
+    }
+    const scores = await res.json();
 
     if (!scores || scores.length === 0) {
       container.innerHTML = `
         <div style="padding:3rem;text-align:center">
-          <div style="font-size:3rem;margin-bottom:1rem;opacity:0.3"><i class="fas fa-gamepad"></i></div>
+          <div style="margin-bottom:1rem;opacity:0.3;display:flex;justify-content:center"><span data-bficon="gamepad" data-size="64" style="color:var(--text-tertiary)"></span></div>
           <p style="color:var(--text-tertiary);margin-bottom:1.5rem">Aucune partie jouée pour le moment</p>
           <a href="/live-score" class="btn btn-primary">Démarrer une partie</a>
         </div>
@@ -121,9 +126,19 @@ async function loadScores() {
     }
 
     container.innerHTML = scores.map(entry => {
-      const date = new Date(entry.date);
-      const dateStr = date.toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'});
-      const timeStr = date.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+      // Parsing robuste de la date
+      let dateStr = '—', timeStr = '';
+      if (entry.date) {
+        try {
+          const date = new Date(entry.date);
+          if (!isNaN(date.getTime())) {
+            dateStr = date.toLocaleDateString('fr-FR', {day:'2-digit', month:'long', year:'numeric'});
+            timeStr = date.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
+          }
+        } catch(e) {
+          dateStr = entry.date;
+        }
+      }
 
       const t1 = parsePlayers(entry.team1_players);
       const t2 = parsePlayers(entry.team2_players);
@@ -135,12 +150,12 @@ async function loadScores() {
       return `
         <div class="score-card">
           <div class="score-header">
-            <div class="score-date">${dateStr} · ${timeStr}</div>
+            <div class="score-date">${dateStr}${timeStr ? ' · ' + timeStr : ''}</div>
             <div style="font-size:0.75rem;color:var(--text-tertiary)">${entry.mode || '2v2'}</div>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;gap:1rem">
             <div style="flex:1">
-              <div style="font-weight:700;color:#22c55e;font-size:0.85rem;margin-bottom:0.2rem"><i class="fas fa-trophy"></i> Vainqueurs</div>
+              <div style="font-weight:700;color:#22c55e;font-size:0.85rem;margin-bottom:0.2rem"><span data-bficon="trophy" data-size="14" style="color:#22c55e;vertical-align:middle"></span> Vainqueurs</div>
               <div style="font-weight:600;color:var(--text-primary)">${winnerTeam.join(' & ')}</div>
             </div>
             <div style="font-family:'Space Mono',monospace;font-size:1.5rem;font-weight:900;color:var(--bronze);white-space:nowrap">
@@ -155,12 +170,15 @@ async function loadScores() {
       `;
     }).join('');
 
+    // Réinit icônes SVG pour le contenu injecté dynamiquement
+    if (window.initBFIcons) initBFIcons(container);
+
   } catch(e) {
     console.error(e);
     container.innerHTML = `
       <div style="padding:3rem;text-align:center">
         <div style="font-size:3rem;margin-bottom:1rem;opacity:0.3">⚠️</div>
-        <p style="color:var(--text-tertiary)">Erreur de chargement des scores</p>
+        <p style="color:var(--text-tertiary)">Erreur de chargement des scores — ${e.message}</p>
       </div>
     `;
   }

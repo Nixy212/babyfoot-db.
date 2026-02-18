@@ -277,7 +277,6 @@ async function cancelMySlot(dayKey, time, el) {
     }).then(x => x.json());
     if (r.success) {
       toast('✓ Réservation annulée', 'ok');
-      // Mettre à jour localement
       if (reservations[dayKey]) delete reservations[dayKey][time];
       renderSlots();
     } else {
@@ -291,43 +290,6 @@ async function cancelMySlot(dayKey, time, el) {
 }
 
 
-  if (!selectedSlot) { toast('Sélectionnez un créneau', 'err'); return; }
-  const dayKey = getDayKey(selectedDayOffset);
-  // Vérification locale : créneau déjà pris par quelqu'un d'autre ?
-  const takenBy = (reservations[dayKey] || {})[selectedSlot];
-  if (takenBy && takenBy.reserved_by !== currentUser && !currentUserIsAdmin) {
-    toast(`Ce créneau est déjà pris par ${takenBy.reserved_by}`, 'err');
-    return;
-  }
-  const btn = document.getElementById('confirmBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spin"></span> Réservation…';
-  try {
-    const r = await fetch('/save_reservation', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({day: dayKey, time: selectedSlot, team1: [], team2: [], mode})
-    }).then(x => x.json());
-
-    if (r.success) {
-      toast(`✓ Réservé : ${getDayName(selectedDayOffset)} à ${selectedSlot}`, 'ok');
-      // Mettre à jour localement pour refléter immédiatement
-      if (!reservations[dayKey]) reservations[dayKey] = {};
-      reservations[dayKey][selectedSlot] = { reserved_by: currentUser, mode };
-      selectedSlot = null;
-      renderSlots();
-      setTimeout(() => window.location.href = '/dashboard', 1200);
-    } else {
-      toast(r.message || 'Erreur', 'err');
-      btn.disabled = false;
-      btn.textContent = 'Confirmer la réservation';
-    }
-  } catch {
-    toast('Erreur serveur', 'err');
-    btn.disabled = false;
-    btn.textContent = 'Confirmer la réservation';
-  }
-});
 
 async function init() {
   try {
@@ -346,6 +308,44 @@ async function init() {
     }
 
     selectDay(0);
+
+    // Attacher le bouton confirmer ici (après chargement des données)
+    document.getElementById('confirmBtn').addEventListener('click', async () => {
+      if (!selectedSlot) { toast('Sélectionnez un créneau', 'err'); return; }
+      const dayKey = getDayKey(selectedDayOffset);
+      const takenBy = (reservations[dayKey] || {})[selectedSlot];
+      if (takenBy && takenBy.reserved_by !== currentUser && !currentUserIsAdmin) {
+        toast(`Ce créneau est déjà pris par ${takenBy.reserved_by}`, 'err');
+        return;
+      }
+      const btn = document.getElementById('confirmBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spin"></span> Réservation…';
+      try {
+        const r = await fetch('/save_reservation', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({day: dayKey, time: selectedSlot, team1: [], team2: [], mode})
+        }).then(x => x.json());
+        if (r.success) {
+          toast(`✓ Réservé : ${getDayName(selectedDayOffset)} à ${selectedSlot}`, 'ok');
+          if (!reservations[dayKey]) reservations[dayKey] = {};
+          reservations[dayKey][selectedSlot] = { reserved_by: currentUser, mode };
+          selectedSlot = null;
+          renderSlots();
+          setTimeout(() => window.location.href = '/dashboard', 1200);
+        } else {
+          toast(r.message || 'Erreur', 'err');
+          btn.disabled = false;
+          btn.textContent = 'Confirmer la réservation';
+        }
+      } catch {
+        toast('Erreur serveur', 'err');
+        btn.disabled = false;
+        btn.textContent = 'Confirmer la réservation';
+      }
+    });
+
   } catch(e) {
     console.error('Erreur init réservation:', e);
     toast('Erreur de chargement', 'err');

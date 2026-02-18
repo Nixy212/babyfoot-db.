@@ -533,9 +533,11 @@ def user_stats(username):
 @app.route("/scores_all")
 @handle_errors
 def scores_all():
+    if "username" not in session:
+        return jsonify({"error": "Non connecté"}), 401
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT * FROM games ORDER BY date DESC LIMIT 50")
+    cur.execute("SELECT * FROM games ORDER BY date DESC LIMIT 100")
     rows = cur.fetchall()
     cur.close(); conn.close()
     result = []
@@ -551,6 +553,11 @@ def scores_all():
             except: t2 = [t2]
         r['team1_players'] = t1
         r['team2_players'] = t2
+        # Sérialiser la date en string ISO si c'est un objet datetime
+        if 'date' in r and hasattr(r['date'], 'isoformat'):
+            r['date'] = r['date'].isoformat()
+        elif 'date' not in r or r['date'] is None:
+            r['date'] = ''
         result.append(r)
     return jsonify(result)
 
@@ -1129,14 +1136,38 @@ def handle_vote_rematch(data):
         socketio.emit('rematch_cancelled', {}, namespace='/')
         rematch_votes = {"team1": [], "team2": []}
         return
+
+    # Si admin ou started_by → on force le rematch directement
+    if is_admin(username) or username == current_game.get('started_by'):
+        current_game = {
+            "team1_score": 0, "team2_score": 0,
+            "team1_players": current_game['team1_players'],
+            "team2_players": current_game['team2_players'],
+            "active": True, "started_by": current_game.get('started_by'),
+            "reserved_by": current_game.get('reserved_by'),
+            "started_at": datetime.now().isoformat()
+        }
+        rematch_votes = {"team1": [], "team2": []}
+        servo_commands["servo1"].append("open")
+        servo_commands["servo2"].append("open")
+        socketio.emit('game_started', current_game, namespace='/')
+        socketio.emit('servo1_unlock', {}, namespace='/')
+        socketio.emit('servo2_unlock', {}, namespace='/')
+        return
+
     team = None
     if username in current_game.get('team1_players', []): team = 'team1'
     elif username in current_game.get('team2_players', []): team = 'team2'
     if not team:
         emit('error', {'message': 'Pas dans cette partie'}); return
     if username not in rematch_votes[team]: rematch_votes[team].append(username)
-    if (len(rematch_votes['team1']) == len(current_game['team1_players']) and
-            len(rematch_votes['team2']) == len(current_game['team2_players'])):
+
+    t1_needed = len(current_game['team1_players'])
+    t2_needed = len(current_game['team2_players'])
+    t1_voted = len(rematch_votes['team1'])
+    t2_voted = len(rematch_votes['team2'])
+
+    if t1_voted >= t1_needed and t2_voted >= t2_needed:
         current_game = {
             "team1_score": 0, "team2_score": 0,
             "team1_players": current_game['team1_players'],
