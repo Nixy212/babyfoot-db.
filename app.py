@@ -1038,6 +1038,31 @@ def cancel_reservation_v2():
     conn.close()
     return jsonify({"success": bool(deleted)})
 
+@app.route("/api/reserve_and_lobby", methods=["POST"])
+@handle_errors
+def reserve_and_lobby():
+    """Reserver maintenant puis rediriger vers le lobby (bouton 'Jouer maintenant')."""
+    if "username" not in session:
+        return jsonify({"success": False, "message": "Non authentifie"}), 401
+    data = request.get_json(silent=True) or {}
+    try:
+        duration = int(data.get("duration", 15))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "message": "Duree invalide"}), 400
+    mode = data.get("mode", "1v1")
+    username = session["username"]
+    if duration not in [5, 10, 15]:
+        return jsonify({"success": False, "message": "Duree invalide (5, 10 ou 15 min)"}), 400
+    now = datetime.now()
+    start_time = now
+    end_time = now + timedelta(minutes=duration)
+    result = _do_reservation(username, start_time, end_time, duration, mode)
+    # _do_reservation retourne une Response Flask — on extrait le JSON
+    result_data = result.get_json() if hasattr(result, 'get_json') else {}
+    if result_data and result_data.get("success"):
+        return jsonify({"success": True, "redirect": "/lobby"})
+    return result
+
 @app.route("/api/reserve_now", methods=["POST"])
 @handle_errors
 def reserve_now():
