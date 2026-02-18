@@ -639,7 +639,7 @@ def leaderboard():
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("SELECT username, total_goals, total_games FROM users ORDER BY total_goals DESC LIMIT 10")
+        cur.execute("SELECT username, total_goals, total_games FROM users ORDER BY total_goals DESC")
         rows = cur.fetchall()
     finally:
         cur.close(); conn.close()
@@ -693,6 +693,10 @@ def scores_all():
         return jsonify({"error": "Non connecté"}), 401
     conn = get_db_connection()
     cur = conn.cursor()
+    # Compter le total de parties pour numéroter dans le bon sens
+    cur.execute("SELECT COUNT(*) as cnt FROM games")
+    count_row = cur.fetchone()
+    total = (count_row[0] if isinstance(count_row, tuple) else list(count_row.values())[0]) if count_row else 0
     cur.execute("SELECT * FROM games ORDER BY date DESC LIMIT 100")
     rows = cur.fetchall()
     cur.close(); conn.close()
@@ -715,7 +719,7 @@ def scores_all():
         elif 'date' not in r or r['date'] is None:
             r['date'] = ''
         result.append(r)
-    return jsonify(result)
+    return jsonify({"games": result, "total": total})
 
 @app.route("/admin/reset_database", methods=["POST"])
 def admin_reset_database():
