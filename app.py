@@ -1085,23 +1085,25 @@ def reserve_plan():
     except Exception:
         return jsonify({"success": False, "message": "Format d'heure invalide"}), 400
     now = datetime.now()
-    # Refuser les reservations dans le passe
-    if start_time < now - timedelta(minutes=1):
+    # Refuser les reservations dans le passe (sauf admin)
+    if not is_admin(username) and start_time < now - timedelta(minutes=1):
         return jsonify({"success": False, "message": "Impossible de reserver dans le passe"}), 400
-    # Refuser si au-dela de demain (uniquement aujourd'hui et demain)
-    max_date = (now + timedelta(days=2)).date()
-    if start_time.date() >= max_date:
-        return jsonify({"success": False, "message": "Reservation limitee a aujourd'hui et demain"}), 400
+    # Refuser si au-dela de demain (uniquement aujourd'hui et demain) — sauf admin
+    if not is_admin(username):
+        max_date = (now + timedelta(days=2)).date()
+        if start_time.date() >= max_date:
+            return jsonify({"success": False, "message": "Reservation limitee a aujourd'hui et demain"}), 400
     end_time = start_time + timedelta(minutes=duration)
     return _do_reservation(username, start_time, end_time, duration, mode)
 
 def _do_reservation(username, start_time, end_time, duration, mode):
     """Logique commune de reservation avec verification anti-chevauchement."""
-    # Double verification : seulement aujourd'hui et demain
     now = datetime.now()
-    max_date = (now + timedelta(days=2)).date()
-    if start_time.date() >= max_date:
-        return jsonify({"success": False, "message": "Reservation limitee a aujourd'hui et demain"}), 400
+    # Double verification : seulement aujourd'hui et demain (sauf admin)
+    if not is_admin(username):
+        max_date = (now + timedelta(days=2)).date()
+        if start_time.date() >= max_date:
+            return jsonify({"success": False, "message": "Reservation limitee a aujourd'hui et demain"}), 400
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -1121,7 +1123,7 @@ def _do_reservation(username, start_time, end_time, duration, mode):
                     "SELECT COUNT(*) as cnt FROM reservations WHERE reserved_by = ? AND end_time > ?",
                     (username, now.isoformat())
                 )
-            row = row_to_dict(cur.fetchone())
+            row = row_to_dict(cur.fetchone()) or {}
             if int(row.get('cnt') or row.get('count') or 0) >= 3:
                 return jsonify({"success": False, "message": "Maximum 3 reservations actives"}), 400
 
