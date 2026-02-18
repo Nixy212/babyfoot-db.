@@ -33,19 +33,16 @@ app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
 
 # ── CORS ─────────────────────────────────────────────────────
-# En production Railway, on restreint aux domaines connus. En dev, on accepte tout.
-_railway_url = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
-_allowed_origins = f"https://{_railway_url}" if _railway_url else "*"
-if _allowed_origins == "*":
-    logger.warning("⚠️  CORS Socket.IO ouvert à tous les domaines (mode dev). Définissez RAILWAY_PUBLIC_DOMAIN en prod.")
-
-socketio = SocketIO(app, cors_allowed_origins=_allowed_origins,
-                    logger=False, engineio_logger=False,  # Désactiver les logs verbeux en prod
-                    ping_timeout=45,   # Détecte déconnexion plus vite (était 60s)
-                    ping_interval=20,  # Heartbeat plus fréquent pour mauvais réseau (était 25s)
+# On accepte toutes les origines pour garantir la compatibilite Railway.
+# Railway utilise des proxies qui peuvent modifier les headers Origin.
+socketio = SocketIO(app, cors_allowed_origins="*",
+                    logger=False, engineio_logger=False,
+                    ping_timeout=45,
+                    ping_interval=20,
                     async_mode="eventlet",
                     manage_session=True,
-                    max_http_buffer_size=1_000_000)  # 1MB max par message
+                    allow_upgrades=True,
+                    max_http_buffer_size=1_000_000)
 
 # ── Service Worker servi depuis /sw.js ───────────────────────
 @app.route('/sw.js')
@@ -1520,12 +1517,7 @@ def save_game_results(game):
     except Exception as e:
         logger.error(f"Erreur save_game_results: {e}")
 
-if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
-
 # ── WSGI pour gunicorn + eventlet ────────────────────────────
-# IMPORTANT : gunicorn doit pointer sur `application`, pas sur `app`.
-# Socket.IO avec eventlet nécessite que l'objet WSGI soit le socketio lui-même,
-# pas l'app Flask, sinon les WebSockets ne fonctionnent pas.
-# Commande : gunicorn --config gunicorn_config.py app:application
-application = socketio
+# Gunicorn avec worker_class=eventlet gère automatiquement SocketIO.
+# Il faut pointer sur app:app (l'objet Flask), pas sur socketio.
+# Commande : gunicorn --config gunicorn_config.py app:app
