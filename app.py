@@ -395,6 +395,35 @@ def validate_password(p):
     if len(p) < 6: raise ValueError("Minimum 6 caracteres")
     return p
 
+
+def migrate_reservations_v2():
+    """Ajoute les colonnes start_time, end_time, duration_minutes si elles n'existent pas."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        if USE_POSTGRES:
+            cur.execute("""
+                ALTER TABLE reservations
+                ADD COLUMN IF NOT EXISTS start_time TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS end_time TIMESTAMP,
+                ADD COLUMN IF NOT EXISTS duration_minutes INTEGER DEFAULT 15
+            """)
+        else:
+            # SQLite : vérifier colonne par colonne
+            cur.execute("PRAGMA table_info(reservations)")
+            cols = [row[1] for row in cur.fetchall()]
+            if 'start_time' not in cols:
+                cur.execute("ALTER TABLE reservations ADD COLUMN start_time TEXT")
+            if 'end_time' not in cols:
+                cur.execute("ALTER TABLE reservations ADD COLUMN end_time TEXT")
+            if 'duration_minutes' not in cols:
+                cur.execute("ALTER TABLE reservations ADD COLUMN duration_minutes INTEGER DEFAULT 15")
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        logger.warning(f"Migration v2: {e}")
+
 def has_active_reservation(username):
     try:
         conn = get_db_connection()
@@ -426,6 +455,7 @@ def has_active_reservation(username):
 
 try:
     init_database()
+    migrate_reservations_v2()
     seed_accounts()
     schedule_cleanup()
     schedule_zombie_game_cleanup()
@@ -952,6 +982,223 @@ def reservations_today():
         cur.close()
         conn.close()
     return jsonify(today_rows + tomorrow_rows)
+
+
+@app.route("/api/babyfoot_status")
+@handle_errors
+def babyfoot_status():
+    """Retourne l'état actuel du babyfoot : libre ou occupé + prochaines réservations."""
+    if "username" not in session:
+        return jsonify({"error": "Non connecté"}), 401
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        now = datetime.now()
+        now_iso = now.isoformat()
+        # Récupérer toutes les réservations d'aujourd'hui et demain avec start/end
+        today = now.date()
+        tomorrow = (now + timedelta(days=1)).date()
+        if USE_POSTGRES:
+            cur.execute("""
+                SELECT id, day, time, mode, reserved_by, start_time, end_time, duration_minutes
+                FROM reservations
+                WHERE start_time >= %s AND start_time < %s
+                ORDER BY start_time ASC
+            """, (today.isoformat(), (tomorrow + timedelta(days=1)).isoformat()))
+        else:
+            cur.execute("""
+                SELECT id, day, time, mode, reserved_by, start_time, end_time, duration_minutes
+                FROM reservations
+                WHERE start_time >= ? AND start_time < ?
+                ORDER BY start_time ASC
+            """, (today.isoformat(), (tomorrow + timedelta(days=1)).isoformat()))
+        rows = [row_to_dict(r) for r in cur.fetchall()]
+    finally:
+        cur.close()
+        conn.close()
+
+    # Trouver la réservation active maintenant
+    current = None
+    upcoming = []
+    now_str = now.isoformat()
+    for r in rows:
+        st = r.get('start_time', '')
+        et = r.get('end_time', '')
+        if st and et:
+            if st <= now_str <= et:
+                current = r
+            elif st > now_str:
+                upcoming.append(r)
+
+    return jsonify({
+        "is_free": current is None,
+        "current": current,
+        "upcoming": upcoming[:5],
+        "all_today": [r for r in rows if r.get('start_time','')[:10] == today.isoformat()],
+        "all_tomorrow": [r for r in rows if r.get('start_time','')[:10] == tomorrow.isoformat()],
+        "server_time": now_str
+    })
+
+
+@app.route("/api/reserve_now", methods=["POST"])
+@handle_errors
+def reserve_now():
+    """Réserver maintenant pour X minutes (5, 10 ou 15)."""
+    if "username" not in session:
+        return jsonify({"success": False, "message": "Non authentifié"}), 401
+    data = request.get_json(silent=True) or {}
+    duration = int(data.get("duration", 15))
+    mode = data.get("mode", "1v1")
+    username = session["username"]
+
+    if duration not in [5, 10, 15]:
+        return jsonify({"success": False, "message": "Durée invalide (5, 10 ou 15 min)"}), 400
+
+    now = datetime.now()
+    start_time = now
+    end_time = now + timedelta(minutes=duration)
+
+    return _do_reservation(username, start_time, end_time, duration, mode)
+
+
+@app.route("/api/reserve_plan", methods=["POST"])
+@handle_errors
+def reserve_plan():
+    """Planifier une réservation à une heure précise."""
+    if "username" not in session:
+        return jsonify({"success": False, "message": "Non authentifié"}), 401
+    data = request.get_json(silent=True) or {}
+    start_str = data.get("start_time")  # ISO datetime string ou "HH:MM"
+    duration = int(data.get("duration", 15))
+    mode = data.get("mode", "1v1")
+    username = session["username"]
+
+    if duration not in [5, 10, 15]:
+        return jsonify({"success": False, "message": "Durée invalide (5, 10 ou 15 min)"}), 400
+    if not start_str:
+        return jsonify({"success": False, "message": "Heure de début requise"}), 400
+
+    # Parser l'heure
+    try:
+        if 'T' in start_str:
+            start_time = datetime.fromisoformat(start_str)
+        else:
+            # Format HH:MM + date fournie ou aujourd'hui/demain
+            date_str = data.get("date", datetime.now().date().isoformat())
+            start_time = datetime.fromisoformat(f"{date_str}T{start_str}:00")
+    except Exception:
+        return jsonify({"success": False, "message": "Format d'heure invalide"}), 400
+
+    # Vérifier que c'est dans le futur
+    now = datetime.now()
+    if start_time < now - timedelta(minutes=1):
+        return jsonify({"success": False, "message": "Impossible de réserver dans le passé"}), 400
+
+    # Vérifier que c'est aujourd'hui ou demain max
+    max_date = (now + timedelta(days=2)).date()
+    if start_time.date() >= max_date:
+        return jsonify({"success": False, "message": "Réservation limitée à aujourd'hui et demain"}), 400
+
+    end_time = start_time + timedelta(minutes=duration)
+    return _do_reservation(username, start_time, end_time, duration, mode)
+
+
+def _do_reservation(username, start_time, end_time, duration, mode):
+    """Logique commune de réservation avec vérification anti-chevauchement."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        start_iso = start_time.isoformat()
+        end_iso = end_time.isoformat()
+
+        # Vérifier si l'utilisateur a déjà une réservation active ou future (sauf admin)
+        if not is_admin(username):
+            if USE_POSTGRES:
+                cur.execute("""
+                    SELECT COUNT(*) as cnt FROM reservations
+                    WHERE reserved_by = %s AND end_time > %s
+                """, (username, datetime.now().isoformat()))
+            else:
+                cur.execute("""
+                    SELECT COUNT(*) as cnt FROM reservations
+                    WHERE reserved_by = ? AND end_time > ?
+                """, (username, datetime.now().isoformat()))
+            row = row_to_dict(cur.fetchone())
+            if int(row.get('cnt') or 0) >= 3:
+                return jsonify({"success": False, "message": "Maximum 3 réservations actives"}), 400
+
+        # Vérifier chevauchement
+        if USE_POSTGRES:
+            cur.execute("""
+                SELECT reserved_by FROM reservations
+                WHERE start_time < %s AND end_time > %s
+            """, (end_iso, start_iso))
+        else:
+            cur.execute("""
+                SELECT reserved_by FROM reservations
+                WHERE start_time < ? AND end_time > ?
+            """, (end_iso, start_iso))
+        conflict = cur.fetchone()
+        if conflict:
+            c = row_to_dict(conflict)
+            if c['reserved_by'] != username and not is_admin(username):
+                return jsonify({"success": False, "message": f"Ce créneau chevauche une réservation de {c['reserved_by']}"}), 409
+
+        # Convertir pour les anciens champs (compatibilité)
+        days_fr = {'Monday':'Lundi','Tuesday':'Mardi','Wednesday':'Mercredi',
+                   'Thursday':'Jeudi','Friday':'Vendredi','Saturday':'Samedi','Sunday':'Dimanche'}
+        day_fr = days_fr.get(start_time.strftime('%A'), start_time.strftime('%A'))
+        time_str = start_time.strftime('%H:%M')
+        end_str = end_time.strftime('%H:%M')
+        time_display = f"{time_str} – {end_str}"
+
+        if USE_POSTGRES:
+            cur.execute("""
+                INSERT INTO reservations (day, time, team1, team2, mode, reserved_by, start_time, end_time, duration_minutes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT DO NOTHING
+            """, (day_fr, time_display, [], [], mode, username, start_iso, end_iso, duration))
+        else:
+            cur.execute("""
+                INSERT OR IGNORE INTO reservations (day, time, team1, team2, mode, reserved_by, start_time, end_time, duration_minutes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (day_fr, time_display, '[]', '[]', mode, username, start_iso, end_iso, duration))
+        conn.commit()
+        return jsonify({
+            "success": True,
+            "start": start_iso,
+            "end": end_iso,
+            "duration": duration,
+            "time_display": time_display
+        })
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route("/api/cancel_reservation_v2", methods=["POST"])
+@handle_errors
+def cancel_reservation_v2():
+    """Annuler une réservation par son id."""
+    if "username" not in session:
+        return jsonify({"success": False, "message": "Non authentifié"}), 401
+    data = request.get_json(silent=True) or {}
+    res_id = data.get("id")
+    username = session["username"]
+    if not res_id:
+        return jsonify({"success": False, "message": "ID requis"}), 400
+    conn = get_db_connection()
+    cur = conn.cursor()
+    if is_admin(username):
+        q = "DELETE FROM reservations WHERE id = %s" if USE_POSTGRES else "DELETE FROM reservations WHERE id = ?"
+        cur.execute(q, (res_id,))
+    else:
+        q = "DELETE FROM reservations WHERE id = %s AND reserved_by = %s" if USE_POSTGRES else "DELETE FROM reservations WHERE id = ? AND reserved_by = ?"
+        cur.execute(q, (res_id, username))
+    deleted = cur.rowcount
+    conn.commit(); cur.close(); conn.close()
+    return jsonify({"success": bool(deleted)})
+
 
 @app.route("/stats/<username>")
 @handle_errors
