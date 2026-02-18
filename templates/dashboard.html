@@ -226,7 +226,7 @@ try {
     reconnectionDelayMax: 10000,   // Max 10s entre tentatives
     reconnectionAttempts: Infinity, // Toujours réessayer
     timeout: 20000,                // 20s avant d'abandonner une connexion
-    transports: ['polling', 'websocket'],  // WebSocket d'abord, polling en fallback
+    transports: ['websocket', 'polling'],  // WebSocket d'abord, polling en fallback
   });
   if (window.initReconnectIndicator) initReconnectIndicator(socket);
   socket.on('connect', () => {
@@ -396,12 +396,14 @@ async function loadReservations() {
 
     function isPast(r) {
       if (r.day !== todayFr) return false; // demain → pas passé
-      // Extraire heure de début ex: "09:00 – 09:25" ou "09:00"
+      // Utiliser end_time si disponible (précis)
+      if (r.end_time) return now > new Date(r.end_time);
+      // Fallback : extraire heure de début et ajouter la durée
       const match = r.time.match(/^(\d{2}):(\d{2})/);
       if (!match) return false;
       const slotH = parseInt(match[1]), slotM = parseInt(match[2]);
-      // Créneau passé si l'heure de fin (début + 25min) est dépassée
-      const slotEnd = new Date(now); slotEnd.setHours(slotH, slotM + 25, 0, 0);
+      const dur = r.duration_minutes || 15;
+      const slotEnd = new Date(now); slotEnd.setHours(slotH, slotM + dur, 0, 0);
       return now > slotEnd;
     }
 

@@ -209,7 +209,7 @@ try {
     reconnectionDelayMax: 10000,   // Max 10s entre tentatives
     reconnectionAttempts: Infinity, // Toujours réessayer
     timeout: 20000,                // 20s avant d'abandonner une connexion
-    transports: ['polling', 'websocket'],  // WebSocket d'abord, polling en fallback
+    transports: ['websocket', 'polling'],  // WebSocket d'abord, polling en fallback
   });
   if (window.initReconnectIndicator) initReconnectIndicator(socket);
   socket.on('connect', () => { console.log('✓ [Live-Score] Socket connecté'); });
