@@ -307,16 +307,35 @@ function updateGameUI(game) {
   // 🎉 Lancer confettis si un but a été marqué
   if (game.team1_score > oldScore1 || game.team2_score > oldScore2) {
     if (typeof launchConfetti === 'function') {
-      launchConfetti(2000, 50); // 2 secondes, 50 confettis
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+      launchConfetti(2000, isMobile ? 20 : 50);
     }
   }
 }
 
 function updateSpectatorUI(game) {
+  const oldScore1 = parseInt(document.getElementById('specScore1').textContent) || 0;
+  const oldScore2 = parseInt(document.getElementById('specScore2').textContent) || 0;
   document.getElementById('specScore1').textContent = game.team1_score;
   document.getElementById('specScore2').textContent = game.team2_score;
   document.getElementById('specTeam1').textContent = game.team1_players.join(', ');
   document.getElementById('specTeam2').textContent = game.team2_players.join(', ');
+
+  // Effet bump sur les scores spectateur
+  ['specScore1','specScore2'].forEach(id => {
+    const el = document.getElementById(id);
+    el.classList.remove('bump');
+    void el.offsetWidth;
+    el.classList.add('bump');
+  });
+
+  // 🎉 Confettis pour les spectateurs aussi
+  if (game.team1_score > oldScore1 || game.team2_score > oldScore2) {
+    if (typeof launchConfetti === 'function') {
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+      launchConfetti(2000, isMobile ? 20 : 50);
+    }
+  }
 }
 
 function startGame() {
@@ -378,21 +397,25 @@ function showWinner(game) {
   document.getElementById('winnerSub').textContent = `Score final : ${winnerScore} - ${loserScore}`;
   document.getElementById('winnerOverlay').style.display = 'flex';
   
-  // 🎉 MEGA confettis de victoire
+  // 🎉 MEGA confettis de victoire (réduit sur mobile)
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const bigCount = isMobile ? 80 : 300;
+  const smallCount = isMobile ? 30 : 80;
   if (typeof launchConfetti === 'function') {
-    launchConfetti(8000, 300);
-    setTimeout(() => launchConfetti(1000, 80), 500);
-    setTimeout(() => launchConfetti(1000, 80), 1500);
-    setTimeout(() => launchConfetti(1000, 80), 2500);
-    setTimeout(() => launchConfetti(1000, 80), 3500);
-    setTimeout(() => launchConfetti(1000, 80), 5000);
-    setTimeout(() => launchConfetti(1000, 80), 6500);
+    launchConfetti(10000, bigCount);
+    setTimeout(() => launchConfetti(1000, smallCount), 800);
+    setTimeout(() => launchConfetti(1000, smallCount), 2000);
+    if (!isMobile) {
+      setTimeout(() => launchConfetti(1000, smallCount), 3500);
+      setTimeout(() => launchConfetti(1000, smallCount), 5500);
+      setTimeout(() => launchConfetti(1000, smallCount), 7000);
+    }
   }
 
-  // Fermer automatiquement après 10 secondes (si pas de rematch_prompt entre-temps)
+  // Fermer automatiquement après 15 secondes
   winnerOverlayTimer = setTimeout(() => {
     document.getElementById('winnerOverlay').style.display = 'none';
-  }, 10000);
+  }, 15000);
 }
 
 // ── Socket events ──
@@ -434,7 +457,7 @@ socket.on('game_reset', () => {
 socket.on('rematch_prompt', () => {
   // Annuler le timer de fermeture automatique du popup victoire
   if (winnerOverlayTimer) { clearTimeout(winnerOverlayTimer); winnerOverlayTimer = null; }
-  // Laisser le popup victoire visible encore 2 secondes avant de montrer le rematch
+  // Laisser le popup victoire visible encore 3 secondes avant de montrer le rematch
   setTimeout(() => {
     document.getElementById('winnerOverlay').style.display = 'none';
     const t1 = parsePlayers(lastGame ? lastGame.team1_players : []);
@@ -443,7 +466,7 @@ socket.on('rematch_prompt', () => {
     if (isInGame) {
       document.getElementById('rematchPopup').style.display = 'flex';
     }
-  }, 2000);
+  }, 3000);
 });
 
 socket.on('rematch_cancelled', () => {

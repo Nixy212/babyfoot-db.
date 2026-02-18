@@ -183,3 +183,35 @@ section {
     opacity: 0.4;
   }
 }
+
+/* ── Optimisations performances mobile ── */
+@media (max-width: 768px) {
+  /* Désactiver les animations lourdes sur mobile */
+  .floating-shapes-global {
+    display: none !important;
+  }
+  .glow-pulse-global {
+    display: none !important;
+  }
+  /* Accélération matérielle sur les éléments clés */
+  .score-n, .score-btn, .winner-box {
+    will-change: transform;
+    transform: translateZ(0);
+  }
+  /* Réduire les transitions pour fluidité */
+  .card, .btn, .nav-link {
+    transition-duration: 0.1s !important;
+  }
+}
+
+/* Désactiver animations si l'utilisateur préfère moins de mouvement */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .logo-pulse, .floating-shapes-global, .glow-pulse-global {
+    display: none !important;
+  }
+}

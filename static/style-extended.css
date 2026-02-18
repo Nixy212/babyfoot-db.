@@ -799,9 +799,14 @@
   inset: -4px;
   border-radius: 50%;
   background: var(--gradient-bronze);
-  opacity: 0.3;
+  opacity: 0;
   filter: blur(8px);
-  animation: pulse 2s ease-in-out infinite;
+  animation: logo-pulse-anim 3s ease-in-out infinite;
+}
+
+@keyframes logo-pulse-anim {
+  0%, 100% { opacity: 0; transform: scale(0.9); }
+  50% { opacity: 0.25; transform: scale(1.05); }
 }
 
 .nav-link-icon {

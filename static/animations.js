@@ -125,12 +125,15 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ======== CURSOR CUSTOM (Desktop uniquement) ========
-  if (window.innerWidth > 768) {
+  // Check résistant au resize via matchMedia
+  const isDesktop = window.matchMedia('(pointer: fine) and (min-width: 769px)');
+  if (isDesktop.matches) {
     const cursor = document.createElement('div');
     cursor.className = 'custom-cursor';
     document.body.appendChild(cursor);
 
     let cursorX = 0, cursorY = 0, targetX = 0, targetY = 0;
+    let cursorRAF = null;
 
     document.addEventListener('mousemove', (e) => {
       targetX = e.clientX;
@@ -140,9 +143,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function animateCursor() {
       cursorX += (targetX - cursorX) * 0.15;
       cursorY += (targetY - cursorY) * 0.15;
-      cursor.style.left = cursorX + 'px';
-      cursor.style.top = cursorY + 'px';
-      requestAnimationFrame(animateCursor);
+      cursor.style.transform = `translate(${cursorX - 20}px, ${cursorY - 20}px)`;
+      cursorRAF = requestAnimationFrame(animateCursor);
     }
     animateCursor();
 
@@ -156,7 +158,8 @@ document.addEventListener('DOMContentLoaded', function() {
         border-radius: 50%;
         pointer-events: none;
         z-index: 9999;
-        transform: translate(-50%, -50%);
+        top: 0; left: 0;
+        will-change: transform;
         transition: width 0.3s, height 0.3s, border-color 0.3s;
       }
       .custom-cursor.active {
@@ -173,8 +176,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // ======== PARTICULES FLOTTANTES ========
-  if (window.innerWidth > 768) {
+  // ======== PARTICULES FLOTTANTES (Desktop haute perf uniquement) ========
+  const isDesktopForParticles = window.matchMedia('(pointer: fine) and (min-width: 769px)');
+  if (isDesktopForParticles.matches) {
     const particleStyle = document.createElement('style');
     particleStyle.textContent = `
       @keyframes float-up {
@@ -205,13 +209,14 @@ document.addEventListener('DOMContentLoaded', function() {
         bottom: -20px;
         animation: float-up ${duration}s linear ${delay}s;
         opacity: 0;
+        will-change: transform, opacity;
       `;
 
       document.body.appendChild(particle);
       setTimeout(() => particle.remove(), (duration + delay) * 1000);
     }
 
-    setInterval(createParticle, 3000);
+    setInterval(createParticle, 6000); // Réduit de 3s à 6s
   }
 
   // ======== LOADING FADE-IN ========
