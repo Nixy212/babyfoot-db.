@@ -2,15 +2,170 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0a">
   <title>Top 10 — Baby-Foot Club</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── Leaderboard mobile-first ── */
+    .lb-list {
+      overflow: hidden;
+    }
+
+    .lb-item {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+      padding: 0.875rem 1rem;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.15s, transform 0.15s;
+      position: relative;
+    }
+    .lb-item:first-child { border-radius: var(--radius-md) var(--radius-md) 0 0; }
+    .lb-item:last-child  { border-bottom: none; border-radius: 0 0 var(--radius-md) var(--radius-md); }
+    .lb-item.is-me {
+      background: linear-gradient(90deg, rgba(205,127,50,0.18) 0%, rgba(205,127,50,0.05) 100%);
+      border-left: 3px solid var(--bronze);
+    }
+
+    /* Rang */
+    .lb-rank {
+      font-family: 'Space Mono', monospace;
+      font-weight: 800;
+      font-size: 0.9rem;
+      color: var(--text-tertiary);
+      min-width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .lb-rank.podium {
+      font-size: 1.5rem;
+      filter: drop-shadow(0 2px 6px rgba(205,127,50,0.4));
+    }
+
+    /* Avatar */
+    .lb-av {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--gradient-bronze);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      font-weight: 800;
+      color: white;
+      flex-shrink: 0;
+    }
+    .lb-av.av1 { background: linear-gradient(135deg, #ffd700, #ffb300); }
+    .lb-av.av2 { background: linear-gradient(135deg, #c0c0c0, #a0a0a0); }
+    .lb-av.av3 { background: linear-gradient(135deg, #cd7f32, #b8732f); }
+
+    /* Infos */
+    .lb-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .lb-name {
+      font-size: 0.9375rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lb-sub {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+      margin-top: 1px;
+      white-space: nowrap;
+    }
+
+    /* Score */
+    .lb-score {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .lb-score-val {
+      font-family: 'Space Mono', monospace;
+      font-size: 1.375rem;
+      font-weight: 900;
+      color: var(--bronze);
+      line-height: 1;
+    }
+    .lb-score-label {
+      font-size: 0.6875rem;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 1px;
+    }
+
+    /* Podium top 3 — légère mise en avant */
+    .lb-item:nth-child(1) .lb-score-val { color: #ffd700; }
+    .lb-item:nth-child(2) .lb-score-val { color: #c0c0c0; }
+    .lb-item:nth-child(3) .lb-score-val { color: #cd7f32; }
+
+    /* Header tableau */
+    .lb-header {
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+      padding: 0.5rem 1rem;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .lb-header-rank { min-width: 28px; text-align: center; flex-shrink: 0; }
+    .lb-header-av   { width: 40px; flex-shrink: 0; }
+    .lb-header-info { flex: 1; }
+    .lb-header-score{ text-align: right; flex-shrink: 0; padding-right: 2px; }
+
+    /* Tags */
+    .tag-me {
+      display: inline-block;
+      font-size: 0.65rem;
+      padding: 1px 7px;
+      border-radius: 20px;
+      background: rgba(205,127,50,0.18);
+      color: var(--bronze);
+      font-weight: 700;
+      margin-left: 5px;
+      vertical-align: middle;
+    }
+
+    /* Écran large : légère animation au hover */
+    @media (hover: hover) {
+      .lb-item:hover {
+        background: var(--bg-hover);
+        transform: translateX(6px);
+      }
+      .lb-item.is-me:hover {
+        background: linear-gradient(90deg, rgba(205,127,50,0.22) 0%, rgba(205,127,50,0.08) 100%);
+      }
+    }
+
+    /* Desktop : on peut se permettre un peu plus d'espace */
+    @media (min-width: 640px) {
+      .lb-item { padding: 1rem 1.5rem; gap: 1.25rem; }
+      .lb-header { padding: 0.6rem 1.5rem; gap: 1.25rem; }
+      .lb-av { width: 48px; height: 48px; font-size: 1.125rem; }
+      .lb-header-av { width: 48px; }
+      .lb-name { font-size: 1rem; }
+      .lb-score-val { font-size: 1.625rem; }
+    }
+  </style>
 </head>
 <body style="font-family: 'DM Sans', sans-serif;">
 
@@ -55,33 +210,37 @@
 </div>
 
 <div class="page">
-  <div class="container" style="max-width:900px">
+  <div class="container" style="max-width:700px">
     <div class="page-header fade-up">
-      <h1><span data-bficon="podium" data-size="32" style="color:var(--bronze);vertical-align:middle"></span> Classement général</h1>
+      <h1>🏆 Classement</h1>
       <p>Les meilleurs joueurs du club</p>
     </div>
 
     <div class="card fade-up" style="animation-delay:.05s;padding:0;overflow:hidden">
-      <div class="leaderboard-list" id="leaderboard">
+      <!-- En-tête colonnes -->
+      <div class="lb-header">
+        <div class="lb-header-rank">#</div>
+        <div class="lb-header-av"></div>
+        <div class="lb-header-info">Joueur</div>
+        <div class="lb-header-score">Buts</div>
+      </div>
+      <!-- Liste -->
+      <div class="lb-list" id="leaderboard">
         <div style="padding:3rem;text-align:center">
           <div class="loading-spinner" style="margin:0 auto 1rem"></div>
-          <p style="color:var(--text-tertiary)">Chargement du classement...</p>
+          <p style="color:var(--text-tertiary)">Chargement…</p>
         </div>
       </div>
     </div>
 
-    <div style="text-align:center;margin-top:1.5rem">
+    <div style="text-align:center;margin-top:1.5rem;margin-bottom:2rem">
       <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
     </div>
   </div>
 </div>
 
 <script>
-const medals = [
-  '<span data-bficon="medal_gold" data-size="32"></span>',
-  '<span data-bficon="medal_silver" data-size="32"></span>',
-  '<span data-bficon="medal_bronze" data-size="32"></span>',
-];
+const PODIUM_ICONS = ['🥇', '🥈', '🥉'];
 
 function toggleMenu() {
   document.getElementById('burger').classList.toggle('open');
@@ -93,9 +252,8 @@ function logout() {
   fetch('/api/logout', {method:'POST'}).then(() => location.href = '/');
 }
 
-// Calcul du ratio côté JS pour éviter le undefined
-function calcRatio(goals, games) {
-  if (!games || games === 0) return '0.00';
+function ratio(goals, games) {
+  if (!games) return '0.00';
   return (goals / games).toFixed(2);
 }
 
@@ -107,62 +265,51 @@ fetch('/current_user').then(r => r.json()).then(d => {
   }
 });
 
-async function loadLeaderboard(currentUser) {
-  const container = document.getElementById('leaderboard');
+async function loadLeaderboard(me) {
+  const el = document.getElementById('leaderboard');
   try {
     const lb = await fetch('/leaderboard').then(r => r.json());
 
     if (!lb || lb.length === 0) {
-      container.innerHTML = `
-        <div style="padding:3rem;text-align:center">
-          <div style="font-size:3rem;margin-bottom:1rem;opacity:0.3"><i class="fas fa-trophy"></i></div>
-          <p style="color:var(--text-tertiary)">Aucun joueur classé pour le moment</p>
-        </div>
-      `;
+      el.innerHTML = `<div style="padding:3rem;text-align:center">
+        <div style="font-size:3rem;opacity:0.3;margin-bottom:1rem">🏆</div>
+        <p style="color:var(--text-tertiary)">Aucun joueur classé pour le moment</p>
+      </div>`;
       return;
     }
 
-    container.innerHTML = lb.map((player, index) => {
-      const rank = index + 1;
-      const isCurrentUser = player.username === currentUser;
-      const isTop3 = rank <= 3;
-      const medal = isTop3 ? medals[index] : null;
-      // Ratio calculé côté JS
-      const ratio = calcRatio(player.total_goals, player.total_games);
+    el.innerHTML = lb.map((p, i) => {
+      const rank = i + 1;
+      const isMe = p.username === me;
+      const isPodium = rank <= 3;
+      const avClass = rank === 1 ? 'av1' : rank === 2 ? 'av2' : rank === 3 ? 'av3' : '';
+      const games = p.total_games || 0;
+      const goals = p.total_goals || 0;
 
       return `
-        <div class="leaderboard-item ${isCurrentUser ? 'highlight' : ''}">
-          <div class="lb-rank ${isTop3 ? 'top3' : ''}">
-            ${medal ? medal : '#' + rank}
+        <div class="lb-item${isMe ? ' is-me' : ''}">
+          <div class="lb-rank${isPodium ? ' podium' : ''}">
+            ${isPodium ? PODIUM_ICONS[i] : '#' + rank}
           </div>
-          <div class="lb-avatar">${player.username[0].toUpperCase()}</div>
+          <div class="lb-av ${avClass}">${p.username[0].toUpperCase()}</div>
           <div class="lb-info">
             <div class="lb-name">
-              ${player.username}
-              ${isCurrentUser ? '<span style="font-size:0.75rem;color:var(--bronze);margin-left:0.5rem">(vous)</span>' : ''}
+              ${p.username}${isMe ? '<span class="tag-me">vous</span>' : ''}
             </div>
-            <div class="lb-meta">
-              ${player.total_games} partie${player.total_games !== 1 ? 's' : ''}
-              &nbsp;·&nbsp;
-              Ratio : ${ratio}
-            </div>
+            <div class="lb-sub">${games} partie${games !== 1 ? 's' : ''} · ratio ${ratio(goals, games)}</div>
           </div>
-          <div class="lb-points">
-            ${player.total_goals}
-            <span>buts</span>
+          <div class="lb-score">
+            <div class="lb-score-val">${goals}</div>
+            <div class="lb-score-label">buts</div>
           </div>
         </div>
       `;
     }).join('');
 
   } catch(e) {
-    console.error('Erreur leaderboard:', e);
-    container.innerHTML = `
-      <div style="padding:3rem;text-align:center">
-        <div style="font-size:3rem;margin-bottom:1rem;opacity:0.3">⚠️</div>
-        <p style="color:var(--text-tertiary)">Erreur de chargement du classement</p>
-      </div>
-    `;
+    el.innerHTML = `<div style="padding:3rem;text-align:center">
+      <p style="color:var(--text-tertiary)">Erreur de chargement</p>
+    </div>`;
   }
 }
 </script>
