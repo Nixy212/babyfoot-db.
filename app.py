@@ -1439,7 +1439,8 @@ arduino_last_goal_time = {}
 
 @app.route("/api/arduino/status", methods=["GET"])
 def api_arduino_status():
-    """Etat complet pour l'ESP32 (sync au demarrage + poll)."""    active = current_game.get("active", False)
+    """Etat complet pour l'ESP32 (sync au demarrage + poll)."""
+    active = current_game.get("active", False)
     t1 = current_game.get("team1_score", 0)
     t2 = current_game.get("team2_score", 0)
     servo1_expected = "open" if (active and t1 < 9) else "close"
