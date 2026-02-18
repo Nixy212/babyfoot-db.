@@ -30,6 +30,9 @@
     e.preventDefault();
     deferredPrompt = e;
 
+    // Ajouter le bouton dans le menu hamburger
+    injectMenuInstallButton();
+
     // N'afficher le bandeau que si pas déjà installé et pas déjà refusé récemment
     const dismissed = localStorage.getItem('pwa_dismissed');
     if (dismissed && Date.now() - parseInt(dismissed) < 7 * 24 * 3600 * 1000) return;
@@ -37,6 +40,33 @@
     // Attendre 3s que la page soit chargée
     setTimeout(() => showInstallBanner(), 3000);
   });
+
+  function injectMenuInstallButton() {
+    const menu = document.getElementById('mobileMenu');
+    if (!menu || document.getElementById('pwa-menu-btn')) return;
+
+    const btn = document.createElement('button');
+    btn.id = 'pwa-menu-btn';
+    btn.innerHTML = '📲 Installer l\'app';
+    btn.style.cssText = `
+      display:block;width:100%;text-align:left;
+      background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));
+      border:1px solid rgba(205,127,50,0.4);
+      color:#cd7f32;font-weight:700;font-size:1rem;
+      padding:0.9rem 1.25rem;border-radius:10px;
+      cursor:pointer;margin-top:0.5rem;
+      font-family:inherit;
+    `;
+    btn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      btn.remove();
+    });
+
+    menu.appendChild(btn);
+  }
 
   function showInstallBanner() {
     if (!deferredPrompt) return;
