@@ -1246,7 +1246,7 @@ def _do_reservation(username, start_time, end_time, duration, mode):
                 INSERT INTO reservations (day, time, team1, team2, mode, reserved_by, start_time, end_time, duration_minutes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (start_time, reserved_by) DO NOTHING
-            """, (day_fr, time_display, '[]', '[]', mode, username, start_iso, end_iso, duration))
+            """, (day_fr, time_display, json.dumps([]), json.dumps([]), mode, username, start_iso, end_iso, duration))
         else:
             # Verifier doublon exact
             cur.execute(
@@ -1439,10 +1439,20 @@ arduino_last_goal_time = {}
 
 @app.route("/api/arduino/status", methods=["GET"])
 def api_arduino_status():
+    """Etat complet pour l'ESP32 (sync au demarrage + poll)."""    active = current_game.get("active", False)
+    t1 = current_game.get("team1_score", 0)
+    t2 = current_game.get("team2_score", 0)
+    servo1_expected = "open" if (active and t1 < 9) else "close"
+    servo2_expected = "open" if (active and t2 < 9) else "close"
     return jsonify({
-        "game_active": current_game.get("active", False),
-        "team1_score": current_game.get("team1_score", 0),
-        "team2_score": current_game.get("team2_score", 0),
+        "game_active":     active,
+        "team1_score":     t1,
+        "team2_score":     t2,
+        "servo1_expected": servo1_expected,
+        "servo2_expected": servo2_expected,
+        "started_by":      current_game.get("started_by"),
+        "team1_players":   current_game.get("team1_players", []),
+        "team2_players":   current_game.get("team2_players", []),
     })
 
 @app.route("/api/arduino/commands", methods=["GET"])
