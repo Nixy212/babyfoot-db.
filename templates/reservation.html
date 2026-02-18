@@ -367,3 +367,215 @@ init();
   <script src="/static/pwa.js" defer></script>
 </body>
 </html>
+let durPlan=10, modePlan='1v1';
+let planDayOffset=0;
+let statusData=null, myResaId=null;
+
+function toggleMenu(){document.getElementById('burger').classList.toggle('open');document.getElementById('mobileMenu').classList.toggle('open');document.body.style.overflow=document.getElementById('mobileMenu').classList.contains('open')?'hidden':'';}
+function logout(){fetch('/api/logout',{method:'POST'}).then(()=>location.href='/');}
+
+function toast(msg,type='inf'){const c=document.getElementById('tw');const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;c.appendChild(t);setTimeout(()=>t.remove(),3000);}
+
+function fmt(iso){if(!iso)return'—';const d=new Date(iso);return d.getHours().toString().padStart(2,'0')+'h'+d.getMinutes().toString().padStart(2,'0');}
+function fmtTime(iso){if(!iso)return'—';const d=new Date(iso);return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');}
+
+function selectDur(ctx,val,el){
+  if(ctx==='now'){durNow=val;document.querySelectorAll('#durPillsNow .dur-pill').forEach(p=>p.classList.remove('active'));}
+  else{durPlan=val;document.querySelectorAll('#durPillsPlan .dur-pill').forEach(p=>p.classList.remove('active'));}
+  el.classList.add('active');
+  if(ctx==='now')updateNowPreview();else{onTimeChange();checkConflict();}
+}
+
+function selectMode(ctx,val){
+  if(ctx==='now'){modeNow=val;document.getElementById('modeNow1v1').classList.toggle('active',val==='1v1');document.getElementById('modeNow2v2').classList.toggle('active',val==='2v2');}
+  else{modePlan=val;document.getElementById('modePlan1v1').classList.toggle('active',val==='1v1');document.getElementById('modePlan2v2').classList.toggle('active',val==='2v2');}
+}
+
+function selectPlanDay(offset){
+  planDayOffset=offset;
+  document.getElementById('tabToday').classList.toggle('active',offset===0);
+  document.getElementById('tabTomorrow').classList.toggle('active',offset===1);
+  onTimeChange();checkConflict();renderTimeline();
+}
+
+function updateNowPreview(){
+  const now=new Date();const end=new Date(now.getTime()+durNow*60000);
+  document.getElementById('nowEndPreview').textContent='De maintenant ('+fmtTime(now.toISOString())+') à '+fmtTime(end.toISOString());
+}
+
+function onTimeChange(){
+  const t=document.getElementById('planTime').value;
+  if(!t){document.getElementById('planEndLabel').textContent='→ fin : —';return;}
+  const[h,m]=t.split(':').map(Number);
+  const endM=m+durPlan,endH=h+Math.floor(endM/60),endMin=endM%60;
+  document.getElementById('planEndLabel').textContent='→ fin : '+String(endH).padStart(2,'0')+'h'+String(endMin).padStart(2,'0');
+  checkConflict();
+}
+
+function checkConflict(){
+  const t=document.getElementById('planTime').value;const el=document.getElementById('planConflict');
+  if(!t||!statusData){el.style.display='none';return;}
+  const[h,m]=t.split(':').map(Number);
+  const base=new Date();if(planDayOffset===1)base.setDate(base.getDate()+1);
+  base.setHours(h,m,0,0);
+  const startMs=base.getTime(),endMs=startMs+durPlan*60000;
+  const dayKey=planDayOffset===0?'all_today':'all_tomorrow';
+  for(const r of(statusData[dayKey]||[])){
+    if(r.reserved_by===currentUser)continue;
+    const rS=new Date(r.start_time).getTime(),rE=new Date(r.end_time).getTime();
+    if(startMs<rE&&endMs>rS){el.textContent='⚠ Conflit avec '+r.reserved_by+' ('+fmt(r.start_time)+'–'+fmt(r.end_time)+')';el.style.display='block';return;}
+  }
+  if(planDayOffset===0&&base<new Date()){el.textContent='⚠ Cette heure est déjà passée';el.style.display='block';return;}
+  el.style.display='none';
+}
+
+async function refreshStatus(){
+  try{
+    const data=await fetch('/api/babyfoot_status').then(r=>r.json());
+    statusData=data;updateStatusUI(data);findMyResa(data);renderTimeline();renderNextFree(data);updateNowPreview();
+  }catch(e){console.error(e);}
+}
+
+function updateStatusUI(data){
+  const card=document.getElementById('statusCard'),txt=document.getElementById('statusText'),sub=document.getElementById('statusSub');
+  document.getElementById('statusTime').textContent=fmtTime(data.server_time);
+  if(data.is_free){
+    card.className='status-card status-free';txt.textContent='✅ Babyfoot libre';
+    const nx=data.upcoming[0];
+    sub.textContent=nx?'Prochain : '+fmt(nx.start_time)+' ('+nx.reserved_by+')':'Aucune réservation prévue';
+    document.getElementById('playNowSection').style.display=myResaId?'none':'block';
+  }else{
+    card.className='status-card status-busy';
+    const cur=data.current,now=new Date();
+    txt.textContent='🔴 Occupé jusqu\'à '+fmt(cur.end_time);
+    sub.textContent='Par '+cur.reserved_by+' · encore '+Math.max(1,Math.ceil((new Date(cur.end_time)-now)/60000))+' min';
+    document.getElementById('playNowSection').style.display='none';
+  }
+}
+
+function findMyResa(data){
+  const all=[...(data.all_today||[]),...(data.all_tomorrow||[])];
+  const now=new Date();
+  const mine=all.find(r=>r.reserved_by===currentUser&&new Date(r.end_time)>now);
+  const card=document.getElementById('myResaCard');
+  if(mine){
+    myResaId=mine.id;
+    const isToday=new Date(mine.start_time).toDateString()===now.toDateString();
+    document.getElementById('myResaInfo').textContent=(isToday?"Aujourd'hui":'Demain')+' · '+fmt(mine.start_time)+' – '+fmt(mine.end_time)+' · '+(mine.duration_minutes||15)+' min · '+mine.mode;
+    card.style.display='block';
+  }else{myResaId=null;card.style.display='none';}
+}
+
+function renderTimeline(){
+  if(!statusData)return;
+  const dayKey=planDayOffset===0?'all_today':'all_tomorrow';
+  const reservations=statusData[dayKey]||[];
+  const bar=document.getElementById('timelineBar'),nowLine=document.getElementById('nowLine');
+  document.getElementById('timelineTitle').textContent=planDayOffset===0?"Aujourd'hui":'Demain';
+  const START_H=8,END_H=21,TOTAL_MIN=(END_H-START_H)*60;
+  function toP(iso){const d=new Date(iso);const min=(d.getHours()-START_H)*60+d.getMinutes();return Math.max(0,Math.min(100,(min/TOTAL_MIN)*100));}
+  Array.from(bar.children).forEach(c=>{if(c!==nowLine)c.remove();});
+  const now=new Date();
+  const nowMin=(now.getHours()-START_H)*60+now.getMinutes();
+  if(planDayOffset===0&&nowMin>=0&&nowMin<=TOTAL_MIN){nowLine.style.display='block';nowLine.style.left=((nowMin/TOTAL_MIN)*100)+'%';}
+  else{nowLine.style.display='none';}
+  reservations.forEach(r=>{
+    const left=toP(r.start_time),right=toP(r.end_time),width=right-left;
+    if(width<=0)return;
+    const block=document.createElement('div');block.className='timeline-block';
+    if(new Date(r.end_time)<now&&planDayOffset===0)block.classList.add('past');
+    block.classList.add(r.reserved_by===currentUser?'mine':'others');
+    block.style.left=left+'%';block.style.width=width+'%';
+    block.title=r.reserved_by+' · '+fmt(r.start_time)+'–'+fmt(r.end_time);
+    block.textContent=r.reserved_by===currentUser?'Vous':r.reserved_by;
+    block.onclick=()=>{
+      if(r.reserved_by!==currentUser){
+        const e=new Date(r.end_time);
+        document.getElementById('planTime').value=String(e.getHours()).padStart(2,'0')+':'+String(e.getMinutes()).padStart(2,'0');
+        onTimeChange();
+      }
+    };
+    bar.appendChild(block);
+  });
+}
+
+function renderNextFree(data){
+  const container=document.getElementById('nextFreeSlots');
+  const dayKey=planDayOffset===0?'all_today':'all_tomorrow';
+  const now=new Date();
+  let pointer=planDayOffset===0?new Date():new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,8,0);
+  const maxTime=new Date(pointer);maxTime.setHours(21,0,0,0);
+  const sorted=[...(data[dayKey]||[])].filter(r=>new Date(r.end_time)>now).sort((a,b)=>new Date(a.start_time)-new Date(b.start_time));
+  const suggestions=[];
+  for(const r of sorted){
+    const rS=new Date(r.start_time),rE=new Date(r.end_time);
+    if(rS>pointer&&(rS-pointer)>=5*60000)suggestions.push(new Date(pointer));
+    if(rE>pointer)pointer=rE;
+    if(suggestions.length>=4)break;
+  }
+  if(suggestions.length<4&&pointer<maxTime)suggestions.push(new Date(pointer));
+  container.innerHTML=suggestions.slice(0,4).map(s=>{
+    const h=String(s.getHours()).padStart(2,'0'),m=String(s.getMinutes()).padStart(2,'0');
+    return '<button class="next-free-pill" onclick="applyFreeSlot(\''+h+':'+m+'\')">'+h+'h'+m+'</button>';
+  }).join('')||'<span style="font-size:0.82rem;color:var(--text-muted)">Aucun créneau libre</span>';
+}
+
+function applyFreeSlot(t){document.getElementById('planTime').value=t;onTimeChange();document.getElementById('planTime').scrollIntoView({behavior:'smooth',block:'center'});}
+
+async function playNow(){
+  const btn=document.getElementById('btnPlayNow');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Réservation…';
+  try{
+    const r=await fetch('/api/reserve_now',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({duration:durNow,mode:modeNow})}).then(x=>x.json());
+    if(r.success){toast('✅ Réservé jusqu\'à '+fmt(r.end),'ok');await refreshStatus();}
+    else toast(r.message||'Erreur','err');
+  }catch(e){toast('Erreur réseau','err');}
+  btn.disabled=false;btn.innerHTML='⚡ Jouer maintenant';
+}
+
+async function planReserve(){
+  const t=document.getElementById('planTime').value;
+  if(!t){toast('Choisissez une heure','err');return;}
+  if(document.getElementById('planConflict').style.display!=='none'){toast('Résolvez le conflit d\'abord','err');return;}
+  const dateObj=new Date();if(planDayOffset===1)dateObj.setDate(dateObj.getDate()+1);
+  const dateStr=dateObj.toISOString().split('T')[0];
+  const btn=document.getElementById('btnPlan');btn.disabled=true;btn.innerHTML='<span class="spin"></span> Réservation…';
+  try{
+    const r=await fetch('/api/reserve_plan',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({start_time:t,date:dateStr,duration:durPlan,mode:modePlan})}).then(x=>x.json());
+    if(r.success){toast('✅ Réservé : '+fmt(r.start)+' – '+fmt(r.end),'ok');document.getElementById('planTime').value='';document.getElementById('planEndLabel').textContent='→ fin : —';await refreshStatus();}
+    else toast(r.message||'Erreur','err');
+  }catch(e){toast('Erreur réseau','err');}
+  btn.disabled=false;btn.textContent='Confirmer la réservation';
+}
+
+async function cancelMyResa(){
+  if(!myResaId)return;
+  if(!confirm('Annuler votre réservation ?'))return;
+  try{
+    const r=await fetch('/api/cancel_reservation_v2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:myResaId})}).then(x=>x.json());
+    if(r.success){toast('✅ Annulée','ok');await refreshStatus();}
+    else toast(r.message||'Erreur','err');
+  }catch(e){toast('Erreur réseau','err');}
+}
+
+async function init(){
+  try{
+    const user=await fetch('/current_user').then(r=>r.json());
+    if(!user){location.href='/login';return;}
+    currentUser=user.username;isAdmin=user.is_admin;
+    document.getElementById('navAv').textContent=user.username[0].toUpperCase();
+    document.getElementById('navUsername').textContent=user.username;
+  }catch(e){console.error(e);}
+  const now=new Date();
+  const nm=Math.ceil(now.getMinutes()/5)*5;
+  const nh=now.getHours()+Math.floor(nm/60);
+  document.getElementById('planTime').value=String(nh%24).padStart(2,'0')+':'+String(nm%60).padStart(2,'0');
+  await refreshStatus();
+  onTimeChange();
+  setInterval(refreshStatus,30000);
+}
+init();
+</script>
+<script src="{{ url_for('static', filename='icons.js') }}"></script>
+<script src="/static/pwa.js" defer></script>
+</body>
+</html>
