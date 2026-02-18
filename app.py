@@ -1094,7 +1094,8 @@ def cancel_reservation_v2():
 @app.route("/api/reserve_and_lobby", methods=["POST"])
 @handle_errors
 def reserve_and_lobby():
-    """Reserver maintenant puis rediriger vers le lobby (bouton 'Jouer maintenant')."""
+    """Reserver maintenant et creer le lobby avec l'utilisateur comme hote."""
+    global active_lobby
     if "username" not in session:
         return jsonify({"success": False, "message": "Non authentifie"}), 401
     data = request.get_json(silent=True) or {}
@@ -1110,9 +1111,17 @@ def reserve_and_lobby():
     start_time = now
     end_time = now + timedelta(minutes=duration)
     result = _do_reservation(username, start_time, end_time, duration, mode)
-    # _do_reservation retourne une Response Flask — on extrait le JSON
     result_data = result.get_json() if hasattr(result, 'get_json') else {}
     if result_data and result_data.get("success"):
+        # Creer le lobby avec l'utilisateur comme hote
+        if active_lobby.get('active'):
+            socketio.emit('lobby_cancelled', {}, namespace='/')
+        active_lobby = {
+            "host": username, "invited": [],
+            "accepted": [username], "declined": [],
+            "team1": [username], "team2": [], "active": True
+        }
+        socketio.emit('lobby_created', {'host': username, 'invited': []}, namespace='/')
         return jsonify({"success": True, "redirect": "/lobby"})
     return result
 
@@ -1842,9 +1851,9 @@ def handle_score(data):
         if not current_game.get('active'):
             emit('error', {'message': 'Aucune partie en cours'})
             return
-        can_control = is_admin(username) or current_game.get('started_by') == username
+        can_control = is_admin(username)
         if not can_control:
-            emit('error', {'message': "Vous n'avez pas le droit de controler cette partie"})
+            emit('error', {'message': "Seul un admin peut ajouter des points"})
             return
         team = data.get('team')
         if team not in ['team1', 'team2']:
