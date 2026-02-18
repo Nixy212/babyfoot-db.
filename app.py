@@ -193,7 +193,8 @@ def init_database():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 start_time TIMESTAMP,
                 end_time TIMESTAMP,
-                duration_minutes INTEGER DEFAULT 15
+                duration_minutes INTEGER DEFAULT 15,
+                UNIQUE (start_time, reserved_by)
             )
         """)
         cur.execute("""
@@ -269,7 +270,7 @@ def init_database():
     logger.info(f"DB initialisee ({'PostgreSQL' if USE_POSTGRES else 'SQLite'})")
 
 def migrate_reservations_v2():
-    """Ajoute les colonnes start_time, end_time, duration_minutes si elles n'existent pas."""
+    """Ajoute les colonnes start_time, end_time, duration_minutes et la contrainte UNIQUE si elles n'existent pas."""
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -279,6 +280,20 @@ def migrate_reservations_v2():
                 ADD COLUMN IF NOT EXISTS start_time TIMESTAMP,
                 ADD COLUMN IF NOT EXISTS end_time TIMESTAMP,
                 ADD COLUMN IF NOT EXISTS duration_minutes INTEGER DEFAULT 15
+            """)
+            # Ajouter la contrainte UNIQUE si elle n'existe pas encore
+            cur.execute("""
+                DO $$
+                BEGIN
+                    IF NOT EXISTS (
+                        SELECT 1 FROM pg_constraint
+                        WHERE conname = 'reservations_start_time_reserved_by_key'
+                    ) THEN
+                        ALTER TABLE reservations
+                        ADD CONSTRAINT reservations_start_time_reserved_by_key
+                        UNIQUE (start_time, reserved_by);
+                    END IF;
+                END $$;
             """)
         else:
             cur.execute("PRAGMA table_info(reservations)")
@@ -907,7 +922,7 @@ def save_reservation():
             q_count = "SELECT COUNT(*) as cnt FROM reservations WHERE reserved_by = %s" if USE_POSTGRES else "SELECT COUNT(*) as cnt FROM reservations WHERE reserved_by = ?"
             cur.execute(q_count, (reserved_by,))
             count_row = row_to_dict(cur.fetchone())
-            user_total = int(count_row.get('cnt') or 0)
+            user_total = int(count_row.get('cnt') or count_row.get('count') or 0)
             q_existing_mine = (
                 "SELECT id FROM reservations WHERE day = %s AND time = %s AND reserved_by = %s"
                 if USE_POSTGRES else
@@ -1107,7 +1122,7 @@ def _do_reservation(username, start_time, end_time, duration, mode):
                     (username, now.isoformat())
                 )
             row = row_to_dict(cur.fetchone())
-            if int(row.get('cnt') or 0) >= 3:
+            if int(row.get('cnt') or row.get('count') or 0) >= 3:
                 return jsonify({"success": False, "message": "Maximum 3 reservations actives"}), 400
 
         # Verifier le chevauchement
@@ -1141,7 +1156,7 @@ def _do_reservation(username, start_time, end_time, duration, mode):
             cur.execute("""
                 INSERT INTO reservations (day, time, team1, team2, mode, reserved_by, start_time, end_time, duration_minutes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT DO NOTHING
+                ON CONFLICT (start_time, reserved_by) DO NOTHING
             """, (day_fr, time_display, '[]', '[]', mode, username, start_iso, end_iso, duration))
         else:
             # Verifier doublon exact
@@ -1213,10 +1228,10 @@ def api_public_stats():
     cur = conn.cursor()
     cur.execute("SELECT COUNT(*) as cnt FROM games")
     row = row_to_dict(cur.fetchone())
-    total_games = int(row.get('cnt') or 0)
+    total_games = int(row.get('cnt') or row.get('count') or 0)
     cur.execute("SELECT COUNT(*) as cnt FROM users WHERE total_games > 0")
     row2 = row_to_dict(cur.fetchone())
-    active_players = int(row2.get('cnt') or 0)
+    active_players = int(row2.get('cnt') or row2.get('count') or 0)
     cur.close()
     conn.close()
     return jsonify({
