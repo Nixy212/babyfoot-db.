@@ -16,7 +16,14 @@ logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(sys.stdo
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
-app.secret_key = os.environ.get('SECRET_KEY', 'babyfoot-secret-key-2024-change-me')
+
+# ── Secrets ──────────────────────────────────────────────────
+_secret_key = os.environ.get('SECRET_KEY')
+if not _secret_key:
+    import secrets as _secrets
+    _secret_key = _secrets.token_hex(32)
+    logger.warning("⚠️  SECRET_KEY non définie en variable d'environnement — clé aléatoire générée (les sessions seront invalidées à chaque redémarrage). Définissez SECRET_KEY dans Railway !")
+app.secret_key = _secret_key
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = os.environ.get('RAILWAY_ENVIRONMENT') is not None or os.environ.get('SESSION_COOKIE_SECURE', '').lower() == 'true'
@@ -25,7 +32,14 @@ app.config['SESSION_COOKIE_PATH'] = '/'
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
 
-socketio = SocketIO(app, cors_allowed_origins="*",
+# ── CORS ─────────────────────────────────────────────────────
+# En production Railway, on restreint aux domaines connus. En dev, on accepte tout.
+_railway_url = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+_allowed_origins = f"https://{_railway_url}" if _railway_url else "*"
+if _allowed_origins == "*":
+    logger.warning("⚠️  CORS Socket.IO ouvert à tous les domaines (mode dev). Définissez RAILWAY_PUBLIC_DOMAIN en prod.")
+
+socketio = SocketIO(app, cors_allowed_origins=_allowed_origins,
                     logger=False, engineio_logger=False,  # Désactiver les logs verbeux en prod
                     ping_timeout=45,   # Détecte déconnexion plus vite (était 60s)
                     ping_interval=20,  # Heartbeat plus fréquent pour mauvais réseau (était 25s)
@@ -288,6 +302,36 @@ def schedule_cleanup():
             cleanup_old_data()
     eventlet.spawn(_loop)
 
+def schedule_zombie_game_cleanup():
+    """Nettoie automatiquement les parties actives depuis plus de 2h (parties zombies)."""
+    import eventlet
+    def _loop():
+        while True:
+            eventlet.sleep(300)  # Vérifie toutes les 5 minutes
+            try:
+                if current_game.get('active') and current_game.get('started_at'):
+                    started = datetime.fromisoformat(current_game['started_at'])
+                    if datetime.now() - started > timedelta(hours=2):
+                        logger.warning("⚠️  Partie zombie détectée (>2h) — nettoyage automatique")
+                        _reset_game_state()
+                        socketio.emit('game_stopped', {'reason': 'timeout'}, namespace='/')
+            except Exception as e:
+                logger.error(f"Erreur zombie cleanup: {e}")
+    eventlet.spawn(_loop)
+
+def _reset_game_state():
+    """Réinitialise l'état global d'une partie (utilisé par stop_game et zombie cleanup)."""
+    global current_game, rematch_votes, servo_commands, rematch_pending
+    current_game = {
+        "team1_score": 0, "team2_score": 0,
+        "team1_players": [], "team2_players": [],
+        "active": False, "started_by": None, "reserved_by": None
+    }
+    rematch_votes = {"team1": [], "team2": []}
+    rematch_pending = False
+    servo_commands["servo1"].append("close")
+    servo_commands["servo2"].append("close")
+
 def is_super_admin(username):
     """Classe 1 — Imran uniquement. Accès illimité, peut tout supprimer."""
     return username == "Imran"
@@ -359,6 +403,7 @@ try:
     init_database()
     seed_accounts()
     schedule_cleanup()
+    schedule_zombie_game_cleanup()
     logger.info("Systeme initialise")
 except Exception as e:
     logger.error(f"Erreur init DB: {e}")
@@ -930,7 +975,10 @@ def api_arduino_servo():
 def api_arduino_goal():
     global current_game, _goal_processing
     data = request.get_json(silent=True) or {}
-    ARDUINO_SECRET = os.environ.get("ARDUINO_SECRET", "babyfoot-arduino-secret-2024")
+    ARDUINO_SECRET = os.environ.get("ARDUINO_SECRET")
+    if not ARDUINO_SECRET:
+        logger.warning("⚠️  ARDUINO_SECRET non défini — endpoint /api/arduino/goal non sécurisé. Définissez ARDUINO_SECRET dans Railway !")
+        ARDUINO_SECRET = "babyfoot-arduino-secret-2024"
     if data.get("secret") != ARDUINO_SECRET:
         return jsonify({"success": False, "message": "Secret invalide"}), 403
     import time
@@ -1037,28 +1085,32 @@ def handle_invite_to_lobby(data):
         emit('error', {'message': "Seul l'hote ou un admin peut inviter"}); return
     if len(active_lobby['accepted']) + len(active_lobby['invited']) >= 4:
         emit('error', {'message': 'Lobby complet'}); return
-    if invited_user in active_lobby['invited'] or invited_user in active_lobby['accepted']: return
+    # Déjà dans le lobby (invité ou accepté ou dans une équipe)
+    already_in = (invited_user in active_lobby['invited'] or
+                  invited_user in active_lobby['accepted'] or
+                  invited_user in active_lobby['team1'] or
+                  invited_user in active_lobby['team2'])
+    if already_in:
+        return
     import time as _t
-    if invited_user in [u for u in connected_users.values()]:
-        active_lobby['accepted'].append(invited_user)
-        socketio.emit('lobby_update', active_lobby, namespace='/')
-    else:
-        active_lobby['invited'].append(invited_user)
-        socketio.emit('lobby_invitation', {'from': active_lobby['host'], 'to': invited_user}, namespace='/')
-        socketio.emit('lobby_update', active_lobby, namespace='/')
     # Stocker l'invitation au cas où l'utilisateur est déconnecté au moment de l'envoi
     pending_invitations[invited_user] = {'from': active_lobby['host'], 'timestamp': _t.time()}
     if is_guest_player(invited_user):
+        # Les joueurs invités sont auto-acceptés et placés dans une équipe
         active_lobby['accepted'].append(invited_user)
         t1, t2 = len(active_lobby['team1']), len(active_lobby['team2'])
-        if t1 < 2 and t1 <= t2: active_lobby['team1'].append(invited_user)
-        elif t2 < 2: active_lobby['team2'].append(invited_user)
-        else: active_lobby['invited'].append(invited_user)
-        socketio.emit('lobby_update', active_lobby, namespace='/')
+        if t1 < 2 and t1 <= t2:
+            active_lobby['team1'].append(invited_user)
+        elif t2 < 2:
+            active_lobby['team2'].append(invited_user)
+        else:
+            active_lobby['accepted'].remove(invited_user)
+            emit('error', {'message': 'Equipes completes'}); return
     else:
+        # Joueur normal : invitation classique
         active_lobby['invited'].append(invited_user)
         socketio.emit('lobby_invitation', {'from': active_lobby['host'], 'to': invited_user}, namespace='/')
-        socketio.emit('lobby_update', active_lobby, namespace='/')
+    socketio.emit('lobby_update', active_lobby, namespace='/')
 
 @socketio.on('accept_lobby')
 def handle_accept_lobby():
@@ -1238,7 +1290,7 @@ def handle_unlock_servo2():
 
 @socketio.on('stop_game')
 def handle_stop_game():
-    global current_game, rematch_votes, servo_commands
+    global current_game, rematch_votes, servo_commands, rematch_pending
     username = get_socket_user()
     
     # Admin OU celui qui a lancé la partie peut l'arrêter
@@ -1246,15 +1298,7 @@ def handle_stop_game():
     if not can_stop:
         emit('error', {'message': 'Seul l\'admin ou l\'hôte de la partie peut l\'arrêter'}); return
     
-    current_game = {
-        "team1_score": 0, "team2_score": 0,
-        "team1_players": [], "team2_players": [],
-        "active": False, "started_by": None, "reserved_by": None
-    }
-    rematch_votes = {"team1": [], "team2": []}
-    rematch_pending = False
-    servo_commands["servo1"].append("close")
-    servo_commands["servo2"].append("close")
+    _reset_game_state()
     socketio.emit('game_stopped', {}, namespace='/')
     socketio.emit('servo1_lock', {}, namespace='/')
     socketio.emit('servo2_lock', {}, namespace='/')
@@ -1359,14 +1403,7 @@ def handle_reset():
     username = get_socket_user()
     if not is_admin(username):
         emit('error', {'message': 'Admin requis'}); return
-    current_game = {
-        "team1_score": 0, "team2_score": 0,
-        "team1_players": [], "team2_players": [], "active": False
-    }
-    rematch_votes = {"team1": [], "team2": []}
-    rematch_pending = False
-    servo_commands["servo1"].append("close")
-    servo_commands["servo2"].append("close")
+    _reset_game_state()
     socketio.emit('game_reset', current_game, namespace='/')
 
 @socketio.on('arduino_goal')
@@ -1482,5 +1519,8 @@ if __name__ == "__main__":
     socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
 
 # ── WSGI pour gunicorn + eventlet ────────────────────────────
-# Cette ligne est ESSENTIELLE pour que gunicorn serve Socket.IO correctement
+# IMPORTANT : gunicorn doit pointer sur `application`, pas sur `app`.
+# Socket.IO avec eventlet nécessite que l'objet WSGI soit le socketio lui-même,
+# pas l'app Flask, sinon les WebSockets ne fonctionnent pas.
+# Commande : gunicorn --config gunicorn_config.py app:application
 application = socketio
