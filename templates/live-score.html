@@ -395,7 +395,7 @@ function showToast(msg, type = 'info') {
   setTimeout(() => t.remove(), 4000);
 }
 
-
+function addPoint(team) {
   // Désactiver le bouton brièvement pour éviter double-clic
   const btn = document.querySelector(`[data-team="${team}"].score-btn`) ||
               document.querySelector(`button[onclick="addPoint('${team}')"]`);
