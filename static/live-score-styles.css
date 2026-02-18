@@ -705,16 +705,31 @@
 }
 
 .winner-emoji {
-  font-size: 8rem;
   margin-bottom: 1.5rem;
   animation: bounce 1s infinite alternate;
   display: inline-block;
-  filter: drop-shadow(0 10px 30px rgba(255, 215, 0, 0.6));
+}
+
+.winner-emoji svg {
+  width: 120px;
+  height: 120px;
+  stroke: url(#goldGradient);
+  filter: drop-shadow(0 10px 30px rgba(255, 215, 0, 0.8));
+}
+
+/* Gradient SVG pour le trophée */
+.winner-box svg defs,
+.winner-box svg linearGradient {
+  display: none;
+}
+
+.winner-emoji svg {
+  stroke: #ffd700;
 }
 
 @keyframes bounce {
-  from { transform: translateY(0); }
-  to { transform: translateY(-20px); }
+  from { transform: translateY(0) scale(1); }
+  to { transform: translateY(-20px) scale(1.1); }
 }
 
 .winner-ttl {
@@ -758,9 +773,10 @@
 
 /* Animation de particules dorées */
 .winner-box::after {
-  content: '✨';
+  content: '★';
   position: absolute;
   font-size: 3rem;
+  color: #ffd700;
   opacity: 0;
   animation: floatParticle 2s infinite;
 }

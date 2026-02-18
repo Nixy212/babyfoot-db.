@@ -2,6 +2,7 @@
 
 <html lang="fr">
 <head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lobby — Baby-Foot Club</title>
@@ -202,9 +203,9 @@
     <div class="nav-links">
       <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
       <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
-      <a href="/lobby" class="nav-link active"><span class="nav-link-icon">🎮</span><span>Lobby</span></a>
-      <a href="/stats" class="nav-link"><span class="nav-link-icon">📊</span><span>Stats</span></a>
-      <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
+      <a href="/lobby" class="nav-link active"><span class="nav-link-icon"><i class="fas fa-gamepad"></i></span><span>Lobby</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon"><i class="fas fa-chart-bar"></i></span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon"><i class="fas fa-trophy"></i></span><span>Top 10</span></a>
     </div>
     <button class="burger" id="burger" onclick="toggleMenu()">
       <span></span><span></span><span></span>
@@ -222,9 +223,9 @@
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
   <a href="/dashboard">🏠 Dashboard</a>
   <a href="/reservation">📅 Réserver</a>
-  <a href="/lobby">🎮 Lobby</a>
-  <a href="/stats">📊 Stats</a>
-  <a href="/top">🏆 Top 10</a>
+  <a href="/lobby"><i class="fas fa-gamepad"></i> Lobby</a>
+  <a href="/stats"><i class="fas fa-chart-bar"></i> Stats</a>
+  <a href="/top"><i class="fas fa-trophy"></i> Top 10</a>
   <a href="#" onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.href='/')">🚪 Déconnexion</a>
 </div>
 
@@ -239,7 +240,7 @@ function toggleMenu() {
 <div class="page">
   <div class="container" style="max-width:1000px">
     <div class="page-header fade-up">
-      <h1>🎮 Lobby de Partie</h1>
+      <h1><i class="fas fa-gamepad"></i> Lobby de Partie</h1>
       <p>En attente des joueurs</p>
     </div>
 
@@ -281,14 +282,14 @@ function toggleMenu() {
 
 <div style="text-align:center;margin-top:2rem">
   <button id="startButton" class="btn btn-primary btn-lg" style="display:none" onclick="startGame()">🚀 LANCER LA PARTIE</button>
-  <button class="btn" style="margin-left:1rem;background:#95a5a6;color:white" onclick="cancelLobby()">❌ Annuler</button>
+  <button class="btn" style="margin-left:1rem;background:#95a5a6;color:white" onclick="cancelLobby()">✕ Annuler</button>
 </div>
 
 <div id="swapRequestNotif" style="display:none;position:fixed;top:80px;right:20px;background:var(--bg-elevated);padding:1.5rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:300px;border:2px solid var(--border-accent)">
   <p id="swapMessage" style="margin:0;color:var(--text-primary);font-weight:600"></p>
   <div style="display:flex;gap:0.5rem;margin-top:1rem">
-    <button class="btn btn-primary" style="flex:1" onclick="acceptSwap()">✅ Accepter</button>
-    <button class="btn" style="flex:1;background:#e74c3c;color:white" onclick="declineSwap()">❌ Refuser</button>
+    <button class="btn btn-primary" style="flex:1" onclick="acceptSwap()">✓ Accepter</button>
+    <button class="btn" style="flex:1;background:#e74c3c;color:white" onclick="declineSwap()">✕ Refuser</button>
   </div>
 </div>
 
@@ -316,15 +317,15 @@ async function loadCurrentUser() {
       currentUsername = user.username;
       isAdmin = user.is_admin;
       
-      console.log('✅ Utilisateur chargé:', currentUsername, '(admin:', isAdmin, ')');
+      console.log('✓ Utilisateur chargé:', currentUsername, '(admin:', isAdmin, ')');
       
       document.getElementById('navUsername').textContent = user.username;
       document.getElementById('navAv').textContent = user.username[0].toUpperCase();
     } else {
-      console.error('❌ Erreur fetch /current_user, status:', res.status);
+      console.error('✕ Erreur fetch /current_user, status:', res.status);
     }
   } catch (e) {
-    console.error('❌ Erreur loadCurrentUser:', e);
+    console.error('✕ Erreur loadCurrentUser:', e);
   }
 }
 
@@ -431,7 +432,7 @@ async function loadLobby() {
     console.log('📦 Données lobby reçues:', data);
     
     if (!data.active) {
-      console.log('❌ Pas de lobby actif, redirection dashboard');
+      console.log('✕ Pas de lobby actif, redirection dashboard');
       location.href = '/dashboard';
       return;
     }
@@ -445,7 +446,7 @@ async function loadLobby() {
     console.log('   isAccepted:', isAccepted, '(accepted:', data.accepted, ')');
     
     if (!isInvited && !isAccepted) {
-      console.log('❌ Utilisateur pas dans le lobby, redirection dashboard');
+      console.log('✕ Utilisateur pas dans le lobby, redirection dashboard');
       console.log('   currentUsername:', currentUsername);
       console.log('   lobby.invited:', data.invited);
       console.log('   lobby.accepted:', data.accepted);
@@ -453,12 +454,12 @@ async function loadLobby() {
       return;
     }
     
-    console.log('✅ Utilisateur dans le lobby, chargement UI');
+    console.log('✓ Utilisateur dans le lobby, chargement UI');
     lobbyData = data;
     updateLobbyUI();
     loadPlayers();
   } catch (e) {
-    console.error('❌ Erreur loadLobby:', e);
+    console.error('✕ Erreur loadLobby:', e);
     location.href = '/dashboard';
   }
 }
@@ -501,7 +502,7 @@ function updateLobbyUI() {
       buttons += `<button onclick="requestSwap('${player}')">↔️ Échanger</button>`;
     }
     if (canKick(player)) {
-      buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')">❌ Exclure</button>`;
+      buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')">✕ Exclure</button>`;
     }
     
     item.innerHTML = `
@@ -520,7 +521,7 @@ function updateLobbyUI() {
       buttons += `<button onclick="requestSwap('${player}')">↔️ Échanger</button>`;
     }
     if (canKick(player)) {
-      buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')">❌ Exclure</button>`;
+      buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')">✕ Exclure</button>`;
     }
     
     item.innerHTML = `
@@ -623,7 +624,7 @@ socket.on('kicked_from_lobby', () => {
 
 
 socket.on('error', (data) => {
-  toast('❌ ' + (data.message || 'Erreur'), 'err');
+  toast('✕ ' + (data.message || 'Erreur'), 'err');
 });
 
 function toast(msg, type='inf') {
@@ -642,7 +643,7 @@ async function initPage() {
   await loadCurrentUser();
   console.log('⏳ loadCurrentUser terminé, démarrage loadLobby...');
   await loadLobby();
-  console.log('✅ Initialisation terminée');
+  console.log('✓ Initialisation terminée');
 }
 
 initPage();

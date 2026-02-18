@@ -2,6 +2,7 @@
 
 <html lang="fr">
 <head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin — Baby-Foot Club</title>
@@ -28,10 +29,10 @@
     <div class="nav-links">
       <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
       <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
-      <a href="/live-score" class="nav-link"><span class="nav-link-icon">🎮</span><span>Partie Live</span></a>
-      <a href="/stats" class="nav-link"><span class="nav-link-icon">📊</span><span>Stats</span></a>
-      <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
-      <a href="/admin" class="nav-link active"><span class="nav-link-icon">⚙️</span><span>Admin</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon"><i class="fas fa-gamepad"></i></span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon"><i class="fas fa-chart-bar"></i></span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon"><i class="fas fa-trophy"></i></span><span>Top 10</span></a>
+      <a href="/admin" class="nav-link active"><span class="nav-link-icon"><i class="fas fa-cog"></i></span><span>Admin</span></a>
     </div>
     <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -50,10 +51,10 @@
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
   <a href="/dashboard">🏠 Dashboard</a>
   <a href="/reservation">📅 Réserver</a>
-  <a href="/live-score">🎮 Partie Live</a>
-  <a href="/stats">📊 Stats</a>
-  <a href="/top">🏆 Top 10</a>
-  <a href="/admin" class="active">⚙️ Admin</a>
+  <a href="/live-score"><i class="fas fa-gamepad"></i> Partie Live</a>
+  <a href="/stats"><i class="fas fa-chart-bar"></i> Stats</a>
+  <a href="/top"><i class="fas fa-trophy"></i> Top 10</a>
+  <a href="/admin" class="active"><i class="fas fa-cog"></i> Admin</a>
   <a href="#" onclick="logout()">🚪 Déconnexion</a>
 </div>
 
@@ -61,7 +62,7 @@
   <div class="container" style="max-width:900px">
 
 <div class="page-header fade-up">
-  <h1>⚙️ Administration</h1>
+  <h1><i class="fas fa-cog"></i> Administration</h1>
   <p>Outils de gestion du Baby-Foot Club</p>
 </div>
 
@@ -117,7 +118,7 @@
 <!-- ÉTAT DU JEU -->
 <div class="card fade-up" style="animation-delay:.15s;margin-bottom:1.5rem">
   <div class="card-header">
-    <h3>🎮 État du jeu en cours</h3>
+    <h3><i class="fas fa-gamepad"></i> État du jeu en cours</h3>
     <button class="btn btn-secondary" style="padding:0.4rem 0.8rem;font-size:0.8rem" onclick="loadGameState()">
       🔄 Actualiser
     </button>
@@ -233,7 +234,7 @@ function unlockServo(num) {
 
     result.style.background = 'rgba(39,174,96,0.1)';
     result.style.border = '1px solid rgba(39,174,96,0.4)';
-    result.textContent = `✅ Servo ${num} reverrouillé automatiquement`;
+    result.textContent = `✓ Servo ${num} reverrouillé automatiquement`;
 
     setTimeout(() => { result.style.display = 'none'; }, 3000);
   }, 5000);
@@ -246,7 +247,7 @@ socket.on('error', (data) => {
   result.style.background = 'rgba(231,76,60,0.1)';
   result.style.border = '1px solid rgba(231,76,60,0.4)';
   result.style.color = '#e74c3c';
-  result.textContent = '❌ Erreur : ' + data.message;
+  result.textContent = '✕ Erreur : ' + data.message;
   setTimeout(() => { result.style.display = 'none'; }, 5000);
 });
 
@@ -287,7 +288,7 @@ async function loadUsers() {
         </div>
         <div style="display:flex;align-items:center;gap:0.75rem">
           <a href="/user_stats/${u}" class="btn btn-secondary" style="padding:0.5rem 1rem;font-size:0.8125rem;text-decoration:none">
-            📊 Stats
+            <i class="fas fa-chart-bar"></i> Stats
           </a>
           <button 
             onclick="deleteUser('${u}')" 
@@ -336,14 +337,14 @@ async function deleteUser(username) {
     const data = await res.json();
 
     if (data.success) {
-      showToast(`✅ Compte "${username}" supprimé avec succès`, 'ok');
+      showToast(`✓ Compte "${username}" supprimé avec succès`, 'ok');
       // Recharger la liste
       setTimeout(() => loadUsers(), 500);
     } else {
-      showToast(`❌ Erreur : ${data.message}`, 'err');
+      showToast(`✕ Erreur : ${data.message}`, 'err');
     }
   } catch (e) {
-    showToast('❌ Erreur de connexion au serveur', 'err');
+    showToast('✕ Erreur de connexion au serveur', 'err');
     console.error('Erreur suppression:', e);
   }
 }
@@ -410,19 +411,19 @@ async function resetDatabase() {
     if (data.success) {
       result.style.background = 'rgba(39,174,96,0.1)';
       result.style.border = '1px solid rgba(39,174,96,0.4)';
-      result.textContent = '✅ Base réinitialisée ! Redirection...';
+      result.textContent = '✓ Base réinitialisée ! Redirection...';
       setTimeout(() => location.href = '/dashboard', 2000);
     } else {
       result.style.background = 'rgba(231,76,60,0.1)';
       result.style.border = '1px solid rgba(231,76,60,0.4)';
       result.style.color = '#e74c3c';
-      result.textContent = '❌ Erreur : ' + data.message;
+      result.textContent = '✕ Erreur : ' + data.message;
     }
   } catch(e) {
     result.style.background = 'rgba(231,76,60,0.1)';
     result.style.border = '1px solid rgba(231,76,60,0.4)';
     result.style.color = '#e74c3c';
-    result.textContent = '❌ Erreur réseau : ' + e.message;
+    result.textContent = '✕ Erreur réseau : ' + e.message;
   }
 }
 

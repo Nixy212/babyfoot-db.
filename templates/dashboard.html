@@ -2,6 +2,7 @@
 
 <html lang="fr">
 <head>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — Baby-Foot Club</title>
@@ -85,9 +86,9 @@
     <div class="nav-links">
       <a href="/dashboard" class="nav-link active"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
       <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
-      <a href="/live-score" class="nav-link"><span class="nav-link-icon">🎮</span><span>Partie Live</span></a>
-      <a href="/stats" class="nav-link"><span class="nav-link-icon">📊</span><span>Stats</span></a>
-      <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon"><i class="fas fa-gamepad"></i></span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon"><i class="fas fa-chart-bar"></i></span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon"><i class="fas fa-trophy"></i></span><span>Top 10</span></a>
     </div>
     <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -97,7 +98,7 @@
         <div class="nav-avatar" id="navAv">?</div>
         <span class="nav-username" id="navUsername"></span>
       </div>
-      <a href="/admin" id="adminBtn" class="btn" style="margin-left:1rem;background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;display:none">⚙️ Admin</a>
+      <a href="/admin" id="adminBtn" class="btn" style="margin-left:1rem;background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;display:none"><i class="fas fa-cog"></i> Admin</a>
       <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()">🚪 Déconnexion</button>
     </div>
   </div>
@@ -107,10 +108,10 @@
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
   <a href="/dashboard">🏠 Dashboard</a>
   <a href="/reservation">📅 Réserver</a>
-  <a href="/live-score">🎮 Partie Live</a>
-  <a href="/stats">📊 Stats</a>
-  <a href="/top">🏆 Top 10</a>
-  <a href="/admin" id="adminBtnMobile" style="display:none;background:rgba(231,76,60,0.2);color:#e74c3c;font-weight:bold">⚙️ Admin</a>
+  <a href="/live-score"><i class="fas fa-gamepad"></i> Partie Live</a>
+  <a href="/stats"><i class="fas fa-chart-bar"></i> Stats</a>
+  <a href="/top"><i class="fas fa-trophy"></i> Top 10</a>
+  <a href="/admin" id="adminBtnMobile" style="display:none;background:rgba(231,76,60,0.2);color:#e74c3c;font-weight:bold"><i class="fas fa-cog"></i> Admin</a>
   <a href="#" onclick="logout()">🚪 Déconnexion</a>
 </div>
 
@@ -143,14 +144,14 @@ function logout() {
     </div>
   </div>
   <div class="card card-hover">
-    <div class="card-header"><h3>🎮 Jouer</h3></div>
+    <div class="card-header"><h3><i class="fas fa-gamepad"></i> Jouer</h3></div>
     <div class="card-body">
       <p>Lancez une partie en direct</p>
       <a href="/live-score" class="btn btn-primary btn-full">Partie Live</a>
     </div>
   </div>
   <div class="card card-hover">
-    <div class="card-header"><h3>📊 Stats</h3></div>
+    <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Stats</h3></div>
     <div class="card-body">
       <p>Consultez vos statistiques</p>
       <a href="/stats" class="btn btn-primary btn-full">Voir Stats</a>
@@ -161,12 +162,12 @@ function logout() {
 <div id="invitation-section" class="fade-up" style="animation-delay:.1s">
   <h3>👥 Créer un Lobby</h3>
   <p id="lobby-description">Créez un lobby vide, puis invitez des joueurs depuis le lobby</p>
-  <button id="create-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold" onclick="createEmptyLobby()">🎮 Créer un Lobby Vide</button>
+  <button id="create-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold" onclick="createEmptyLobby()"><i class="fas fa-gamepad"></i> Créer un Lobby Vide</button>
   <button id="rejoin-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold;display:none" onclick="rejoinLobby()">🔄 Rejoindre le Lobby</button>
 </div>
 
 <div id="servo-controls" class="fade-up" style="animation-delay:.15s">
-  <h3>🎮 Contrôles Servo</h3>
+  <h3><i class="fas fa-gamepad"></i> Contrôles Servo</h3>
   <p>Débloquez le servo pour lancer une balle</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
     <button class="btn btn-primary" onclick="unlockServo1()" style="background:linear-gradient(135deg,#3498db 0%,#2980b9 100%)">
@@ -180,7 +181,7 @@ function logout() {
 </div>
 
 <div class="card fade-up" style="animation-delay:.2s;margin-top:1.5rem">
-  <div class="card-header"><h3>🏆 Top 10 Joueurs</h3></div>
+  <div class="card-header"><h3><i class="fas fa-trophy"></i> Top 10 Joueurs</h3></div>
   <div class="card-body">
     <div id="leaderboard"></div>
   </div>
@@ -215,19 +216,19 @@ try {
   console.log('🔌 Tentative de connexion Socket.IO...');
   socket = io();
   socket.on('connect', () => {
-    console.log('✅ Socket.IO connecté, ID:', socket.id);
+    console.log('✓ Socket.IO connecté, ID:', socket.id);
   });
   socket.on('connect_error', (err) => {
-    console.error('❌ Erreur connexion Socket.IO:', err);
+    console.error('✕ Erreur connexion Socket.IO:', err);
   });
   socket.on('disconnect', () => {
     console.warn('🔌 Socket.IO déconnecté');
   });
 } catch(e) {
-  console.error('❌ Socket.IO non disponible:', e);
+  console.error('✕ Socket.IO non disponible:', e);
   alert('⚠️ Connexion temps réel impossible. Rechargez la page.');
   socket = { 
-    emit: (event, data) => { console.warn(`❌ Socket factice: emit(${event}) ignoré`); },
+    emit: (event, data) => { console.warn(`✕ Socket factice: emit(${event}) ignoré`); },
     on: () => {},
     connected: false
   };
@@ -306,11 +307,11 @@ async function checkActiveLobby() {
 
 function rejoinLobby() { location.href = '/lobby'; }
 function createEmptyLobby() { 
-  console.log('🎮 createEmptyLobby appelé');
+  console.log('<i class="fas fa-gamepad"></i> createEmptyLobby appelé');
   console.log('Socket connecté:', socket.connected);
   console.log('Socket ID:', socket.id);
   socket.emit('create_lobby', { invited: [] });
-  console.log('✅ Event create_lobby émis');
+  console.log('✓ Event create_lobby émis');
 }
 
 function unlockServo1() {
@@ -326,7 +327,7 @@ function unlockServo1() {
     btn.disabled = false; btn.style.opacity = '1';
     feedback.style.background = 'rgba(39,174,96,0.1)';
     feedback.style.border = '1px solid #27ae60';
-    feedback.textContent = '✅ Servo 1 reverrouillé automatiquement';
+    feedback.textContent = '✓ Servo 1 reverrouillé automatiquement';
     setTimeout(() => { feedback.style.display = 'none'; }, 3000);
   }, 5000);
 }
@@ -344,7 +345,7 @@ function unlockServo2() {
     btn.disabled = false; btn.style.opacity = '1';
     feedback.style.background = 'rgba(39,174,96,0.1)';
     feedback.style.border = '1px solid #27ae60';
-    feedback.textContent = '✅ Servo 2 reverrouillé automatiquement';
+    feedback.textContent = '✓ Servo 2 reverrouillé automatiquement';
     setTimeout(() => { feedback.style.display = 'none'; }, 3000);
   }, 5000);
 }
@@ -447,7 +448,7 @@ socket.on('lobby_created', (data) => {
 });
 
 socket.on('error', (data) => {
-  showNotification('❌ ' + (data.message || 'Erreur'), 'error');
+  showNotification('✕ ' + (data.message || 'Erreur'), 'error');
 });
 
 socket.on('lobby_invitation', (data) => {
@@ -460,8 +461,8 @@ socket.on('lobby_invitation', (data) => {
         <strong style="color:var(--bronze)">${data.from}</strong> vous invite à jouer
       </div>
       <div class="notification-buttons">
-        <button class="btn-accept" onclick="acceptLobby(this.closest('.notification'))">✅</button>
-        <button class="btn-decline" onclick="declineLobby(this.closest('.notification'))">❌</button>
+        <button class="btn-accept" onclick="acceptLobby(this.closest('.notification'))">✓</button>
+        <button class="btn-decline" onclick="declineLobby(this.closest('.notification'))">✕</button>
       </div>
     `;
     bar.appendChild(notif);

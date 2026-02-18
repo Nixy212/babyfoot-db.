@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Baby-Foot Club</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -39,8 +40,8 @@
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
   <a href="/">🏠 Accueil</a>
   <a href="#features" onclick="toggleMenu()">✨ Fonctionnalités</a>
-  <a href="/top">🏆 Classement</a>
-  <a href="/scores">📊 Scores</a>
+  <a href="/top"><i class="fas fa-trophy"></i> Classement</a>
+  <a href="/scores"><i class="fas fa-chart-bar"></i> Scores</a>
   <a href="/login" style="background:rgba(205,127,50,0.15);border-color:rgba(205,127,50,0.4);color:var(--bronze);font-weight:700">🔑 Se connecter</a>
   <a href="/register">📝 Créer un compte</a>
 </div>
@@ -108,7 +109,7 @@
         <p>Créneaux de 25 minutes, disponibles aujourd'hui et demain. Simple et précis.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon">🎮</div>
+        <div class="feat-icon"><i class="fas fa-gamepad"></i></div>
         <h3>Score en direct</h3>
         <p>WebSocket temps réel. Chaque but est synchronisé instantanément sur tous les appareils.</p>
       </div>
@@ -118,12 +119,12 @@
         <p>Accès à la balle uniquement pendant votre créneau réservé via Arduino.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon">📊</div>
+        <div class="feat-icon"><i class="fas fa-chart-bar"></i></div>
         <h3>Statistiques</h3>
         <p>Suivez vos performances, points accumulés et votre progression dans le temps.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon">🏆</div>
+        <div class="feat-icon"><i class="fas fa-trophy"></i></div>
         <h3>Classement</h3>
         <p>Top 10 mis à jour après chaque partie. Votre position en temps réel.</p>
       </div>

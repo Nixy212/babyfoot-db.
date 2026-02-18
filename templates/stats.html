@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stats — Baby-Foot Club</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
@@ -25,9 +26,9 @@
     <div class="nav-links">
       <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
       <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
-      <a href="/live-score" class="nav-link"><span class="nav-link-icon">🎮</span><span>Partie Live</span></a>
-      <a href="/stats" class="nav-link active"><span class="nav-link-icon">📊</span><span>Stats</span></a>
-      <a href="/top" class="nav-link"><span class="nav-link-icon">🏆</span><span>Top 10</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon"><i class="fas fa-gamepad"></i></span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link active"><span class="nav-link-icon"><i class="fas fa-chart-bar"></i></span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon"><i class="fas fa-trophy"></i></span><span>Top 10</span></a>
     </div>
         <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -45,9 +46,9 @@
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
   <a href="/dashboard">🏠 Dashboard</a>
   <a href="/reservation">📅 Réserver</a>
-  <a href="/live-score">🎮 Partie Live</a>
-  <a href="/stats">📊 Stats</a>
-  <a href="/top">🏆 Top 10</a>
+  <a href="/live-score"><i class="fas fa-gamepad"></i> Partie Live</a>
+  <a href="/stats"><i class="fas fa-chart-bar"></i> Stats</a>
+  <a href="/top"><i class="fas fa-trophy"></i> Top 10</a>
   <a href="#" onclick="fetch(\`/api/logout\`,{method:\`POST\`}).then(()=>location.href=\`/\`)">🚪 Déconnexion</a>
 </div>
 <script id="burger-script">
@@ -68,7 +69,7 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
 <div class="page">
   <div class="container" style="max-width:900px">
     <div class="page-header fade-up">
-      <h1>📊 Statistiques</h1>
+      <h1><i class="fas fa-chart-bar"></i> Statistiques</h1>
       <p id="subttl">Chargement…</p>
     </div>
 
