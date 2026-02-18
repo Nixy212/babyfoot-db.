@@ -38,8 +38,8 @@
 <!-- Mobile menu visiteurs -->
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
-  <a href="/">🏠 Accueil</a>
-  <a href="#features" onclick="toggleMenu()">✨ Fonctionnalités</a>
+  <a href="/">Accueil</a>
+  <a href="#features" onclick="toggleMenu()">Fonctionnalités</a>
   <a href="/top"><i class="fas fa-trophy"></i> Classement</a>
   <a href="/scores"><i class="fas fa-chart-bar"></i> Scores</a>
   <a href="/login" style="background:rgba(205,127,50,0.15);border-color:rgba(205,127,50,0.4);color:var(--bronze);font-weight:700">🔑 Se connecter</a>
@@ -52,8 +52,8 @@
     <div class="glow-orb orb-2"></div>
     <div class="glow-orb orb-3"></div>
   </div>
-  <div class="hero-inner">
-    <div class="hero-eyebrow">⚽ Plateforme Baby-Foot connectée</div>
+<div class="hero-inner">
+    <div class="hero-eyebrow"><span data-bficon="ball" data-size="20" style="color:var(--bronze)"></span>&nbsp;Plateforme Baby-Foot connectée</div>
     <h1 class="hero-title">
       Jouez.<br>
       <em class="gradient-shine">Dominez.</em>
@@ -104,32 +104,32 @@
   <div class="container">
     <div class="feat-grid">
       <div class="feat-cell">
-        <div class="feat-icon">📅</div>
+        <div class="feat-icon" data-bficon="timer" data-size="52" style="color:var(--bronze)"></div>
         <h3>Réservation 25 min</h3>
         <p>Créneaux de 25 minutes, disponibles aujourd'hui et demain. Simple et précis.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon"><i class="fas fa-gamepad"></i></div>
+        <div class="feat-icon" data-bficon="live" data-size="52" style="color:var(--bronze)"></div>
         <h3>Score en direct</h3>
         <p>WebSocket temps réel. Chaque but est synchronisé instantanément sur tous les appareils.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon">🔓</div>
+        <div class="feat-icon" data-bficon="unlock" data-size="52" style="color:var(--bronze)"></div>
         <h3>Déverrouillage</h3>
         <p>Accès à la balle uniquement pendant votre créneau réservé via Arduino.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon"><i class="fas fa-chart-bar"></i></div>
+        <div class="feat-icon" data-bficon="stats" data-size="52" style="color:var(--bronze)"></div>
         <h3>Statistiques</h3>
         <p>Suivez vos performances, points accumulés et votre progression dans le temps.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon"><i class="fas fa-trophy"></i></div>
+        <div class="feat-icon" data-bficon="trophy" data-size="52" style="color:var(--bronze)"></div>
         <h3>Classement</h3>
         <p>Top 10 mis à jour après chaque partie. Votre position en temps réel.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon">⚽</div>
+        <div class="feat-icon" data-bficon="foosball" data-size="52" style="color:var(--bronze)"></div>
         <h3>Multi-modes</h3>
         <p>Jouez en duel 1v1 ou en équipe 2v2. La plateforme s'adapte à votre configuration.</p>
       </div>
@@ -162,6 +162,7 @@
 </footer>
 
 <script src="{{ url_for('static', filename='animations.js') }}"></script>
+<script src="{{ url_for('static', filename='icons.js') }}"></script>
 <script>
 function toggleMenu() {
   document.getElementById('burger').classList.toggle('open');

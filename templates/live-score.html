@@ -30,11 +30,11 @@
     </a>
     <div class="nav-sep"></div>
     <div class="nav-links">
-      <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
-      <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
-      <a href="/live-score" class="nav-link active"><span class="nav-link-icon"><i class="fas fa-gamepad"></i></span><span>Partie Live</span></a>
-      <a href="/stats" class="nav-link"><span class="nav-link-icon"><i class="fas fa-chart-bar"></i></span><span>Stats</span></a>
-      <a href="/top" class="nav-link"><span class="nav-link-icon"><i class="fas fa-trophy"></i></span><span>Top 10</span></a>
+      <a href="/dashboard" class="nav-link"><span class="nav-link-icon" data-bficon="home" data-size="18" style="color:currentColor"></span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link"><span class="nav-link-icon" data-bficon="calendar" data-size="18" style="color:currentColor"></span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link active"><span class="nav-link-icon" data-bficon="gamepad" data-size="18" style="color:currentColor"></span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon" data-bficon="stats" data-size="18" style="color:currentColor"></span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon" data-bficon="trophy" data-size="18" style="color:currentColor"></span><span>Top 10</span></a>
     </div>
     <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -44,25 +44,25 @@
         <div class="nav-avatar" id="navAv">?</div>
         <span class="nav-username" id="navUsername"></span>
       </div>
-      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()">🚪 Déconnexion</button>
+      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</button>
     </div>
   </div>
 </nav>
 
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
-  <a href="/dashboard">🏠 Dashboard</a>
-  <a href="/reservation">📅 Réserver</a>
-  <a href="/live-score" class="active"><i class="fas fa-gamepad"></i> Partie Live</a>
-  <a href="/stats"><i class="fas fa-chart-bar"></i> Stats</a>
-  <a href="/top"><i class="fas fa-trophy"></i> Top 10</a>
-  <a href="#" onclick="logout()">🚪 Déconnexion</a>
+  <a href="/dashboard"><span data-bficon="home" data-size="16"></span> Dashboard</a>
+  <a href="/reservation"><span data-bficon="calendar" data-size="16"></span> Réserver</a>
+  <a href="/live-score" class="active"><span data-bficon="gamepad" data-size="16"></span> Partie Live</a>
+  <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
+  <a href="/top"><span data-bficon="trophy" data-size="16"></span> Top 10</a>
+  <a href="#" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</a>
 </div>
 
 <div class="page">
   <div class="container" style="max-width:900px">
     <div class="page-header fade-up">
-      <h1><i class="fas fa-gamepad"></i> Partie Live</h1>
+      <h1><span data-bficon="gamepad" data-size="16"></span> Partie Live</h1>
       <p id="pageSub">Suivez le match en direct</p>
     </div>
 
@@ -95,7 +95,7 @@
         🚀 Lancer la partie
       </button>
       <button id="btnUnlockServo" class="btn btn-secondary btn-full" style="margin-top:1rem;display:none" onclick="unlockServo()">
-        🔓 Débloquer Servo (test)
+        Débloquer Servo (test)
       </button>
     </div>
   </div>
@@ -127,7 +127,7 @@
 <div id="gameArea" style="display:none" class="fade-up">
   <div class="card">
     <div class="card-header">
-      <h3>⚽ Partie en cours</h3>
+      <h3><span data-bficon="foosball" data-size="20" style="color:var(--bronze);vertical-align:middle"></span> Partie en cours</h3>
       <div id="gameStatus" style="font-size:0.875rem;color:var(--text-tertiary)"></div>
     </div>
     <div class="card-body">
@@ -159,7 +159,7 @@
 <div id="noGameArea" style="display:none" class="fade-up">
   <div class="card">
     <div class="card-body" style="text-align:center;padding:3rem 1rem">
-      <div style="font-size:4rem;margin-bottom:1rem;opacity:0.3">⚽</div>
+      <div style="margin-bottom:1rem;opacity:0.3;display:flex;justify-content:center"><span data-bficon="ball" data-size="64" style="color:var(--text-tertiary)"></span></div>
       <h2 style="color:var(--text-primary);margin-bottom:0.5rem">Aucun match en cours</h2>
       <p style="color:var(--text-tertiary);margin-bottom:2rem">Il n'y a pas de partie active pour le moment</p>
       <a href="/dashboard" class="btn btn-primary">← Retour au Dashboard</a>
@@ -170,7 +170,7 @@
 <!-- POPUP REMATCH -->
 <div id="rematchPopup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(8px)">
   <div style="background:var(--bg-elevated);padding:2.5rem;border-radius:20px;max-width:420px;width:90%;text-align:center;border:1px solid var(--border-accent)">
-    <div style="font-size:3rem;margin-bottom:1rem">🔄</div>
+    <div style="display:flex;justify-content:center;margin-bottom:1rem"><span data-bficon="replay" data-size="56" style="color:var(--bronze)"></span></div>
     <h2 style="color:var(--text-primary);margin-bottom:0.5rem">Rejouer ?</h2>
     <p style="color:var(--text-tertiary);margin:1rem 0 1.5rem">Mêmes équipes, nouvelle partie ?</p>
     <div style="display:flex;gap:1rem">
@@ -183,16 +183,7 @@
 <!-- WINNER OVERLAY -->
 <div id="winnerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9998;align-items:center;justify-content:center;backdrop-filter:blur(12px)">
   <div class="winner-box">
-    <div class="winner-emoji">
-      <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-        <path d="M4 22h16"></path>
-        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-      </svg>
-    </div>
+    <div class="winner-emoji" data-bficon="winner" data-size="120" style="color:var(--bronze);margin:0 auto 1.5rem;display:flex;justify-content:center;filter:drop-shadow(0 0 30px rgba(205,127,50,0.5))"></div>
     <div class="winner-ttl" id="winnerTitle">Victoire !</div>
     <div class="winner-sub" id="winnerSub"></div>
   </div>
@@ -369,6 +360,8 @@ function unlockServo() {
   setTimeout(() => socket.emit('unlock_servo2'), 100);
 }
 
+let winnerOverlayTimer = null;
+
 function voteRematch(vote) {
   socket.emit('vote_rematch', {vote});
   document.getElementById('rematchPopup').style.display = 'none';
@@ -387,17 +380,19 @@ function showWinner(game) {
   
   // 🎉 MEGA confettis de victoire
   if (typeof launchConfetti === 'function') {
-    launchConfetti(5000, 300); // 5 secondes, 300 confettis !
-    // Relancer des confettis toutes les secondes pendant 5 secondes
-    setTimeout(() => launchConfetti(1000, 50), 500);
-    setTimeout(() => launchConfetti(1000, 50), 1500);
-    setTimeout(() => launchConfetti(1000, 50), 2500);
-    setTimeout(() => launchConfetti(1000, 50), 3500);
+    launchConfetti(8000, 300);
+    setTimeout(() => launchConfetti(1000, 80), 500);
+    setTimeout(() => launchConfetti(1000, 80), 1500);
+    setTimeout(() => launchConfetti(1000, 80), 2500);
+    setTimeout(() => launchConfetti(1000, 80), 3500);
+    setTimeout(() => launchConfetti(1000, 80), 5000);
+    setTimeout(() => launchConfetti(1000, 80), 6500);
   }
 
-  setTimeout(() => {
+  // Fermer automatiquement après 10 secondes (si pas de rematch_prompt entre-temps)
+  winnerOverlayTimer = setTimeout(() => {
     document.getElementById('winnerOverlay').style.display = 'none';
-  }, 5000); // 5 secondes au lieu de 4
+  }, 10000);
 }
 
 // ── Socket events ──
@@ -432,13 +427,18 @@ socket.on('game_reset', () => {
 });
 
 socket.on('rematch_prompt', () => {
-  document.getElementById('winnerOverlay').style.display = 'none';
-  const t1 = parsePlayers(lastGame ? lastGame.team1_players : []);
-  const t2 = parsePlayers(lastGame ? lastGame.team2_players : []);
-  const isInGame = t1.includes(currentUser) || t2.includes(currentUser) || canControl || isAdmin;
-  if (isInGame) {
-    document.getElementById('rematchPopup').style.display = 'flex';
-  }
+  // Annuler le timer de fermeture automatique du popup victoire
+  if (winnerOverlayTimer) { clearTimeout(winnerOverlayTimer); winnerOverlayTimer = null; }
+  // Laisser le popup victoire visible encore 2 secondes avant de montrer le rematch
+  setTimeout(() => {
+    document.getElementById('winnerOverlay').style.display = 'none';
+    const t1 = parsePlayers(lastGame ? lastGame.team1_players : []);
+    const t2 = parsePlayers(lastGame ? lastGame.team2_players : []);
+    const isInGame = t1.includes(currentUser) || t2.includes(currentUser) || canControl || isAdmin;
+    if (isInGame) {
+      document.getElementById('rematchPopup').style.display = 'flex';
+    }
+  }, 2000);
 });
 
 socket.on('rematch_cancelled', () => {
@@ -447,11 +447,11 @@ socket.on('rematch_cancelled', () => {
 
 socket.on('servo1_unlock', () => {
   const btn = document.getElementById('btnUnlockServo');
-  if (btn) { btn.textContent = '🔓 Servo déverrouillé (5s)'; btn.style.opacity = '0.6'; }
+  if (btn) { btn.textContent = 'Servo déverrouillé (5s)'; btn.style.opacity = '0.6'; }
 });
 socket.on('servo1_lock', () => {
   const btn = document.getElementById('btnUnlockServo');
-  if (btn) { btn.textContent = '🔓 Débloquer Servo (test)'; btn.style.opacity = '1'; }
+  if (btn) { btn.textContent = 'Débloquer Servo (test)'; btn.style.opacity = '1'; }
 });
 socket.on('servo2_unlock', () => {});
 socket.on('servo2_lock', () => {});
@@ -488,5 +488,7 @@ async function init() {
 init();
 </script>
 
+
+<script src="{{ url_for('static', filename='icons.js') }}"></script>
 </body>
 </html>

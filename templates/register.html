@@ -62,5 +62,7 @@
   document.getElementById('regBtn').addEventListener('click', register);
   document.getElementById('password').addEventListener('keydown', e=>{ if(e.key==='Enter') register(); });
 </script>
+
+<script src="{{ url_for('static', filename='icons.js') }}"></script>
 </body>
 </html>

@@ -829,7 +829,7 @@ def api_arduino_goal():
         except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
         socketio.emit("game_ended", current_game, namespace="/")
         def ask_rematch():
-            import eventlet; eventlet.sleep(2)
+            import eventlet; eventlet.sleep(6)
             socketio.emit("rematch_prompt", {}, namespace="/")
         eventlet.spawn(ask_rematch)
         return jsonify({"success": True, "game_ended": True, "winner": team})
@@ -1112,7 +1112,7 @@ def handle_score(data):
             except Exception as e: logger.error(f"Save error: {e}")
             socketio.emit('game_ended', current_game, namespace='/')
             def ask_rematch():
-                import eventlet; eventlet.sleep(2)
+                import eventlet; eventlet.sleep(6)
                 socketio.emit('rematch_prompt', {}, namespace='/')
             eventlet.spawn(ask_rematch)
         else:
@@ -1197,7 +1197,7 @@ def handle_arduino_goal(data):
         except Exception as e: logger.error(f"Erreur sauvegarde: {e}")
         socketio.emit('game_ended', current_game, namespace='/')
         def ask_rematch_delayed():
-            import eventlet; eventlet.sleep(2)
+            import eventlet; eventlet.sleep(6)
             socketio.emit('rematch_prompt', {}, namespace='/')
         eventlet.spawn(ask_rematch_delayed)
     else:

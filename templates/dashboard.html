@@ -84,11 +84,11 @@
     </a>
     <div class="nav-sep"></div>
     <div class="nav-links">
-      <a href="/dashboard" class="nav-link active"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
-      <a href="/reservation" class="nav-link"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
-      <a href="/live-score" class="nav-link"><span class="nav-link-icon"><i class="fas fa-gamepad"></i></span><span>Partie Live</span></a>
-      <a href="/stats" class="nav-link"><span class="nav-link-icon"><i class="fas fa-chart-bar"></i></span><span>Stats</span></a>
-      <a href="/top" class="nav-link"><span class="nav-link-icon"><i class="fas fa-trophy"></i></span><span>Top 10</span></a>
+      <a href="/dashboard" class="nav-link active"><span class="nav-link-icon" data-bficon="home" data-size="18" style="color:currentColor"></span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link"><span class="nav-link-icon" data-bficon="calendar" data-size="18" style="color:currentColor"></span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon" data-bficon="gamepad" data-size="18" style="color:currentColor"></span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon" data-bficon="stats" data-size="18" style="color:currentColor"></span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon" data-bficon="trophy" data-size="18" style="color:currentColor"></span><span>Top 10</span></a>
     </div>
     <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -99,20 +99,20 @@
         <span class="nav-username" id="navUsername"></span>
       </div>
       <a href="/admin" id="adminBtn" class="btn" style="margin-left:1rem;background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;display:none"><i class="fas fa-cog"></i> Admin</a>
-      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()">🚪 Déconnexion</button>
+      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</button>
     </div>
   </div>
 </nav>
 
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
-  <a href="/dashboard">🏠 Dashboard</a>
-  <a href="/reservation">📅 Réserver</a>
-  <a href="/live-score"><i class="fas fa-gamepad"></i> Partie Live</a>
-  <a href="/stats"><i class="fas fa-chart-bar"></i> Stats</a>
-  <a href="/top"><i class="fas fa-trophy"></i> Top 10</a>
+  <a href="/dashboard"><span data-bficon="home" data-size="16"></span> Dashboard</a>
+  <a href="/reservation"><span data-bficon="calendar" data-size="16"></span> Réserver</a>
+  <a href="/live-score"><span data-bficon="gamepad" data-size="16"></span> Partie Live</a>
+  <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
+  <a href="/top"><span data-bficon="trophy" data-size="16"></span> Top 10</a>
   <a href="/admin" id="adminBtnMobile" style="display:none;background:rgba(231,76,60,0.2);color:#e74c3c;font-weight:bold"><i class="fas fa-cog"></i> Admin</a>
-  <a href="#" onclick="logout()">🚪 Déconnexion</a>
+  <a href="#" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</a>
 </div>
 
 <div class="notification-bar" id="notificationBar"></div>
@@ -131,27 +131,27 @@ function logout() {
 <div class="page">
   <div class="container" style="max-width:1200px">
     <div class="page-header fade-up">
-      <h1>🏠 Dashboard</h1>
+      <h1><span data-bficon="home" data-size="16"></span> Dashboard</h1>
       <p>Bienvenue sur votre espace Baby-Foot</p>
     </div>
 
 <div class="grid-3 fade-up" style="animation-delay:.05s">
   <div class="card card-hover">
-    <div class="card-header"><h3>📅 Réserver</h3></div>
+    <div class="card-header"><h3><span data-bficon="calendar" data-size="16"></span> Réserver</h3></div>
     <div class="card-body">
       <p>Réservez votre créneau pour jouer</p>
       <a href="/reservation" class="btn btn-primary btn-full">Réserver</a>
     </div>
   </div>
   <div class="card card-hover">
-    <div class="card-header"><h3><i class="fas fa-gamepad"></i> Jouer</h3></div>
+    <div class="card-header"><h3><span data-bficon="gamepad" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Jouer</h3></div>
     <div class="card-body">
       <p>Lancez une partie en direct</p>
       <a href="/live-score" class="btn btn-primary btn-full">Partie Live</a>
     </div>
   </div>
   <div class="card card-hover">
-    <div class="card-header"><h3><i class="fas fa-chart-bar"></i> Stats</h3></div>
+    <div class="card-header"><h3><span data-bficon="stats" data-size="16"></span> Stats</h3></div>
     <div class="card-body">
       <p>Consultez vos statistiques</p>
       <a href="/stats" class="btn btn-primary btn-full">Voir Stats</a>
@@ -163,7 +163,7 @@ function logout() {
   <h3>👥 Créer un Lobby</h3>
   <p id="lobby-description">Créez un lobby vide, puis invitez des joueurs depuis le lobby</p>
   <button id="create-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold" onclick="createEmptyLobby()"><i class="fas fa-gamepad"></i> Créer un Lobby Vide</button>
-  <button id="rejoin-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold;display:none" onclick="rejoinLobby()">🔄 Rejoindre le Lobby</button>
+  <button id="rejoin-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold;display:none" onclick="rejoinLobby()"><span data-bficon="replay" data-size="18" style="vertical-align:middle"></span> Rejoindre le Lobby</button>
 </div>
 
 <div id="servo-controls" class="fade-up" style="animation-delay:.15s">
@@ -171,17 +171,17 @@ function logout() {
   <p>Débloquez le servo pour lancer une balle</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
     <button class="btn btn-primary" onclick="unlockServo1()" style="background:linear-gradient(135deg,#3498db 0%,#2980b9 100%)">
-      🔓 Servo 1<br><small style="font-size:0.8em;opacity:0.9">(Équipe 1)</small>
+      <span data-bficon="unlock" data-size="20" style="vertical-align:middle"></span> Servo 1<br><small style="font-size:0.8em;opacity:0.9">(Équipe 1)</small>
     </button>
     <button class="btn btn-primary" onclick="unlockServo2()" style="background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%)">
-      🔓 Servo 2<br><small style="font-size:0.8em;opacity:0.9">(Équipe 2)</small>
+      <span data-bficon="unlock" data-size="20" style="vertical-align:middle"></span> Servo 2<br><small style="font-size:0.8em;opacity:0.9">(Équipe 2)</small>
     </button>
   </div>
   <div id="servo-feedback" style="margin-top:1rem;padding:0.75rem;border-radius:8px;display:none;text-align:center"></div>
 </div>
 
 <div class="card fade-up" style="animation-delay:.2s;margin-top:1.5rem">
-  <div class="card-header"><h3><i class="fas fa-trophy"></i> Top 10 Joueurs</h3></div>
+  <div class="card-header"><h3><span data-bficon="trophy" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Top 10 Joueurs</h3></div>
   <div class="card-body">
     <div id="leaderboard"></div>
   </div>
@@ -189,7 +189,7 @@ function logout() {
 
 <div class="card fade-up" style="animation-delay:.25s;margin-top:1.5rem">
   <div class="card-header">
-    <h3>📅 Réservations à venir</h3>
+    <h3><span data-bficon="calendar" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Réservations à venir</h3>
     <a href="/reservation" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">+ Réserver →</a>
   </div>
   <div class="card-body">
@@ -321,7 +321,7 @@ function unlockServo1() {
   feedback.style.display = 'block';
   feedback.style.background = 'rgba(52,152,219,0.1)';
   feedback.style.border = '1px solid #3498db';
-  feedback.textContent = '🔓 Déverrouillage Servo 1 en cours… (5 secondes)';
+  feedback.textContent = 'Déverrouillage Servo 1 en cours… (5 secondes)';
   socket.emit('unlock_servo1');
   setTimeout(() => {
     btn.disabled = false; btn.style.opacity = '1';
@@ -339,7 +339,7 @@ function unlockServo2() {
   feedback.style.display = 'block';
   feedback.style.background = 'rgba(231,76,60,0.1)';
   feedback.style.border = '1px solid #e74c3c';
-  feedback.textContent = '🔓 Déverrouillage Servo 2 en cours… (5 secondes)';
+  feedback.textContent = 'Déverrouillage Servo 2 en cours… (5 secondes)';
   socket.emit('unlock_servo2');
   setTimeout(() => {
     btn.disabled = false; btn.style.opacity = '1';
@@ -486,5 +486,7 @@ loadLeaderboard();
 loadReservations();
 </script>
 
+
+<script src="{{ url_for('static', filename='icons.js') }}"></script>
 </body>
 </html>

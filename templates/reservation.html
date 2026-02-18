@@ -25,11 +25,11 @@
     </a>
     <div class="nav-sep"></div>
     <div class="nav-links">
-      <a href="/dashboard" class="nav-link"><span class="nav-link-icon">🏠</span><span>Dashboard</span></a>
-      <a href="/reservation" class="nav-link active"><span class="nav-link-icon">📅</span><span>Réserver</span></a>
-      <a href="/live-score" class="nav-link"><span class="nav-link-icon"><i class="fas fa-gamepad"></i></span><span>Partie Live</span></a>
-      <a href="/stats" class="nav-link"><span class="nav-link-icon"><i class="fas fa-chart-bar"></i></span><span>Stats</span></a>
-      <a href="/top" class="nav-link"><span class="nav-link-icon"><i class="fas fa-trophy"></i></span><span>Top 10</span></a>
+      <a href="/dashboard" class="nav-link"><span class="nav-link-icon" data-bficon="home" data-size="18" style="color:currentColor"></span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link active"><span class="nav-link-icon" data-bficon="calendar" data-size="18" style="color:currentColor"></span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon" data-bficon="gamepad" data-size="18" style="color:currentColor"></span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon" data-bficon="stats" data-size="18" style="color:currentColor"></span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon" data-bficon="trophy" data-size="18" style="color:currentColor"></span><span>Top 10</span></a>
     </div>
     <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
@@ -39,25 +39,25 @@
         <div class="nav-avatar" id="navAv">?</div>
         <span class="nav-username" id="navUsername"></span>
       </div>
-      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()">🚪 Déconnexion</button>
+      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</button>
     </div>
   </div>
 </nav>
 
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
-  <a href="/dashboard">🏠 Dashboard</a>
-  <a href="/reservation" class="active">📅 Réserver</a>
-  <a href="/live-score"><i class="fas fa-gamepad"></i> Partie Live</a>
-  <a href="/stats"><i class="fas fa-chart-bar"></i> Stats</a>
-  <a href="/top"><i class="fas fa-trophy"></i> Top 10</a>
-  <a href="#" onclick="logout()">🚪 Déconnexion</a>
+  <a href="/dashboard"><span data-bficon="home" data-size="16"></span> Dashboard</a>
+  <a href="/reservation" class="active"><span data-bficon="calendar" data-size="16"></span> Réserver</a>
+  <a href="/live-score"><span data-bficon="gamepad" data-size="16"></span> Partie Live</a>
+  <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
+  <a href="/top"><span data-bficon="trophy" data-size="16"></span> Top 10</a>
+  <a href="#" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</a>
 </div>
 
 <div class="page">
   <div class="container" style="max-width:900px">
     <div class="page-header fade-up">
-      <h1>📅 Réserver un créneau</h1>
+      <h1><span data-bficon="calendar" data-size="20" style="color:var(--bronze);vertical-align:middle"></span> Réserver un créneau</h1>
       <p>Créneaux de 25 minutes — Aujourd'hui et demain uniquement</p>
     </div>
 
@@ -354,5 +354,7 @@ async function init() {
 
 init();
 </script>
+
+<script src="{{ url_for('static', filename='icons.js') }}"></script>
 </body>
 </html>
