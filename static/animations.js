@@ -220,8 +220,13 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // ======== LOADING FADE-IN ========
-  document.body.style.opacity = '0';
-  document.body.style.transition = 'opacity 0.5s';
-  setTimeout(() => { document.body.style.opacity = '1'; }, 100);
+  // Fade-in léger uniquement si la page est déjà visible (pas de blanc au chargement)
+  if (!document.body.classList.contains('no-fade')) {
+    document.body.style.opacity = '0';
+    document.body.style.transition = 'opacity 0.3s';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => { document.body.style.opacity = '1'; });
+    });
+  }
 
 });
