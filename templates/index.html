@@ -1,22 +1,42 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Baby-Foot Club</title>
   <link rel="manifest" href="/static/manifest.json">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BabyFoot">
   <link rel="apple-touch-icon" href="/static/images/logo.svg">
-  <meta charset="UTF-8">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Baby-Foot Club</title>
+
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
-  <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
+
+  <!-- Animations de fond : seulement sur desktop -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}" media="(min-width: 769px)">
+
+  <!-- Font Awesome : chargé en non-bloquant -->
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" crossorigin="anonymous">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous"></noscript>
+
+  <style>
+    /* Inline critical CSS mobile : évite la page blanche */
+    body { background: #0a0a0a; color: #f5f5f5; margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(205,127,50,0.15); }
+    .nav-inner { display: flex; align-items: center; padding: 0 1.25rem; height: 60px; gap: 1rem; }
+    .nav-brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; }
+    .nav-brand img { width: 32px; height: 32px; }
+    .brand-text { font-weight: 700; font-size: 1rem; }
+    @media (max-width: 768px) {
+      /* Désactiver animations lourdes sur mobile */
+      body { animation: none !important; }
+      .hero-bg-animated, .glow-orb { display: none !important; }
+    }
+  </style>
 </head>
-<body>
+<body class="no-fade">
 
 <nav class="nav">
   <div class="nav-inner">
@@ -31,7 +51,6 @@
       <a href="/top" class="nav-link">Classement</a>
       <a href="/scores" class="nav-link">Scores</a>
     </div>
-    <!-- Burger pour visiteurs mobile -->
     <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -46,20 +65,21 @@
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
   <a href="/">Accueil</a>
   <a href="#features" onclick="toggleMenu()">Fonctionnalités</a>
-  <a href="/top"><i class="fas fa-trophy"></i> Classement</a>
-  <a href="/scores"><i class="fas fa-chart-bar"></i> Scores</a>
+  <a href="/top">🏆 Classement</a>
+  <a href="/scores">📊 Scores</a>
   <a href="/login" style="background:rgba(205,127,50,0.15);border-color:rgba(205,127,50,0.4);color:var(--bronze);font-weight:700">🔑 Se connecter</a>
   <a href="/register">📝 Créer un compte</a>
 </div>
 
 <div class="hero">
+  <!-- Orbes masqués sur mobile via CSS inline ci-dessus -->
   <div class="hero-bg-animated">
     <div class="glow-orb orb-1"></div>
     <div class="glow-orb orb-2"></div>
     <div class="glow-orb orb-3"></div>
   </div>
-<div class="hero-inner">
-    <div class="hero-eyebrow"><span data-bficon="ball" data-size="20" style="color:var(--bronze)"></span>&nbsp;Plateforme Baby-Foot connectée</div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">⚽&nbsp;Plateforme Baby-Foot connectée</div>
     <h1 class="hero-title">
       Jouez.<br>
       <em class="gradient-shine">Dominez.</em>
@@ -76,9 +96,6 @@
         </svg>
       </a>
       <a href="#features" class="btn btn-secondary btn-lg">
-        <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor">
-          <path d="M5 3.5L11 8L5 12.5V3.5Z"/>
-        </svg>
         <span>Découvrir</span>
       </a>
     </div>
@@ -110,32 +127,32 @@
   <div class="container">
     <div class="feat-grid">
       <div class="feat-cell">
-        <div class="feat-icon" data-bficon="timer" data-size="52" style="color:var(--bronze)"></div>
+        <div class="feat-icon">⏱️</div>
         <h3>Réservation 25 min</h3>
         <p>Créneaux de 25 minutes, disponibles aujourd'hui et demain. Simple et précis.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon" data-bficon="live" data-size="52" style="color:var(--bronze)"></div>
+        <div class="feat-icon">📡</div>
         <h3>Score en direct</h3>
         <p>WebSocket temps réel. Chaque but est synchronisé instantanément sur tous les appareils.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon" data-bficon="unlock" data-size="52" style="color:var(--bronze)"></div>
+        <div class="feat-icon">🔓</div>
         <h3>Déverrouillage</h3>
         <p>Accès à la balle uniquement pendant votre créneau réservé via Arduino.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon" data-bficon="stats" data-size="52" style="color:var(--bronze)"></div>
+        <div class="feat-icon">📊</div>
         <h3>Statistiques</h3>
         <p>Suivez vos performances, points accumulés et votre progression dans le temps.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon" data-bficon="trophy" data-size="52" style="color:var(--bronze)"></div>
+        <div class="feat-icon">🏆</div>
         <h3>Classement</h3>
         <p>Classement mis à jour après chaque partie. Votre position en temps réel.</p>
       </div>
       <div class="feat-cell">
-        <div class="feat-icon" data-bficon="foosball" data-size="52" style="color:var(--bronze)"></div>
+        <div class="feat-icon">⚽</div>
         <h3>Multi-modes</h3>
         <p>Jouez en duel 1v1 ou en équipe 2v2. La plateforme s'adapte à votre configuration.</p>
       </div>
@@ -143,7 +160,6 @@
   </div>
 </section>
 
-<!-- CTA inscription -->
 <section style="padding:4rem 0;text-align:center;position:relative;z-index:10">
   <div class="container">
     <h2 style="font-size:2rem;font-weight:800;margin-bottom:1rem;color:var(--text-primary)">
@@ -153,12 +169,8 @@
       Créez votre compte gratuitement et rejoignez le club
     </p>
     <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
-      <a href="/register" class="btn btn-primary btn-lg btn-shine">
-        <span>Créer un compte</span>
-      </a>
-      <a href="/login" class="btn btn-secondary btn-lg">
-        <span>Se connecter</span>
-      </a>
+      <a href="/register" class="btn btn-primary btn-lg btn-shine"><span>Créer un compte</span></a>
+      <a href="/login" class="btn btn-secondary btn-lg"><span>Se connecter</span></a>
     </div>
   </div>
 </section>
@@ -167,8 +179,7 @@
   © 2026 Baby-Foot Club — Tous droits réservés
 </footer>
 
-<script src="{{ url_for('static', filename='animations.js') }}"></script>
-<script src="{{ url_for('static', filename='icons.js') }}"></script>
+<!-- Scripts en bas, non-bloquants -->
 <script>
 function toggleMenu() {
   document.getElementById('burger').classList.toggle('open');
@@ -176,19 +187,21 @@ function toggleMenu() {
   document.body.style.overflow = document.getElementById('mobileMenu').classList.contains('open') ? 'hidden' : '';
 }
 
+// Stats avec cache sessionStorage pour éviter re-fetch à chaque visite
 async function loadPublicStats() {
+  const cached = sessionStorage.getItem('public_stats');
+  if (cached) {
+    try {
+      applyStats(JSON.parse(cached));
+      return;
+    } catch(e) {}
+  }
   try {
     const res = await fetch('/api/public_stats');
     if (!res.ok) throw new Error();
     const data = await res.json();
-
-    const games = data.total_games ?? 0;
-    document.getElementById('stat-parties').textContent = games > 0 ? games + '+' : '0';
-
-    const players = data.active_players ?? 0;
-    document.getElementById('stat-joueurs').textContent = players > 0 ? players : '0';
-
-    document.getElementById('stat-temps').textContent = '15min';
+    sessionStorage.setItem('public_stats', JSON.stringify(data));
+    applyStats(data);
   } catch(e) {
     document.getElementById('stat-parties').textContent = '0';
     document.getElementById('stat-joueurs').textContent = '0';
@@ -196,8 +209,29 @@ async function loadPublicStats() {
   }
 }
 
+function applyStats(data) {
+  const games = data.total_games ?? 0;
+  document.getElementById('stat-parties').textContent = games > 0 ? games + '+' : '0';
+  document.getElementById('stat-joueurs').textContent = data.active_players ?? '0';
+  document.getElementById('stat-temps').textContent = '15min';
+}
+
 loadPublicStats();
 </script>
-  <script src="/static/pwa.js" defer></script>
+
+<!-- Animations desktop uniquement : chargées en async, pas bloquantes -->
+<script>
+if (window.matchMedia('(min-width: 769px) and (pointer: fine)').matches) {
+  // Charger animations.js et icons.js seulement sur desktop
+  ['animations.js', 'icons.js', 'global-animations.js'].forEach(function(src) {
+    var s = document.createElement('script');
+    s.src = '/static/' + src;
+    s.async = true;
+    document.body.appendChild(s);
+  });
+}
+</script>
+
+<script src="/static/pwa.js" defer></script>
 </body>
 </html>
