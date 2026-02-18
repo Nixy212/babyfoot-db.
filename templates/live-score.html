@@ -18,12 +18,12 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='live-score-styles.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
   <script src="{{ url_for('static', filename='animations.js') }}" defer></script>
   <script src="{{ url_for('static', filename='confetti.js') }}" defer></script>
 </head>
-<body style="font-family: 'DM Sans', sans-serif;">
+<body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
 
 <nav class="nav nav-glass">
   <div class="nav-inner">
@@ -63,7 +63,7 @@
   <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
   <a href="/top"><span data-bficon="trophy" data-size="16"></span> Classement</a>
   <a href="#" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</a>
-  <button id="pwa-install-trigger" onclick="triggerPwaInstall()" style="display:none;width:100%;text-align:left;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));border:1px solid rgba(205,127,50,0.4);color:#cd7f32;font-weight:700;font-size:1rem;padding:0.9rem 1.25rem;border-radius:10px;cursor:pointer;margin-top:0.5rem;font-family:inherit;">📲 Installer l'app</button>
+  <button id="pwa-install-trigger" onclick="triggerPwaInstall()" style="display:none;width:100%;text-align:left;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));border:1px solid rgba(205,127,50,0.4);color:#cd7f32;font-weight:700;font-size:1rem;padding:0.9rem 1.25rem;border-radius:10px;cursor:pointer;margin-top:0.5rem;font-family:inherit;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 13h6M12 10v6"/></svg> Installer l'app</button>
 </div>
 
 <div class="page">
@@ -80,7 +80,7 @@
     <div class="card-body">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem">
         <div>
-          <h4 style="color:var(--text-primary);margin-bottom:0.75rem">🔴 Équipe 1</h4>
+          <h4 style="color:var(--text-primary);margin-bottom:0.75rem"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#cd7f32;margin-right:6px"></span>Équipe 1</h4>
           <select id="t1p1" class="input" style="width:100%;margin-bottom:0.5rem">
             <option value="">Joueur 1</option>
           </select>
@@ -89,7 +89,7 @@
           </select>
         </div>
         <div>
-          <h4 style="color:var(--text-primary);margin-bottom:0.75rem">🔵 Équipe 2</h4>
+          <h4 style="color:var(--text-primary);margin-bottom:0.75rem"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#888;margin-right:6px"></span>Équipe 2</h4>
           <select id="t2p1" class="input" style="width:100%;margin-bottom:0.5rem">
             <option value="">Joueur 1</option>
           </select>
@@ -99,7 +99,7 @@
         </div>
       </div>
       <button id="btnStart" class="btn btn-primary btn-full btn-lg" onclick="startGame()">
-        🚀 Lancer la partie
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><circle cx="14" cy="12" r="6"/><path d="M8 12H2"/><path d="M20 4 14 8"/><path d="M18 6 22 2"/></svg> Lancer la partie
       </button>
       <button id="btnUnlockServo" class="btn btn-secondary btn-full" style="margin-top:1rem;display:none" onclick="unlockServo()">
         Débloquer Servo (test)
@@ -116,13 +116,13 @@
       <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:2rem;align-items:center;text-align:center;padding:1rem 0">
         <div>
           <div class="score-n" id="specScore1">0</div>
-          <div style="font-weight:700;margin-top:0.5rem;color:var(--text-primary)">🔴 Équipe 1</div>
+          <div style="font-weight:700;margin-top:0.5rem;color:var(--text-primary)"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#cd7f32;margin-right:5px"></span>Équipe 1</div>
           <div id="specTeam1" style="font-size:0.875rem;color:var(--text-tertiary);margin-top:0.5rem"></div>
         </div>
         <div class="score-vs">VS</div>
         <div>
           <div class="score-n" id="specScore2">0</div>
-          <div style="font-weight:700;margin-top:0.5rem;color:var(--text-primary)">🔵 Équipe 2</div>
+          <div style="font-weight:700;margin-top:0.5rem;color:var(--text-primary)"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#888;margin-right:5px"></span>Équipe 2</div>
           <div id="specTeam2" style="font-size:0.875rem;color:var(--text-tertiary);margin-top:0.5rem"></div>
         </div>
       </div>
@@ -141,14 +141,14 @@
       <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:2rem;align-items:center;text-align:center;padding:1rem 0">
         <div>
           <div class="score-n" id="score1">0</div>
-          <div style="font-weight:700;margin-top:0.5rem;color:var(--text-primary)">🔴 Équipe 1</div>
+          <div style="font-weight:700;margin-top:0.5rem;color:var(--text-primary)"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#cd7f32;margin-right:5px"></span>Équipe 1</div>
           <div id="team1Players" style="font-size:0.875rem;color:var(--text-tertiary);margin-top:0.5rem;margin-bottom:1rem"></div>
           <button class="score-btn" onclick="addPoint('team1')">+1 But</button>
         </div>
         <div class="score-vs">VS</div>
         <div>
           <div class="score-n" id="score2">0</div>
-          <div style="font-weight:700;margin-top:0.5rem;color:var(--text-primary)">🔵 Équipe 2</div>
+          <div style="font-weight:700;margin-top:0.5rem;color:var(--text-primary)"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#888;margin-right:5px"></span>Équipe 2</div>
           <div id="team2Players" style="font-size:0.875rem;color:var(--text-tertiary);margin-top:0.5rem;margin-bottom:1rem"></div>
           <button class="score-btn" onclick="addPoint('team2')">+1 But</button>
         </div>

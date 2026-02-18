@@ -11,10 +11,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0a0a0a">
   <title>Inscription — Baby-Foot Club</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{--bronze:#cd7f32;--bg-primary:#0a0a0a;--bg-secondary:#111;--bg-elevated:#1a1a1a;--text-primary:#f5f5f5;--text-secondary:#a0a0a0;--text-tertiary:#666;--border-normal:rgba(255,255,255,0.08);--border-accent:rgba(205,127,50,0.4);--radius-md:10px;--radius-lg:16px}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','DM Sans',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
+    body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1rem}
     .auth-wrap{width:100%;max-width:420px}
     .auth-box{background:var(--bg-secondary);border:1px solid var(--border-normal);border-radius:var(--radius-lg);padding:2.5rem 2rem}
     .auth-logo{display:flex;align-items:center;gap:.75rem;margin-bottom:1.5rem}
@@ -106,8 +108,8 @@
       <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
       <span>Baby-Foot Club</span>
     </div>
-    <h1 class="auth-title">Bienvenue ! 🎉</h1>
-    <p class="auth-sub">Créez votre compte en 30 secondes et rejoignez le club</p>
+    <h1 class="auth-title">Créer un compte</h1>
+    <p class="auth-sub">Réservez, jouez, progressez</p>
 
     <div class="auth-form">
       <div id="alert" class="alert"></div>
@@ -116,7 +118,7 @@
         <input type="text" id="username" placeholder="pseudo_unique"
                autocomplete="username" autocorrect="off" autocapitalize="none"
                spellcheck="false" inputmode="text" enterkeyhint="next">
-        <div class="hint">3–20 caractères · lettres, chiffres, - et _ · Ce pseudo sera visible dans le classement</div>
+        <div class="hint">3–20 caractères · lettres, chiffres, - et _ · Ce pseudo sera affiché dans le classement</div>
       </div>
       <div class="field">
         <label class="label" for="password">Mot de passe</label>
@@ -128,7 +130,7 @@
 
     <div class="auth-sep">ou</div>
     <div class="auth-switch">Déjà un compte ? <a href="/login">Se connecter</a></div>
-    <p style="text-align:center;font-size:0.8rem;color:var(--text-tertiary);margin-top:1rem">Gratuit · Aucune carte requise · Prêt en 30 secondes</p>
+    
   </div>
 </div>
 

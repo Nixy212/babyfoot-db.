@@ -16,9 +16,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body style="font-family: 'DM Sans', sans-serif;">
+<body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
 
 <nav class="nav nav-glass">
   <div class="nav-inner">
@@ -58,13 +58,13 @@
   <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
   <a href="/top"><span data-bficon="trophy" data-size="16"></span> Classement</a>
   <a href="#" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</a>
-  <button id="pwa-install-trigger" onclick="triggerPwaInstall()" style="display:none;width:100%;text-align:left;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));border:1px solid rgba(205,127,50,0.4);color:#cd7f32;font-weight:700;font-size:1rem;padding:0.9rem 1.25rem;border-radius:10px;cursor:pointer;margin-top:0.5rem;font-family:inherit;">📲 Installer l'app</button>
+  <button id="pwa-install-trigger" onclick="triggerPwaInstall()" style="display:none;width:100%;text-align:left;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));border:1px solid rgba(205,127,50,0.4);color:#cd7f32;font-weight:700;font-size:1rem;padding:0.9rem 1.25rem;border-radius:10px;cursor:pointer;margin-top:0.5rem;font-family:inherit;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 13h6M12 10v6"/></svg> Installer l'app</button>
 </div>
 
 <div class="page">
   <div class="container" style="max-width:1000px">
     <div class="page-header fade-up">
-      <h1><i class="fas fa-chart-bar"></i> Historique des parties</h1>
+      <h1><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> Historique des parties</h1>
       <p>Toutes les parties jouées dans le club — retrouvez vos résultats et ceux de vos adversaires</p>
     </div>
 
@@ -170,7 +170,7 @@ async function loadScores() {
           </div>
           <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem 0">
             <div style="flex:1;min-width:0">
-              <div style="font-size:0.75rem;font-weight:700;color:#22c55e;margin-bottom:2px;white-space:nowrap">🏆 Vainqueurs</div>
+              <div style="font-size:0.75rem;font-weight:700;color:#22c55e;margin-bottom:2px;white-space:nowrap">Vainqueurs</div>
               <div style="font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${winnerTeam.join(' & ')}</div>
             </div>
             <div style="font-family:'Space Mono',monospace;font-size:1.375rem;font-weight:900;color:var(--bronze);white-space:nowrap;flex-shrink:0">${winScore}–${loseScore}</div>
@@ -190,7 +190,7 @@ async function loadScores() {
     console.error(e);
     container.innerHTML = `
       <div style="padding:3rem;text-align:center">
-        <div style="font-size:3rem;margin-bottom:1rem;opacity:0.3">⚠️</div>
+        <div style="margin-bottom:1rem;opacity:0.4"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3z"/><path d="M12 9v4M12 17h.01"/></svg></div>
         <p style="color:var(--text-tertiary)">Erreur de chargement des scores — ${e.message}</p>
       </div>
     `;
