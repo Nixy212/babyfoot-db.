@@ -248,7 +248,7 @@ function toggleMenu() {
   <div class="container" style="max-width:1000px">
     <div class="page-header fade-up">
       <h1><i class="fas fa-gamepad"></i> Lobby de Partie</h1>
-      <p>En attente des joueurs</p>
+      <p>Invitez vos adversaires ci-dessous — ils recevront une notification et pourront accepter ou refuser</p>
     </div>
 
 <div class="status-bar">
@@ -256,16 +256,17 @@ function toggleMenu() {
     <div class="status-dot"></div>
     <span><strong id="acceptedCount">0</strong> / <strong id="invitedCount">0</strong> joueurs prêts</span>
   </div>
-  <div style="font-weight:600;color:#333">Hôte: <span id="hostName" style="color:#667eea"></span></div>
+  <div style="font-weight:600;color:#333">Hôte : <span id="hostName" style="color:#667eea"></span></div>
 </div>
 
 <div id="invite-section">
   <h3 style="margin-top:0;color:var(--text-primary)">👥 Inviter des joueurs</h3>
+  <p style="color:var(--text-tertiary);font-size:0.875rem;margin-bottom:0.75rem">Recherchez un joueur et envoyez-lui une invitation — il peut être en 2v2 ou jouer en 1v1</p>
   <div class="search-box">
     <input type="text" id="searchInput" placeholder="🔍 Rechercher un joueur..." oninput="filterPlayers()">
   </div>
   <div class="player-selector" id="playerSelector"></div>
-  <button class="btn btn-primary btn-full" style="margin-top:1rem" onclick="inviteSelected()">📤 Envoyer Invitations</button>
+  <button class="btn btn-primary btn-full" style="margin-top:1rem" onclick="inviteSelected()">📤 Envoyer les invitations</button>
 </div>
 
 <div id="declinedSection" style="display:none;background:rgba(231,76,60,0.1);padding:1rem;border-radius:8px;margin-bottom:1rem;border:2px solid #e74c3c">
@@ -288,8 +289,8 @@ function toggleMenu() {
 </div>
 
 <div style="text-align:center;margin-top:2rem">
-  <button id="startButton" class="btn btn-primary btn-lg" style="display:none" onclick="startGame()">🚀 LANCER LA PARTIE</button>
-  <button class="btn" style="margin-left:1rem;background:#95a5a6;color:white" onclick="cancelLobby()">✕ Annuler</button>
+  <button id="startButton" class="btn btn-primary btn-lg" style="display:none" onclick="startGame()">🚀 Lancer la partie !</button>
+  <button class="btn" style="margin-left:1rem;background:#95a5a6;color:white" onclick="cancelLobby()">✕ Quitter le lobby</button>
 </div>
 
 <div id="swapRequestNotif" style="display:none;position:fixed;top:80px;right:20px;background:var(--bg-elevated);padding:1.5rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:300px;border:2px solid var(--border-accent)">
@@ -360,7 +361,7 @@ function renderPlayerSelector() {
   });
   
   if (filteredUsers.length === 0) {
-    selector.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:1rem">Aucun joueur disponible</p>';
+    selector.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:1rem">Aucun autre joueur disponible pour l\'instant</p>';
     return;
   }
   
@@ -483,10 +484,10 @@ function updateLobbyUI() {
   team2List.innerHTML = '';
   
   if (lobbyData.team1.length === 0) {
-    team1List.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem">Aucun joueur</p>';
+    team1List.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem">En attente de joueurs…</p>';
   }
   if (lobbyData.team2.length === 0) {
-    team2List.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem">Aucun joueur</p>';
+    team2List.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem">En attente de joueurs…</p>';
   }
   
   lobbyData.team1.forEach(player => {

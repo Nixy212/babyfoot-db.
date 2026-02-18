@@ -76,8 +76,8 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
 <div class="page">
   <div class="container" style="max-width:900px">
     <div class="page-header fade-up">
-      <h1><i class="fas fa-chart-bar"></i> Statistiques</h1>
-      <p id="subttl">Chargement…</p>
+      <h1><i class="fas fa-chart-bar"></i> Mes Statistiques</h1>
+      <p id="subttl">Chargement de vos statistiques…</p>
     </div>
 
     <div class="stats-row fade-up" style="animation-delay:.05s">
@@ -137,7 +137,7 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
     
     const h=document.getElementById('hist');
     if(!s.recent_scores?.length){ 
-      h.innerHTML='<p style="padding:3rem;text-align:center;color:var(--text-tertiary);font-size:0.9375rem">Aucune partie jouée</p>'; 
+      h.innerHTML='<p style="padding:3rem;text-align:center;color:var(--text-tertiary);font-size:0.9375rem">Aucune partie jouée — réservez un créneau et lancez votre première partie !</p>'; 
       return; 
     }
     

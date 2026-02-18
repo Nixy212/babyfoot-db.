@@ -138,44 +138,44 @@ function logout() {
 <div class="page">
   <div class="container" style="max-width:1200px">
     <div class="page-header fade-up">
-      <h1><span data-bficon="home" data-size="16"></span> Dashboard</h1>
-      <p>Bienvenue sur votre espace Baby-Foot</p>
+      <h1><span data-bficon="home" data-size="16"></span> Bonjour 👋</h1>
+      <p>Voici votre tableau de bord — tout ce qu'il vous faut pour jouer est ici</p>
     </div>
 
 <div class="grid-3 fade-up" style="animation-delay:.05s">
   <div class="card card-hover">
     <div class="card-header"><h3><span data-bficon="calendar" data-size="16"></span> Réserver</h3></div>
     <div class="card-body">
-      <p>Réservez votre créneau pour jouer</p>
-      <a href="/reservation" class="btn btn-primary btn-full">Réserver</a>
+      <p>Bloquez votre créneau à l'avance pour être sûr d'avoir le baby-foot disponible</p>
+      <a href="/reservation" class="btn btn-primary btn-full">Réserver un créneau</a>
     </div>
   </div>
   <div class="card card-hover">
     <div class="card-header"><h3><span data-bficon="gamepad" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Jouer</h3></div>
     <div class="card-body">
-      <p>Lancez une partie en direct</p>
-      <a href="/live-score" class="btn btn-primary btn-full">Partie Live</a>
+      <p>Créez un lobby, invitez vos adversaires et comptez les buts en temps réel</p>
+      <a href="/live-score" class="btn btn-primary btn-full">Lancer une partie</a>
     </div>
   </div>
   <div class="card card-hover">
-    <div class="card-header"><h3><span data-bficon="stats" data-size="16"></span> Stats</h3></div>
+    <div class="card-header"><h3><span data-bficon="stats" data-size="16"></span> Mes stats</h3></div>
     <div class="card-body">
-      <p>Consultez vos statistiques</p>
-      <a href="/stats" class="btn btn-primary btn-full">Voir Stats</a>
+      <p>Suivez votre évolution, vos buts et comparez-vous aux autres joueurs du club</p>
+      <a href="/stats" class="btn btn-primary btn-full">Voir mes stats</a>
     </div>
   </div>
 </div>
 
 <div id="invitation-section" class="fade-up" style="animation-delay:.1s">
   <h3>👥 Créer un Lobby</h3>
-  <p id="lobby-description">Créez un lobby vide, puis invitez des joueurs depuis le lobby</p>
-  <button id="create-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold" onclick="createEmptyLobby()"><i class="fas fa-gamepad"></i> Créer un Lobby Vide</button>
-  <button id="rejoin-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold;display:none" onclick="rejoinLobby()"><span data-bficon="replay" data-size="18" style="vertical-align:middle"></span> Rejoindre le Lobby</button>
+  <p id="lobby-description">Créez un lobby, puis invitez vos adversaires directement depuis la page lobby — ils recevront une notification en temps réel</p>
+  <button id="create-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold" onclick="createEmptyLobby()"><i class="fas fa-gamepad"></i> Créer un Lobby</button>
+  <button id="rejoin-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold;display:none" onclick="rejoinLobby()"><span data-bficon="replay" data-size="18" style="vertical-align:middle"></span> Retourner dans le Lobby</button>
 </div>
 
 <div id="servo-controls" class="fade-up" style="animation-delay:.15s">
-  <h3><i class="fas fa-gamepad"></i> Contrôles Servo</h3>
-  <p>Débloquez le servo pour lancer une balle</p>
+  <h3><i class="fas fa-gamepad"></i> Déverrouillage de la balle</h3>
+  <p>En tant qu'admin, vous pouvez débloquer manuellement la balle pour démarrer une partie</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
     <button class="btn btn-primary" onclick="unlockServo1()" style="background:linear-gradient(135deg,#3498db 0%,#2980b9 100%)">
       <span data-bficon="unlock" data-size="20" style="vertical-align:middle"></span> Servo 1<br><small style="font-size:0.8em;opacity:0.9">(Équipe 1)</small>
@@ -188,7 +188,7 @@ function logout() {
 </div>
 
 <div class="card fade-up" style="animation-delay:.2s;margin-top:1.5rem">
-  <div class="card-header"><h3><span data-bficon="trophy" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Podium</h3><a href="/top" style="font-size:0.8125rem;color:var(--bronze);text-decoration:none;font-weight:600;white-space:nowrap">Tout voir →</a></div>
+  <div class="card-header"><h3><span data-bficon="trophy" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Top 3 du club</h3><a href="/top" style="font-size:0.8125rem;color:var(--bronze);text-decoration:none;font-weight:600;white-space:nowrap">Voir tout le classement →</a></div>
   <div class="card-body">
     <div id="leaderboard"></div>
   </div>
@@ -196,7 +196,7 @@ function logout() {
 
 <div class="card fade-up" style="animation-delay:.25s;margin-top:1.5rem">
   <div class="card-header">
-    <h3><span data-bficon="calendar" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Réservations à venir</h3>
+    <h3><span data-bficon="calendar" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Vos prochains créneaux</h3>
     <a href="/reservation" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">+ Réserver →</a>
   </div>
   <div class="card-body">
@@ -267,7 +267,7 @@ async function loadCurrentUser() {
         document.getElementById('create-lobby-btn').style.opacity = '0.4';
         document.getElementById('create-lobby-btn').style.cursor = 'not-allowed';
         document.getElementById('create-lobby-btn').title = 'Réservation requise';
-        document.getElementById('lobby-description').textContent = 'Réservez un créneau pour pouvoir créer un lobby';
+        document.getElementById('lobby-description').textContent = 'Réservez d\'abord un créneau pour pouvoir créer un lobby et jouer';
       }
       if (isAdmin) {
         document.getElementById('servo-controls').style.display = 'block';
@@ -287,7 +287,7 @@ async function checkActiveLobby() {
         // Je suis dans ce lobby → bouton rejoindre
         document.getElementById('create-lobby-btn').style.display = 'none';
         document.getElementById('rejoin-lobby-btn').style.display = 'block';
-        document.getElementById('lobby-description').textContent = 'Vous êtes dans un lobby actif';
+        document.getElementById('lobby-description').textContent = 'Vous avez déjà un lobby en cours — cliquez pour y retourner';
       } else if (isAdmin) {
         // Admin : peut toujours créer (le serveur annulera l'ancien lobby)
         document.getElementById('create-lobby-btn').style.display = 'block';
@@ -304,13 +304,13 @@ async function checkActiveLobby() {
         document.getElementById('create-lobby-btn').disabled = true;
         document.getElementById('create-lobby-btn').style.opacity = '0.4';
         document.getElementById('create-lobby-btn').style.cursor = 'not-allowed';
-        document.getElementById('create-lobby-btn').title = `Un lobby est déjà actif (hôte : ${lobby.host})`;
+        document.getElementById('create-lobby-btn').title = `Un lobby est déjà en cours (hôte : ${lobby.host}) — attendez qu'il se termine`;
         document.getElementById('lobby-description').textContent = `Un lobby est déjà en cours (hôte : ${lobby.host})`;
       }
     } else {
       document.getElementById('create-lobby-btn').style.display = 'block';
       document.getElementById('rejoin-lobby-btn').style.display = 'none';
-      document.getElementById('lobby-description').textContent = 'Créez un lobby vide, puis invitez des joueurs depuis le lobby';
+      document.getElementById('lobby-description').textContent = 'Créez un lobby, puis invitez vos adversaires — ils recevront une notification en temps réel';
     }
   } catch (e) { console.error('Erreur vérification lobby:', e); }
 }
@@ -364,7 +364,7 @@ async function loadLeaderboard() {
     const data = await res.json();
     const el = document.getElementById('leaderboard');
     if (!data || data.length === 0) {
-      el.innerHTML = '<p style="color:var(--text-muted);text-align:center">Aucun classement disponible</p>';
+      el.innerHTML = '<p style="color:var(--text-muted);text-align:center">Personne encore classé — jouez une partie pour apparaître ici !</p>';
       return;
     }
     const medals = ['🥇', '🥈', '🥉'];
@@ -384,7 +384,7 @@ async function loadReservations() {
     const data = await res.json();
     const el = document.getElementById('reservations');
     if (!data || data.length === 0) {
-      el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:0.5rem 0">Aucune réservation</p>';
+      el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:0.5rem 0">Aucune réservation — <a href="/reservation" style="color:var(--bronze)">prenez un créneau</a> pour jouer !</p>';
       return;
     }
 

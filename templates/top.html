@@ -219,8 +219,8 @@
 <div class="page">
   <div class="container" style="max-width:700px">
     <div class="page-header fade-up">
-      <h1>🏆 Classement</h1>
-      <p>Tous les joueurs du club, classés par buts</p>
+      <h1>🏆 Classement du Club</h1>
+      <p>Tous les joueurs classés par buts marqués — montez dans le top et montrez qui domine !</p>
     </div>
 
     <div class="card fade-up" style="animation-delay:.05s;padding:0;overflow:hidden">
@@ -280,7 +280,7 @@ async function loadLeaderboard(me) {
     if (!lb || lb.length === 0) {
       el.innerHTML = `<div style="padding:3rem;text-align:center">
         <div style="font-size:3rem;opacity:0.3;margin-bottom:1rem">🏆</div>
-        <p style="color:var(--text-tertiary)">Aucun joueur classé pour le moment</p>
+        <p style="color:var(--text-tertiary)">Personne de classé pour l'instant — jouez une partie pour apparaître ici !</p>
       </div>`;
       return;
     }
@@ -315,7 +315,7 @@ async function loadLeaderboard(me) {
 
   } catch(e) {
     el.innerHTML = `<div style="padding:3rem;text-align:center">
-      <p style="color:var(--text-tertiary)">Erreur de chargement</p>
+      <p style="color:var(--text-tertiary)">Impossible de charger le classement — réessayez dans quelques instants</p>
     </div>`;
   }
 }

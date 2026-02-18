@@ -64,14 +64,14 @@
 <div class="page">
   <div class="container" style="max-width:1000px">
     <div class="page-header fade-up">
-      <h1><i class="fas fa-chart-bar"></i> Historique des scores</h1>
-      <p>Toutes les parties jouées</p>
+      <h1><i class="fas fa-chart-bar"></i> Historique des parties</h1>
+      <p>Toutes les parties jouées dans le club — retrouvez vos résultats et ceux de vos adversaires</p>
     </div>
 
     <div class="scores-grid fade-up" style="animation-delay:.05s" id="scoresGrid">
       <div style="padding:3rem;text-align:center">
         <div class="loading-spinner" style="margin:0 auto 1rem"></div>
-        <p style="color:var(--text-tertiary)">Chargement des scores...</p>
+        <p style="color:var(--text-tertiary)">Chargement des parties...</p>
       </div>
     </div>
 
@@ -129,7 +129,7 @@ async function loadScores() {
       container.innerHTML = `
         <div style="padding:3rem;text-align:center">
           <div style="margin-bottom:1rem;opacity:0.3;display:flex;justify-content:center"><span data-bficon="gamepad" data-size="64" style="color:var(--text-tertiary)"></span></div>
-          <p style="color:var(--text-tertiary);margin-bottom:1.5rem">Aucune partie jouée pour le moment</p>
+          <p style="color:var(--text-tertiary);margin-bottom:1.5rem">Aucune partie jouée pour le moment — soyez le premier à en créer une !</p>
           <a href="/live-score" class="btn btn-primary">Démarrer une partie</a>
         </div>
       `;
