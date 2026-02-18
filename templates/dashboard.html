@@ -384,18 +384,66 @@ async function loadReservations() {
     const data = await res.json();
     const el = document.getElementById('reservations');
     if (!data || data.length === 0) {
+      el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:0.5rem 0">Aucune réservation</p>';
+      return;
+    }
+
+    // Heure actuelle pour détecter les créneaux passés
+    const now = new Date();
+    const todayFr = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'][now.getDay()];
+    const tomorrowDate = new Date(now); tomorrowDate.setDate(now.getDate() + 1);
+    const tomorrowFr = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'][tomorrowDate.getDay()];
+
+    function isPast(r) {
+      if (r.day !== todayFr) return false; // demain → pas passé
+      // Extraire heure de début ex: "09:00 – 09:25" ou "09:00"
+      const match = r.time.match(/^(\d{2}):(\d{2})/);
+      if (!match) return false;
+      const slotH = parseInt(match[1]), slotM = parseInt(match[2]);
+      // Créneau passé si l'heure de fin (début + 25min) est dépassée
+      const slotEnd = new Date(now); slotEnd.setHours(slotH, slotM + 25, 0, 0);
+      return now > slotEnd;
+    }
+
+    // Trier : aujourd'hui d'abord (heure croissante), puis demain
+    data.sort((a, b) => {
+      const dayOrder = (d) => d.day === todayFr ? 0 : 1;
+      if (dayOrder(a) !== dayOrder(b)) return dayOrder(a) - dayOrder(b);
+      return a.time.localeCompare(b.time);
+    });
+
+    const upcoming = data.filter(r => !isPast(r));
+    const past = data.filter(r => isPast(r));
+    const sorted = [...upcoming, ...past];
+
+    if (sorted.length === 0) {
       el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:0.5rem 0">Aucune réservation à venir</p>';
       return;
     }
-    el.innerHTML = data.map(r => {
+
+    el.innerHTML = sorted.map((r, i) => {
       const isMine = r.reserved_by === currentUsername;
+      const past = isPast(r);
+      const isLast = i === sorted.length - 1;
+      const isNext = !past && i === 0;
+
       return `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;border-bottom:1px solid var(--border-subtle)">
-          <div>
-            <div style="font-weight:600;color:var(--text-primary)">${r.day} · ${r.time}</div>
-            <div style="color:var(--text-tertiary);font-size:0.85rem">${r.mode} — par ${r.reserved_by}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;
+          ${isLast ? '' : 'border-bottom:1px solid var(--border-subtle);'}
+          opacity:${past ? '0.38' : '1'};
+          filter:${past ? 'grayscale(0.4)' : 'none'};
+          transition:opacity 0.2s;">
+          <div style="display:flex;align-items:center;gap:0.6rem;">
+            ${isNext ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#cd7f32;box-shadow:0 0 6px #cd7f32;flex-shrink:0"></span>' : (past ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);flex-shrink:0"></span>' : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(205,127,50,0.35);flex-shrink:0"></span>')}
+            <div>
+              <div style="font-weight:600;color:${past ? 'var(--text-tertiary)' : 'var(--text-primary)'}">
+                ${r.day === todayFr ? "Aujourd'hui" : 'Demain'} · ${r.time}
+                ${past ? '<span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;margin-left:4px">passé</span>' : ''}
+              </div>
+              <div style="color:var(--text-tertiary);font-size:0.82rem">${r.mode} — ${r.reserved_by}</div>
+            </div>
           </div>
-          ${isMine ? '<span style="font-size:0.75rem;padding:3px 10px;border-radius:20px;background:rgba(205,127,50,0.15);color:var(--bronze);font-weight:600">Vous</span>' : ''}
+          ${isMine ? '<span style="font-size:0.75rem;padding:3px 10px;border-radius:20px;background:rgba(205,127,50,0.15);color:var(--bronze);font-weight:600;flex-shrink:0">Vous</span>' : ''}
         </div>
       `;
     }).join('');

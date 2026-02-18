@@ -22,45 +22,147 @@
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous"></noscript>
 
   <style>
-    /* Inline critical CSS mobile : évite la page blanche */
+    /* ── Critical CSS inline ── */
     body { background: #0a0a0a; color: #f5f5f5; margin: 0; font-family: system-ui, -apple-system, sans-serif; }
     .nav { position: sticky; top: 0; z-index: 100; background: rgba(10,10,10,0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(205,127,50,0.15); }
     .nav-inner { display: flex; align-items: center; padding: 0 1.25rem; height: 60px; gap: 1rem; }
     .nav-brand { display: flex; align-items: center; gap: 0.6rem; text-decoration: none; color: inherit; }
     .nav-brand img { width: 32px; height: 32px; }
     .brand-text { font-weight: 700; font-size: 1rem; }
-    @media (max-width: 768px) {
-      /* Désactiver animations lourdes sur mobile */
-      body { animation: none !important; }
-      .hero-bg-animated, .glow-orb { display: none !important; }
+
+    /* ── Fond type lobby : orbes colorés + grille ── */
+
+    /* Orbes fixes en arrière-plan */
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+      animation: orb-appear 1.2s ease forwards;
     }
+    .bg-orb-1 {
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, rgba(205,127,50,0.45) 0%, transparent 70%);
+      top: -180px; left: -120px;
+      animation-delay: 0s;
+    }
+    .bg-orb-2 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(255,191,0,0.3) 0%, transparent 70%);
+      top: 30%; right: -100px;
+      animation-delay: 0.3s;
+    }
+    .bg-orb-3 {
+      width: 460px; height: 460px;
+      background: radial-gradient(circle, rgba(184,115,51,0.35) 0%, transparent 70%);
+      bottom: -150px; left: 25%;
+      animation-delay: 0.6s;
+    }
+    @keyframes orb-appear {
+      to { opacity: 1; }
+    }
+
+    /* Grille de fond (même effet que team-box::before du lobby) */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, rgba(205,127,50,0.06) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(205,127,50,0.06) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Bordure lumineuse en haut */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent 0%, #cd7f32 30%, #ffd700 50%, #cd7f32 70%, transparent 100%);
+      z-index: 1001;
+      pointer-events: none;
+    }
+
+    /* S'assurer que le contenu est au-dessus du fond */
+    .nav, .hero, .features, section, footer { position: relative; z-index: 1; }
+
+    /* Sur mobile : orbes plus petits, pas d'animation pour la perf */
+    @media (max-width: 768px) {
+      body { animation: none !important; }
+      .bg-orb { animation: none; opacity: 0.7; filter: blur(60px); }
+      .bg-orb-1 { width: 280px; height: 280px; top: -80px; left: -60px; }
+      .bg-orb-2 { width: 220px; height: 220px; top: 20%; right: -60px; }
+      .bg-orb-3 { width: 250px; height: 250px; bottom: -80px; left: 15%; }
+      /* Grille plus légère sur mobile */
+      body::before { background-size: 30px 30px; opacity: 0.7; }
+    }
+  
+    /* ── Fond type lobby : grille + orbes ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(to right,  rgba(205,127,50,0.07) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(205,127,50,0.07) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #cd7f32 30%, #ffd700 50%, #cd7f32 70%, transparent);
+      z-index: 1001;
+      pointer-events: none;
+    }
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-orb-1 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(205,127,50,0.35) 0%, transparent 70%);
+      filter: blur(80px);
+      top: -160px; left: -100px;
+    }
+    .bg-orb-2 {
+      width: 380px; height: 380px;
+      background: radial-gradient(circle, rgba(255,191,0,0.25) 0%, transparent 70%);
+      filter: blur(70px);
+      top: 30%; right: -80px;
+    }
+    .bg-orb-3 {
+      width: 420px; height: 420px;
+      background: radial-gradient(circle, rgba(184,115,51,0.3) 0%, transparent 70%);
+      filter: blur(90px);
+      bottom: -120px; left: 25%;
+    }
+    @media (max-width: 768px) {
+      .bg-orb-1 { width: 260px; height: 260px; top: -80px; left: -60px; filter: blur(50px); }
+      .bg-orb-2 { width: 200px; height: 200px; right: -50px; filter: blur(45px); }
+      .bg-orb-3 { width: 230px; height: 230px; bottom: -60px; filter: blur(55px); }
+    }
+
+    /* Contenu au-dessus */
+    .nav, .hero, .features, section, footer { position: relative; z-index: 1; }
   </style>
 </head>
 <body class="no-fade">
+<div class="bg-orb bg-orb-1" aria-hidden="true"></div>
+<div class="bg-orb bg-orb-2" aria-hidden="true"></div>
+<div class="bg-orb bg-orb-3" aria-hidden="true"></div>
 
-<nav class="nav">
-  <div class="nav-inner">
-    <a href="/" class="nav-brand">
-      <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
-      <span class="brand-text">Baby-Foot Club</span>
-    </a>
-    <div class="nav-sep"></div>
-    <div class="nav-links">
-      <a href="/" class="nav-link active">Accueil</a>
-      <a href="#features" class="nav-link">Fonctionnalités</a>
-      <a href="/top" class="nav-link">Classement</a>
-      <a href="/scores" class="nav-link">Scores</a>
-    </div>
-    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
-    <div class="nav-right">
-      <a href="/login" class="btn btn-primary" style="font-size:0.875rem;padding:8px 18px">Se connecter</a>
-    </div>
-  </div>
-</nav>
 
-<!-- Mobile menu visiteurs -->
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
   <a href="/">Accueil</a>
