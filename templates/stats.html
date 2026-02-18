@@ -56,6 +56,10 @@
   <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
   <a href="/top"><span data-bficon="trophy" data-size="16"></span> Top 10</a>
   <a href="#" onclick="fetch(\`/api/logout\`,{method:\`POST\`}).then(()=>location.href=\`/\`)">🚪 Déconnexion</a>
+  <button id="pwa-menu-btn" onclick="triggerPWAInstall()" style="display:none;align-items:center;gap:0.75rem;width:100%;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.08));border:1px solid rgba(205,127,50,0.3);border-radius:10px;padding:0.875rem 1rem;color:#cd7f32;font-weight:700;font-size:0.9375rem;cursor:pointer;margin-top:0.5rem;text-align:left;-webkit-appearance:none">
+    <span style="font-size:1.25rem">📲</span> Installer l'app
+  </button>
+
 </div>
 <script id="burger-script">
 function toggleMenu() {

@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='dashboard-styles.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="/socket.io/socket.io.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
   <style>
@@ -119,6 +119,10 @@
   <a href="/top"><span data-bficon="trophy" data-size="16"></span> Top 10</a>
   <a href="/admin" id="adminBtnMobile" style="display:none;background:rgba(231,76,60,0.2);color:#e74c3c;font-weight:bold"><i class="fas fa-cog"></i> Admin</a>
   <a href="#" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</a>
+  <button id="pwa-menu-btn" onclick="triggerPWAInstall()" style="display:none;align-items:center;gap:0.75rem;width:100%;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.08));border:1px solid rgba(205,127,50,0.3);border-radius:10px;padding:0.875rem 1rem;color:#cd7f32;font-weight:700;font-size:0.9375rem;cursor:pointer;margin-top:0.5rem;text-align:left;-webkit-appearance:none">
+    <span style="font-size:1.25rem">📲</span> Installer l'app
+  </button>
+
 </div>
 
 <div class="notification-bar" id="notificationBar"></div>
@@ -225,7 +229,7 @@ try {
     reconnectionDelayMax: 10000,   // Max 10s entre tentatives
     reconnectionAttempts: Infinity, // Toujours réessayer
     timeout: 20000,                // 20s avant d'abandonner une connexion
-    transports: ['polling', 'websocket'],  // WebSocket d'abord, polling en fallback
+    transports: ['websocket', 'polling'],  // WebSocket d'abord, polling en fallback
   });
   if (window.initReconnectIndicator) initReconnectIndicator(socket);
   socket.on('connect', () => {
