@@ -300,7 +300,8 @@ async function init() {
 
     currentUser = ud.username || '';
     currentUserIsAdmin = ud.is_admin || false;
-    reservations = buildReservationsDict(rows);
+    // /reservations_all retourne déjà {jour: {heure: {reserved_by, mode}}}
+    reservations = rows;
 
     if (currentUser) {
       document.getElementById('navAv').textContent = currentUser[0].toUpperCase();

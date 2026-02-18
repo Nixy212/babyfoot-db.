@@ -523,11 +523,16 @@ def user_stats(username):
         "recent_scores": scores_rows
     }
     if 'text/html' in request.accept_mimetypes:
-        current_u = session.get('username')
-        if is_admin(current_u):
-            return render_template('stats.html', user_stats=stats_data, target_username=username)
-        else:
-            return redirect(url_for('dashboard'))
+        # Vérifier si c'est une vraie navigation navigateur (Accept: text/html en priorité)
+        # et non un fetch() JS (Accept: */*) qui matche aussi text/html dans Flask
+        accept_header = request.headers.get('Accept', '')
+        is_browser_nav = accept_header.startswith('text/html') or accept_header.startswith('application/xhtml')
+        if is_browser_nav:
+            current_u = session.get('username')
+            if is_admin(current_u):
+                return render_template('stats.html', user_stats=stats_data, target_username=username)
+            else:
+                return redirect(url_for('dashboard'))
     return jsonify(stats_data)
 
 @app.route("/scores_all")
