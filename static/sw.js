@@ -2,7 +2,7 @@
 // Met en cache les ressources statiques pour fonctionner
 // même avec une connexion faible ou intermittente.
 
-const CACHE_NAME = 'babyfoot-v2';
+const CACHE_NAME = 'babyfoot-v4';
 
 // Ressources mises en cache au premier chargement (shell de l'app)
 const STATIC_ASSETS = [
@@ -63,6 +63,9 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(networkFirst(e.request));
     return;
   }
+
+  // Socket.IO CDN : jamais en cache, toujours réseau
+  if (url.hostname.includes('cdn.socket.io')) return;
 
   // Ressources statiques (CSS, JS, images) : cache d'abord
   if (
