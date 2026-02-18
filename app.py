@@ -292,6 +292,14 @@ def cleanup_old_data():
         conn.close()
     except Exception as e:
         logger.error(f"Erreur cleanup: {e}")
+    # Nettoyer les invitations en attente expirées (> 5 minutes)
+    import time as _t
+    now = _t.time()
+    expired = [u for u, inv in pending_invitations.items() if now - inv.get('timestamp', 0) > 300]
+    for u in expired:
+        pending_invitations.pop(u, None)
+    if expired:
+        logger.info(f"Invitations expirées nettoyées: {expired}")
 
 def schedule_cleanup():
     import eventlet
@@ -325,12 +333,32 @@ def _reset_game_state():
     current_game = {
         "team1_score": 0, "team2_score": 0,
         "team1_players": [], "team2_players": [],
-        "active": False, "started_by": None, "reserved_by": None
+        "active": False, "started_by": None, "reserved_by": None,
+        "started_at": None
     }
     rematch_votes = {"team1": [], "team2": []}
     rematch_pending = False
     servo_commands["servo1"].append("close")
     servo_commands["servo2"].append("close")
+
+def _launch_rematch(game):
+    """Lance un rematch à partir d'une partie terminée. Centralise le code de relance."""
+    global current_game, rematch_votes, servo_commands, rematch_pending
+    current_game = {
+        "team1_score": 0, "team2_score": 0,
+        "team1_players": game['team1_players'],
+        "team2_players": game['team2_players'],
+        "active": True, "started_by": game.get('started_by'),
+        "reserved_by": game.get('reserved_by'),
+        "started_at": datetime.now().isoformat()
+    }
+    rematch_votes = {"team1": [], "team2": []}
+    rematch_pending = False
+    servo_commands["servo1"].append("open")
+    servo_commands["servo2"].append("open")
+    socketio.emit('game_started', current_game, namespace='/')
+    socketio.emit('servo1_unlock', {}, namespace='/')
+    socketio.emit('servo2_unlock', {}, namespace='/')
 
 def is_super_admin(username):
     """Classe 1 — Imran uniquement. Accès illimité, peut tout supprimer."""
@@ -586,6 +614,8 @@ def api_is_admin():
 @app.route("/reservations_all")
 @handle_errors
 def reservations_all():
+    if "username" not in session:
+        return jsonify({"error": "Non connecté"}), 401
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("SELECT day, time, mode, reserved_by FROM reservations")
@@ -1351,21 +1381,7 @@ def handle_vote_rematch(data):
 
     # Si admin ou started_by → on force le rematch directement
     if is_admin(username) or username == current_game.get('started_by'):
-        current_game = {
-            "team1_score": 0, "team2_score": 0,
-            "team1_players": current_game['team1_players'],
-            "team2_players": current_game['team2_players'],
-            "active": True, "started_by": current_game.get('started_by'),
-            "reserved_by": current_game.get('reserved_by'),
-            "started_at": datetime.now().isoformat()
-        }
-        rematch_votes = {"team1": [], "team2": []}
-        rematch_pending = False
-        servo_commands["servo1"].append("open")
-        servo_commands["servo2"].append("open")
-        socketio.emit('game_started', current_game, namespace='/')
-        socketio.emit('servo1_unlock', {}, namespace='/')
-        socketio.emit('servo2_unlock', {}, namespace='/')
+        _launch_rematch(current_game)
         return
 
     team = None
@@ -1381,21 +1397,7 @@ def handle_vote_rematch(data):
     t2_voted = len(rematch_votes['team2'])
 
     if t1_voted >= t1_needed and t2_voted >= t2_needed:
-        current_game = {
-            "team1_score": 0, "team2_score": 0,
-            "team1_players": current_game['team1_players'],
-            "team2_players": current_game['team2_players'],
-            "active": True, "started_by": current_game.get('started_by'),
-            "reserved_by": current_game.get('reserved_by'),
-            "started_at": datetime.now().isoformat()
-        }
-        rematch_votes = {"team1": [], "team2": []}
-        rematch_pending = False
-        servo_commands["servo1"].append("open")
-        servo_commands["servo2"].append("open")
-        socketio.emit('game_started', current_game, namespace='/')
-        socketio.emit('servo1_unlock', {}, namespace='/')
-        socketio.emit('servo2_unlock', {}, namespace='/')
+        _launch_rematch(current_game)
 
 @socketio.on('reset_game')
 def handle_reset():
@@ -1409,7 +1411,10 @@ def handle_reset():
 @socketio.on('arduino_goal')
 def handle_arduino_goal(data):
     global current_game, servo_commands, _goal_processing
-    ARDUINO_SECRET = os.environ.get('ARDUINO_SECRET', 'babyfoot-arduino-secret-2024')
+    ARDUINO_SECRET = os.environ.get('ARDUINO_SECRET')
+    if not ARDUINO_SECRET:
+        logger.warning("⚠️  ARDUINO_SECRET non défini — socket arduino_goal non sécurisé. Définissez ARDUINO_SECRET dans Railway !")
+        ARDUINO_SECRET = "babyfoot-arduino-secret-2024"
     if data.get('secret') != ARDUINO_SECRET:
         emit('error', {'message': 'Secret invalide'}); return
     if not hasattr(handle_arduino_goal, 'last_goal_time'):
