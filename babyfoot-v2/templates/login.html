@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion — Baby-Foot Club</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
+  <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
+      <span>Baby-Foot Club</span>
+    </div>
+    <h1 class="auth-title">Bon retour</h1>
+    <p class="auth-sub">Connectez-vous à votre espace</p>
+
+    <div class="auth-form">
+      <div id="alert" class="alert"></div>
+
+      <div class="field">
+        <label class="label">Nom d'utilisateur</label>
+        <input type="text" id="username" placeholder="votre_pseudo" autocomplete="username" autofocus>
+      </div>
+      <div class="field">
+        <label class="label">Mot de passe</label>
+        <input type="password" id="password" placeholder="••••••" autocomplete="current-password">
+      </div>
+      <button class="auth-submit" id="loginBtn">Se connecter</button>
+    </div>
+
+    <div class="auth-sep">comptes de test</div>
+    <div style="background:rgba(205,127,50,0.05);border:1px solid rgba(205,127,50,0.15);border-radius:12px;padding:1rem 1.25rem;font-size:0.875rem;color:var(--text-secondary);line-height:1.8">
+      <strong style="color:var(--text-primary);display:block;margin-bottom:0.5rem;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;">Accès rapide</strong>
+      alice / bob / charlie / diana<br>
+      <span style="color:var(--text-tertiary)">Mot de passe : <code style="color:var(--bronze);background:rgba(205,127,50,0.1);padding:0.125rem 0.5rem;border-radius:4px;font-family:'Space Mono',monospace">test123</code></span>
+    </div>
+
+    <div class="auth-sep">ou</div>
+    <div class="auth-switch">Pas de compte ? <a href="/register">Créer un compte</a></div>
+  </div>
+</div>
+<div class="toast-wrap" id="tw"></div>
+<script>
+  function alert(msg, type) {
+    const el = document.getElementById('alert');
+    el.textContent = msg;
+    el.className = 'alert ' + type;
+    el.style.display = 'block';
+  }
+  async function login() {
+    const u = document.getElementById('username').value.trim();
+    const p = document.getElementById('password').value;
+    const btn = document.getElementById('loginBtn');
+    if (!u || !p) { alert('Veuillez remplir tous les champs', 'error'); return; }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin"></span>';
+    try {
+      const r = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p}) });
+      const d = await r.json();
+      if (d.success) { alert('Connexion réussie !', 'success'); setTimeout(()=>window.location.href='/dashboard', 700); }
+      else { alert(d.message||'Identifiants incorrects', 'error'); btn.disabled=false; btn.textContent='Se connecter'; }
+    } catch(e) { alert('Erreur serveur', 'error'); btn.disabled=false; btn.textContent='Se connecter'; }
+  }
+  document.getElementById('loginBtn').addEventListener('click', login);
+  document.getElementById('password').addEventListener('keydown', e=>{ if(e.key==='Enter') login(); });
+  document.getElementById('username').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('password').focus(); });
+</script>
+
+<script src="{{ url_for('static', filename='icons.js') }}"></script>
+</body>
+</html>

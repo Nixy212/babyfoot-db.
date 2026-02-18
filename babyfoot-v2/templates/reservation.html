@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réservation — Baby-Foot Club</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
+  <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'DM Sans', sans-serif;">
+
+<nav class="nav nav-glass">
+  <div class="nav-inner">
+    <a href="/dashboard" class="nav-brand">
+      <div class="logo-wrapper">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
+        <div class="logo-pulse"></div>
+      </div>
+      <span class="brand-text">Baby-Foot Club</span>
+    </a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a href="/dashboard" class="nav-link"><span class="nav-link-icon" data-bficon="home" data-size="18" style="color:currentColor"></span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link active"><span class="nav-link-icon" data-bficon="calendar" data-size="18" style="color:currentColor"></span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon" data-bficon="gamepad" data-size="18" style="color:currentColor"></span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon" data-bficon="stats" data-size="18" style="color:currentColor"></span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span class="nav-link-icon" data-bficon="trophy" data-size="18" style="color:currentColor"></span><span>Top 10</span></a>
+    </div>
+    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-right">
+      <div class="user-profile-mini">
+        <div class="nav-avatar" id="navAv">?</div>
+        <span class="nav-username" id="navUsername"></span>
+      </div>
+      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</button>
+    </div>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
+  <a href="/dashboard"><span data-bficon="home" data-size="16"></span> Dashboard</a>
+  <a href="/reservation" class="active"><span data-bficon="calendar" data-size="16"></span> Réserver</a>
+  <a href="/live-score"><span data-bficon="gamepad" data-size="16"></span> Partie Live</a>
+  <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
+  <a href="/top"><span data-bficon="trophy" data-size="16"></span> Top 10</a>
+  <a href="#" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</a>
+</div>
+
+<div class="page">
+  <div class="container" style="max-width:900px">
+    <div class="page-header fade-up">
+      <h1><span data-bficon="calendar" data-size="20" style="color:var(--bronze);vertical-align:middle"></span> Réserver un créneau</h1>
+      <p>Créneaux de 25 minutes — Aujourd'hui et demain uniquement</p>
+    </div>
+
+    <!-- Étape 1 : Jour -->
+    <div class="card fade-up" style="animation-delay:.05s;margin-bottom:1.5rem">
+      <div class="card-header"><h3>01 — Choisir le jour</h3></div>
+      <div class="card-body" style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
+        <button id="btnToday" class="btn btn-primary" onclick="selectDay(0)">Aujourd'hui</button>
+        <button id="btnTomorrow" class="btn btn-secondary" onclick="selectDay(1)">Demain</button>
+        <span id="dayLabel" style="font-size:0.9375rem;color:var(--text-secondary);margin-left:0.5rem;font-weight:600"></span>
+      </div>
+    </div>
+
+    <!-- Étape 2 : Créneau -->
+    <div class="card fade-up" style="animation-delay:.08s;margin-bottom:1.5rem">
+      <div class="card-header">
+        <h3>02 — Choisir l'horaire <small style="font-weight:400;color:var(--text-tertiary);font-size:0.8125rem">(créneaux 25 min)</small></h3>
+        <span id="selectedBadge" style="display:none" class="tag tag-brn"></span>
+      </div>
+      <div class="card-body">
+        <div class="slot-grid" id="slotsGrid"></div>
+        <div style="margin-top:1rem;font-size:0.8125rem;color:var(--text-tertiary);display:flex;flex-wrap:wrap;gap:1rem">
+          <span style="display:inline-flex;align-items:center;gap:0.375rem">
+            <span style="width:12px;height:12px;background:var(--bg-tertiary);border:1px solid var(--border-normal);border-radius:4px"></span>
+            Disponible
+          </span>
+          <span style="display:inline-flex;align-items:center;gap:0.375rem">
+            <span style="width:12px;height:12px;background:linear-gradient(135deg,rgba(205,127,50,0.2),rgba(255,191,0,0.1));border:1px solid var(--bronze);border-radius:4px"></span>
+            Sélectionné
+          </span>
+          <span style="display:inline-flex;align-items:center;gap:0.375rem">
+            <span style="width:12px;height:12px;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(255,191,0,0.08));border:2px solid rgba(205,127,50,0.4);border-radius:4px"></span>
+            Mon créneau
+          </span>
+          <span style="display:inline-flex;align-items:center;gap:0.375rem">
+            <span style="width:12px;height:12px;background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:4px;opacity:0.5"></span>
+            Occupé
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Étape 3 : Mode -->
+    <div class="card fade-up" style="animation-delay:.1s;margin-bottom:1.5rem">
+      <div class="card-header"><h3>03 — Mode de jeu</h3></div>
+      <div class="card-body">
+        <p style="font-size:0.875rem;color:var(--text-tertiary);margin-bottom:1rem">
+          Les équipes seront définies lors du lancement de la partie
+        </p>
+        <div style="display:flex;gap:0.75rem">
+          <button id="m1v1" class="btn btn-primary" onclick="setMode('1v1')">1 vs 1</button>
+          <button id="m2v2" class="btn btn-secondary" onclick="setMode('2v2')">2 vs 2</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bouton confirmer -->
+    <button id="confirmBtn" class="btn btn-primary btn-full btn-lg fade-up" style="animation-delay:.12s">
+      Confirmer la réservation
+    </button>
+    <div style="text-align:center;margin-top:1rem">
+      <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="tw"></div>
+
+<script>
+let currentUser = '';
+let currentUserIsAdmin = false;
+let reservations = {};
+let selectedDayOffset = 0;
+let selectedSlot = null;
+let mode = '1v1';
+
+const DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const MONTHS = ['jan','fév','mar','avr','mai','jun','jul','aoû','sep','oct','nov','déc'];
+
+function toggleMenu() {
+  document.getElementById('burger').classList.toggle('open');
+  document.getElementById('mobileMenu').classList.toggle('open');
+  document.body.style.overflow = document.getElementById('mobileMenu').classList.contains('open') ? 'hidden' : '';
+}
+
+function logout() {
+  fetch('/api/logout', {method:'POST'}).then(() => location.href = '/');
+}
+
+function toast(msg, type='inf') {
+  const c = document.getElementById('tw');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+function getDate(offset) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d;
+}
+
+function getDayName(offset) {
+  const d = getDate(offset);
+  return `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+function getDayKey(offset) {
+  return DAYS[getDate(offset).getDay()];
+}
+
+function selectDay(offset) {
+  selectedDayOffset = offset;
+  selectedSlot = null;
+  document.getElementById('selectedBadge').style.display = 'none';
+  document.getElementById('btnToday').className = offset === 0 ? 'btn btn-primary' : 'btn btn-secondary';
+  document.getElementById('btnTomorrow').className = offset === 1 ? 'btn btn-primary' : 'btn btn-secondary';
+  document.getElementById('dayLabel').textContent = getDayName(offset);
+  renderSlots();
+}
+
+function genSlots() {
+  const slots = [];
+  let t = 8 * 60;
+  while (t < 21 * 60) {
+    const h = Math.floor(t / 60), m = t % 60;
+    slots.push(String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0'));
+    t += 25;
+  }
+  return slots;
+}
+
+function renderSlots() {
+  const dayKey = getDayKey(selectedDayOffset);
+  const dayRes = reservations[dayKey] || {};
+  const slots = genSlots();
+  const grid = document.getElementById('slotsGrid');
+
+  grid.innerHTML = slots.map(s => {
+    const taken = dayRes[s];
+    const isMine = taken && taken.reserved_by === currentUser;
+    const isSelected = selectedSlot === s;
+
+    if (isMine) {
+      return `<div class="slot-pill mine" title="Votre réservation — cliquez pour annuler" onclick="cancelMySlot('${dayKey}','${s}',this)" style="cursor:pointer">${s}<br><span style="font-size:0.7rem;opacity:0.8">à vous · ✕ annuler</span></div>`;
+    }
+    if (taken) {
+      if (currentUserIsAdmin) {
+        // Admin : peut annuler n'importe quel créneau ou le sélectionner pour réserver à sa place
+        return `<div class="slot-pill" style="border:2px solid #e74c3c;background:rgba(231,76,60,0.1);cursor:pointer" title="Réservé par ${taken.reserved_by} — admin: cliquer pour annuler" onclick="adminCancelSlot('${dayKey}','${s}',this)">${s}<br><span style="font-size:0.7rem;color:#e74c3c">⚠ ${taken.reserved_by} · ✕</span></div>`;
+      }
+      return `<div class="slot-pill taken" title="Réservé par ${taken.reserved_by}" style="cursor:not-allowed">${s}<br><span style="font-size:0.7rem;opacity:0.6">${taken.reserved_by}</span></div>`;
+    }
+    return `<div class="slot-pill ${isSelected ? 'selected' : ''}" onclick="pickSlot('${s}')">${s}</div>`;
+  }).join('');
+}
+
+function pickSlot(s) {
+  selectedSlot = s;
+  const badge = document.getElementById('selectedBadge');
+  badge.textContent = `${getDayName(selectedDayOffset)} · ${s}`;
+  badge.style.display = 'inline-flex';
+  renderSlots();
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('m1v1').className = m === '1v1' ? 'btn btn-primary' : 'btn btn-secondary';
+  document.getElementById('m2v2').className = m === '2v2' ? 'btn btn-primary' : 'btn btn-secondary';
+}
+
+// Convertit la liste plate en dict {jour: {heure: {reserved_by}}}
+function buildReservationsDict(rows) {
+  const dict = {};
+  rows.forEach(r => {
+    if (!dict[r.day]) dict[r.day] = {};
+    dict[r.day][r.time] = { reserved_by: r.reserved_by, mode: r.mode };
+  });
+  return dict;
+}
+
+async function adminCancelSlot(dayKey, time, el) {
+  const taken = (reservations[dayKey] || {})[time];
+  const owner = taken ? taken.reserved_by : '?';
+  if (!confirm(`Annuler la réservation de ${owner} (${getDayName(selectedDayOffset)} à ${time}) ?`)) return;
+  el.style.opacity = '0.5';
+  try {
+    const r = await fetch('/cancel_reservation', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({day: dayKey, time})
+    }).then(x => x.json());
+    if (r.success) {
+      toast(`✓ Réservation de ${owner} annulée`, 'ok');
+      if (reservations[dayKey]) delete reservations[dayKey][time];
+      renderSlots();
+    } else {
+      toast(r.message || 'Erreur', 'err');
+      el.style.opacity = '1';
+    }
+  } catch {
+    toast('Erreur serveur', 'err');
+    el.style.opacity = '1';
+  }
+}
+
+async function cancelMySlot(dayKey, time, el) {
+  if (!confirm(`Annuler votre réservation du ${getDayName(selectedDayOffset)} à ${time} ?`)) return;
+  el.style.opacity = '0.5';
+  try {
+    const r = await fetch('/cancel_reservation', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({day: dayKey, time})
+    }).then(x => x.json());
+    if (r.success) {
+      toast('✓ Réservation annulée', 'ok');
+      // Mettre à jour localement
+      if (reservations[dayKey]) delete reservations[dayKey][time];
+      renderSlots();
+    } else {
+      toast(r.message || 'Erreur', 'err');
+      el.style.opacity = '1';
+    }
+  } catch {
+    toast('Erreur serveur', 'err');
+    el.style.opacity = '1';
+  }
+}
+
+
+  if (!selectedSlot) { toast('Sélectionnez un créneau', 'err'); return; }
+  const dayKey = getDayKey(selectedDayOffset);
+  // Vérification locale : créneau déjà pris par quelqu'un d'autre ?
+  const takenBy = (reservations[dayKey] || {})[selectedSlot];
+  if (takenBy && takenBy.reserved_by !== currentUser && !currentUserIsAdmin) {
+    toast(`Ce créneau est déjà pris par ${takenBy.reserved_by}`, 'err');
+    return;
+  }
+  const btn = document.getElementById('confirmBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Réservation…';
+  try {
+    const r = await fetch('/save_reservation', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({day: dayKey, time: selectedSlot, team1: [], team2: [], mode})
+    }).then(x => x.json());
+
+    if (r.success) {
+      toast(`✓ Réservé : ${getDayName(selectedDayOffset)} à ${selectedSlot}`, 'ok');
+      // Mettre à jour localement pour refléter immédiatement
+      if (!reservations[dayKey]) reservations[dayKey] = {};
+      reservations[dayKey][selectedSlot] = { reserved_by: currentUser, mode };
+      selectedSlot = null;
+      renderSlots();
+      setTimeout(() => window.location.href = '/dashboard', 1200);
+    } else {
+      toast(r.message || 'Erreur', 'err');
+      btn.disabled = false;
+      btn.textContent = 'Confirmer la réservation';
+    }
+  } catch {
+    toast('Erreur serveur', 'err');
+    btn.disabled = false;
+    btn.textContent = 'Confirmer la réservation';
+  }
+});
+
+async function init() {
+  try {
+    const [ud, rows] = await Promise.all([
+      fetch('/current_user').then(r => r.json()),
+      fetch('/reservations_all').then(r => r.json())
+    ]);
+
+    currentUser = ud.username || '';
+    currentUserIsAdmin = ud.is_admin || false;
+    reservations = buildReservationsDict(rows);
+
+    if (currentUser) {
+      document.getElementById('navAv').textContent = currentUser[0].toUpperCase();
+      document.getElementById('navUsername').textContent = currentUser;
+    }
+
+    selectDay(0);
+  } catch(e) {
+    console.error('Erreur init réservation:', e);
+    toast('Erreur de chargement', 'err');
+  }
+}
+
+init();
+</script>
+
+<script src="{{ url_for('static', filename='icons.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Top 10 — Baby-Foot Club</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
+  <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body style="font-family: 'DM Sans', sans-serif;">
+
+<nav class="nav nav-glass">
+  <div class="nav-inner">
+    <a href="/dashboard" class="nav-brand">
+      <div class="logo-wrapper">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
+        <div class="logo-pulse"></div>
+      </div>
+      <span class="brand-text">Baby-Foot Club</span>
+    </a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a href="/dashboard" class="nav-link"><span class="nav-link-icon" data-bficon="home" data-size="18" style="color:currentColor"></span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link"><span class="nav-link-icon" data-bficon="calendar" data-size="18" style="color:currentColor"></span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link"><span class="nav-link-icon" data-bficon="gamepad" data-size="18" style="color:currentColor"></span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span class="nav-link-icon" data-bficon="stats" data-size="18" style="color:currentColor"></span><span>Stats</span></a>
+      <a href="/top" class="nav-link active"><span class="nav-link-icon" data-bficon="trophy" data-size="18" style="color:currentColor"></span><span>Top 10</span></a>
+    </div>
+    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-right">
+      <div class="user-profile-mini">
+        <div class="nav-avatar" id="navAv">?</div>
+        <span class="nav-username" id="navUsername"></span>
+      </div>
+      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</button>
+    </div>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
+  <a href="/dashboard"><span data-bficon="home" data-size="16"></span> Dashboard</a>
+  <a href="/reservation"><span data-bficon="calendar" data-size="16"></span> Réserver</a>
+  <a href="/live-score"><span data-bficon="gamepad" data-size="16"></span> Partie Live</a>
+  <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
+  <a href="/top" class="active"><span data-bficon="trophy" data-size="16"></span> Top 10</a>
+  <a href="#" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</a>
+</div>
+
+<div class="page">
+  <div class="container" style="max-width:900px">
+    <div class="page-header fade-up">
+      <h1><span data-bficon="podium" data-size="32" style="color:var(--bronze);vertical-align:middle"></span> Classement général</h1>
+      <p>Les meilleurs joueurs du club</p>
+    </div>
+
+    <div class="card fade-up" style="animation-delay:.05s;padding:0;overflow:hidden">
+      <div class="leaderboard-list" id="leaderboard">
+        <div style="padding:3rem;text-align:center">
+          <div class="loading-spinner" style="margin:0 auto 1rem"></div>
+          <p style="color:var(--text-tertiary)">Chargement du classement...</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:1.5rem">
+      <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const medals = [
+  '<span data-bficon="medal_gold" data-size="32"></span>',
+  '<span data-bficon="medal_silver" data-size="32"></span>',
+  '<span data-bficon="medal_bronze" data-size="32"></span>',
+];
+
+function toggleMenu() {
+  document.getElementById('burger').classList.toggle('open');
+  document.getElementById('mobileMenu').classList.toggle('open');
+  document.body.style.overflow = document.getElementById('mobileMenu').classList.contains('open') ? 'hidden' : '';
+}
+
+function logout() {
+  fetch('/api/logout', {method:'POST'}).then(() => location.href = '/');
+}
+
+// Calcul du ratio côté JS pour éviter le undefined
+function calcRatio(goals, games) {
+  if (!games || games === 0) return '0.00';
+  return (goals / games).toFixed(2);
+}
+
+fetch('/current_user').then(r => r.json()).then(d => {
+  if (d && d.username) {
+    document.getElementById('navAv').textContent = d.username[0].toUpperCase();
+    document.getElementById('navUsername').textContent = d.username;
+    loadLeaderboard(d.username);
+  }
+});
+
+async function loadLeaderboard(currentUser) {
+  const container = document.getElementById('leaderboard');
+  try {
+    const lb = await fetch('/leaderboard').then(r => r.json());
+
+    if (!lb || lb.length === 0) {
+      container.innerHTML = `
+        <div style="padding:3rem;text-align:center">
+          <div style="font-size:3rem;margin-bottom:1rem;opacity:0.3"><i class="fas fa-trophy"></i></div>
+          <p style="color:var(--text-tertiary)">Aucun joueur classé pour le moment</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = lb.map((player, index) => {
+      const rank = index + 1;
+      const isCurrentUser = player.username === currentUser;
+      const isTop3 = rank <= 3;
+      const medal = isTop3 ? medals[index] : null;
+      // Ratio calculé côté JS
+      const ratio = calcRatio(player.total_goals, player.total_games);
+
+      return `
+        <div class="leaderboard-item ${isCurrentUser ? 'highlight' : ''}">
+          <div class="lb-rank ${isTop3 ? 'top3' : ''}">
+            ${medal ? medal : '#' + rank}
+          </div>
+          <div class="lb-avatar">${player.username[0].toUpperCase()}</div>
+          <div class="lb-info">
+            <div class="lb-name">
+              ${player.username}
+              ${isCurrentUser ? '<span style="font-size:0.75rem;color:var(--bronze);margin-left:0.5rem">(vous)</span>' : ''}
+            </div>
+            <div class="lb-meta">
+              ${player.total_games} partie${player.total_games !== 1 ? 's' : ''}
+              &nbsp;·&nbsp;
+              Ratio : ${ratio}
+            </div>
+          </div>
+          <div class="lb-points">
+            ${player.total_goals}
+            <span>buts</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  } catch(e) {
+    console.error('Erreur leaderboard:', e);
+    container.innerHTML = `
+      <div style="padding:3rem;text-align:center">
+        <div style="font-size:3rem;margin-bottom:1rem;opacity:0.3">⚠️</div>
+        <p style="color:var(--text-tertiary)">Erreur de chargement du classement</p>
+      </div>
+    `;
+  }
+}
+</script>
+
+<script src="{{ url_for('static', filename='icons.js') }}"></script>
+</body>
+</html>
