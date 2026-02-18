@@ -98,6 +98,7 @@
     .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:6px}
     @keyframes sp{to{transform:rotate(360deg)}}
   </style>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="bg-orb bg-orb-1" aria-hidden="true"></div>
@@ -420,15 +421,47 @@ function applySlot(t){
 }
 
 // ── Actions
+// ── Socket pour création de lobby
+let socket;
+try {
+  socket = io({ transports: ['websocket', 'polling'] });
+  socket.on('lobby_created', (data) => {
+    if (data.host === ME) {
+      window.location.replace('/lobby');
+    }
+  });
+  socket.on('error', (data) => {
+    toast(data.message || 'Erreur lobby', 'err');
+    document.getElementById('btnNow').disabled = false;
+    document.getElementById('btnNow').innerHTML = '⚡ Jouer maintenant';
+  });
+} catch(e) {
+  socket = { emit: () => {}, on: () => {} };
+}
+
 async function playNow(){
   const btn=document.getElementById('btnNow');
   btn.disabled=true;btn.innerHTML='<span class="spin"></span>Réservation…';
   try{
     const r=await fetch('/api/reserve_now',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({duration:durNow,mode:modeNow})}).then(x=>x.json());
-    if(r.success){toast('✅ Réservé jusqu\'à '+hm(r.end),'ok');await refresh();}
-    else toast(r.message||'Erreur','err');
-  }catch(e){toast('Erreur réseau','err');}
-  btn.disabled=false;btn.innerHTML='⚡ Jouer maintenant';
+    if(r.success){
+      toast('✅ Réservé ! Création du lobby…','ok');
+      btn.innerHTML='<span class="spin"></span>Création du lobby…';
+      // Attendre que le socket soit connecté puis créer le lobby
+      if(socket.connected){
+        socket.emit('create_lobby',{invited:[]});
+      } else {
+        socket.once('connect',()=>{ socket.emit('create_lobby',{invited:[]}); });
+        setTimeout(()=>{ window.location.replace('/lobby'); }, 3000);
+      }
+    } else {
+      toast(r.message||'Erreur','err');
+      btn.disabled=false;btn.innerHTML='⚡ Jouer maintenant';
+    }
+  }catch(e){
+    toast('Erreur réseau','err');
+    btn.disabled=false;btn.innerHTML='⚡ Jouer maintenant';
+  }
 }
 
 async function planReserve(){
@@ -436,7 +469,7 @@ async function planReserve(){
   if(!t){toast('Choisissez une heure','err');return;}
   if(document.getElementById('conflict').style.display!=='none'){toast('Résolvez le conflit d\'abord','err');return;}
   const dateObj=new Date();if(dayOff===1)dateObj.setDate(dateObj.getDate()+1);
-  const dateStr=dateObj.toISOString().split('T')[0];
+  const dateStr=dateObj.getFullYear()+'-'+String(dateObj.getMonth()+1).padStart(2,'0')+'-'+String(dateObj.getDate()).padStart(2,'0');
   const btn=document.getElementById('btnPlan');
   btn.disabled=true;btn.innerHTML='<span class="spin"></span>Réservation…';
   try{
