@@ -311,39 +311,56 @@ def migrate_reservations_v2():
         logger.warning(f"Migration v2: {e}")
 
 def migrate_teams_to_text():
-    """Convertit les colonnes team1/team2 de TEXT[] en TEXT si besoin (fix PostgreSQL array bug)."""
+    """Corrige les colonnes mal typees dans reservations (PostgreSQL)."""
     if not USE_POSTGRES:
         return
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        # Verifier le type actuel des colonnes
+
+        # --- Fix 1 : team1/team2 TEXT[] -> TEXT ---
         cur.execute("""
             SELECT column_name, data_type, udt_name
             FROM information_schema.columns
             WHERE table_name = 'reservations' AND column_name IN ('team1', 'team2')
         """)
         cols = {row['column_name']: row['udt_name'] for row in cur.fetchall()}
-        changed = False
         for col in ['team1', 'team2']:
             if col in cols and cols[col] != 'text':
-                logger.info(f"Migration: conversion de {col} ({cols[col]}) en TEXT")
-                cur.execute(f"""
-                    ALTER TABLE reservations
-                    ALTER COLUMN {col} TYPE TEXT USING {col}::text
-                """)
-                changed = True
-        if changed:
-            # Mettre a jour le DEFAULT aussi
-            cur.execute("ALTER TABLE reservations ALTER COLUMN team1 SET DEFAULT '[]'")
-            cur.execute("ALTER TABLE reservations ALTER COLUMN team2 SET DEFAULT '[]'")
+                logger.info(f"Migration: {col} ({cols[col]}) -> TEXT")
+                cur.execute(f"ALTER TABLE reservations ALTER COLUMN {col} TYPE TEXT USING {col}::text")
+                cur.execute(f"ALTER TABLE reservations ALTER COLUMN {col} SET DEFAULT '[]'")
+                logger.info(f"Migration {col} TEXT[] -> TEXT OK")
+
+        # --- Fix 2 : colonne 'time' trop courte (VARCHAR(10) -> VARCHAR(30)) ---
+        cur.execute("""
+            SELECT character_maximum_length
+            FROM information_schema.columns
+            WHERE table_name = 'reservations' AND column_name = 'time'
+        """)
+        row = cur.fetchone()
+        if row and row['character_maximum_length'] and row['character_maximum_length'] < 30:
+            logger.info(f"Migration: colonne time VARCHAR({row['character_maximum_length']}) -> VARCHAR(30)")
+            cur.execute("ALTER TABLE reservations ALTER COLUMN time TYPE VARCHAR(30)")
+            logger.info("Migration time VARCHAR -> VARCHAR(30) OK")
+
+        # --- Fix 3 : colonne 'mode' trop courte si besoin ---
+        cur.execute("""
+            SELECT character_maximum_length
+            FROM information_schema.columns
+            WHERE table_name = 'reservations' AND column_name = 'mode'
+        """)
+        row = cur.fetchone()
+        if row and row['character_maximum_length'] and row['character_maximum_length'] < 20:
+            logger.info(f"Migration: colonne mode VARCHAR({row['character_maximum_length']}) -> VARCHAR(20)")
+            cur.execute("ALTER TABLE reservations ALTER COLUMN mode TYPE VARCHAR(20)")
+            logger.info("Migration mode VARCHAR -> VARCHAR(20) OK")
+
         conn.commit()
         cur.close()
         conn.close()
-        if changed:
-            logger.info("Migration team1/team2 TEXT[] -> TEXT terminee")
     except Exception as e:
-        logger.warning(f"Migration teams_to_text: {e}")
+        logger.warning(f"Migration schema: {e}")
 
 def seed_accounts():
     accounts = [
