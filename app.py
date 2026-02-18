@@ -25,8 +25,35 @@ app.config['SESSION_COOKIE_PATH'] = '/'
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
 
-socketio = SocketIO(app, cors_allowed_origins="*", logger=True, engineio_logger=True,
-                    ping_timeout=60, ping_interval=25, async_mode="eventlet", manage_session=True)
+socketio = SocketIO(app, cors_allowed_origins="*",
+                    logger=False, engineio_logger=False,  # Désactiver les logs verbeux en prod
+                    ping_timeout=45,   # Détecte déconnexion plus vite (était 60s)
+                    ping_interval=20,  # Heartbeat plus fréquent pour mauvais réseau (était 25s)
+                    async_mode="eventlet",
+                    manage_session=True,
+                    max_http_buffer_size=1_000_000)  # 1MB max par message
+
+# ── Service Worker servi depuis /sw.js ───────────────────────
+@app.route('/sw.js')
+def service_worker():
+    response = app.send_static_file('sw.js')
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['Service-Worker-Allowed'] = '/'
+    return response
+
+# ── Headers HTTP globaux (cache + sécurité) ──────────────────
+@app.after_request
+def set_headers(response):
+    # Cache long pour les assets versionnés (CSS/JS/images)
+    if response.content_type and any(ct in response.content_type for ct in ['javascript', 'css', 'image', 'font']):
+        response.headers['Cache-Control'] = 'public, max-age=604800, stale-while-revalidate=86400'
+    # Pas de cache pour les pages HTML et API
+    elif response.content_type and 'text/html' in response.content_type:
+        response.headers['Cache-Control'] = 'no-cache, must-revalidate'
+    # Sécurité de base
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    return response
 
 @app.before_request
 def handle_http_for_arduino():
@@ -70,6 +97,8 @@ active_lobby = {
 team_swap_requests = {}
 rematch_votes = {"team1": [], "team2": []}
 servo_commands = {"servo1": [], "servo2": []}
+rematch_pending = False          # True entre game_ended et le lancement du rematch
+pending_invitations = {}         # username → {from, timestamp} — invitations non vues
 
 # ── Fix manage_session=False : session inaccessible dans SocketIO ─────────────
 # connected_users mappe sid → username au moment du connect (session encore lisible).
@@ -951,12 +980,30 @@ def api_arduino_goal():
 
 @socketio.on('connect')
 def handle_connect():
+    global rematch_pending
     username = session.get('username', 'Anonymous')
     connected_users[request.sid] = username
     logger.info(f"WS connecte: {username} ({request.sid})")
+
+    # Partie active → récupération en cours de jeu
     if current_game.get('active'):
         join_room('game')
         emit('game_recovery', current_game)
+
+    # Partie terminée et popup victoire pas encore fermé → rejouer game_ended
+    elif current_game.get('winner') and not current_game.get('active'):
+        emit('game_ended', current_game)
+        # Si le rematch est encore en attente de vote → rejouer rematch_prompt
+        if rematch_pending:
+            emit('rematch_prompt', {})
+
+    # Invitation lobby en attente pour cet utilisateur → la renvoyer
+    if username in pending_invitations:
+        inv = pending_invitations[username]
+        # Valide 5 minutes max
+        import time as _t
+        if _t.time() - inv.get('timestamp', 0) < 300:
+            emit('lobby_invitation', {'from': inv['from'], 'to': username})
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -991,6 +1038,16 @@ def handle_invite_to_lobby(data):
     if len(active_lobby['accepted']) + len(active_lobby['invited']) >= 4:
         emit('error', {'message': 'Lobby complet'}); return
     if invited_user in active_lobby['invited'] or invited_user in active_lobby['accepted']: return
+    import time as _t
+    if invited_user in [u for u in connected_users.values()]:
+        active_lobby['accepted'].append(invited_user)
+        socketio.emit('lobby_update', active_lobby, namespace='/')
+    else:
+        active_lobby['invited'].append(invited_user)
+        socketio.emit('lobby_invitation', {'from': active_lobby['host'], 'to': invited_user}, namespace='/')
+        socketio.emit('lobby_update', active_lobby, namespace='/')
+    # Stocker l'invitation au cas où l'utilisateur est déconnecté au moment de l'envoi
+    pending_invitations[invited_user] = {'from': active_lobby['host'], 'timestamp': _t.time()}
     if is_guest_player(invited_user):
         active_lobby['accepted'].append(invited_user)
         t1, t2 = len(active_lobby['team1']), len(active_lobby['team2'])
@@ -1019,6 +1076,7 @@ def handle_accept_lobby():
         active_lobby['accepted'].remove(username)
         active_lobby['invited'].append(username)
         return
+    pending_invitations.pop(username, None)  # Invitation traitée → nettoyer
     socketio.emit('lobby_update', active_lobby, namespace='/')
 
 @socketio.on('decline_lobby')
@@ -1028,6 +1086,7 @@ def handle_decline_lobby():
     if username not in active_lobby['invited']: return
     active_lobby['invited'].remove(username)
     if username not in active_lobby['declined']: active_lobby['declined'].append(username)
+    pending_invitations.pop(username, None)  # Refusé → nettoyer
     socketio.emit('lobby_update', active_lobby, namespace='/')
 
 @socketio.on('request_team_swap')
@@ -1069,6 +1128,7 @@ def handle_kick_from_lobby(data):
         emit('error', {'message': "Impossible d'exclure l'hote"}); return
     for lst in ['invited', 'accepted', 'team1', 'team2']:
         if kicked_user in active_lobby[lst]: active_lobby[lst].remove(kicked_user)
+    pending_invitations.pop(kicked_user, None)  # Exclu → nettoyer
     socketio.emit('kicked_from_lobby', {'kicked_user': kicked_user}, namespace='/')
     socketio.emit('lobby_update', active_lobby, namespace='/')
 
@@ -1078,6 +1138,9 @@ def handle_cancel_lobby():
     username = get_socket_user()
     if username != active_lobby['host'] and not is_admin(username):
         emit('error', {'message': "Seul l'hote ou un admin peut annuler"}); return
+    # Nettoyer toutes les invitations en attente pour ce lobby
+    for user in list(active_lobby.get('invited', [])):
+        pending_invitations.pop(user, None)
     active_lobby = {
         "host": None, "invited": [], "accepted": [],
         "declined": [], "team1": [], "team2": [], "active": False
@@ -1189,6 +1252,7 @@ def handle_stop_game():
         "active": False, "started_by": None, "reserved_by": None
     }
     rematch_votes = {"team1": [], "team2": []}
+    rematch_pending = False
     servo_commands["servo1"].append("close")
     servo_commands["servo2"].append("close")
     socketio.emit('game_stopped', {}, namespace='/')
@@ -1197,17 +1261,16 @@ def handle_stop_game():
 
 @socketio.on('update_score')
 def handle_score(data):
-    global current_game
+    global current_game, rematch_pending
     try:
         username = get_socket_user()
         if not current_game.get('active'):
             emit('error', {'message': 'Aucune partie en cours'}); return
-        
-        # Vérification : seuls admin ou celui qui a lancé la partie peuvent marquer
+
         can_control = is_admin(username) or current_game.get('started_by') == username
         if not can_control:
             emit('error', {'message': 'Vous n\'avez pas le droit de contrôler cette partie'}); return
-        
+
         team = data.get('team')
         if team not in ['team1', 'team2']:
             emit('error', {'message': 'Equipe invalide'}); return
@@ -1219,22 +1282,27 @@ def handle_score(data):
             except Exception as e: logger.error(f"Save error: {e}")
             socketio.emit('game_ended', current_game, namespace='/')
             def ask_rematch():
+                global rematch_pending
                 import eventlet; eventlet.sleep(6)
+                rematch_pending = True
                 socketio.emit('rematch_prompt', {}, namespace='/')
             eventlet.spawn(ask_rematch)
         else:
             socketio.emit('score_updated', current_game, namespace='/')
+            # Acquittement au client pour confirmer que le score a bien été reçu
+            emit('score_ack', {'team': team, 'score': current_game[f"{team}_score"]})
     except Exception as e:
         logger.error(f"Erreur update_score: {e}")
         emit('error', {'message': str(e)})
 
 @socketio.on('vote_rematch')
 def handle_vote_rematch(data):
-    global rematch_votes, current_game, servo_commands
+    global rematch_votes, current_game, servo_commands, rematch_pending
     username = get_socket_user()
     if data.get('vote') == 'no':
         socketio.emit('rematch_cancelled', {}, namespace='/')
         rematch_votes = {"team1": [], "team2": []}
+        rematch_pending = False
         return
 
     # Si admin ou started_by → on force le rematch directement
@@ -1248,6 +1316,7 @@ def handle_vote_rematch(data):
             "started_at": datetime.now().isoformat()
         }
         rematch_votes = {"team1": [], "team2": []}
+        rematch_pending = False
         servo_commands["servo1"].append("open")
         servo_commands["servo2"].append("open")
         socketio.emit('game_started', current_game, namespace='/')
@@ -1277,6 +1346,7 @@ def handle_vote_rematch(data):
             "started_at": datetime.now().isoformat()
         }
         rematch_votes = {"team1": [], "team2": []}
+        rematch_pending = False
         servo_commands["servo1"].append("open")
         servo_commands["servo2"].append("open")
         socketio.emit('game_started', current_game, namespace='/')
@@ -1285,7 +1355,7 @@ def handle_vote_rematch(data):
 
 @socketio.on('reset_game')
 def handle_reset():
-    global current_game, rematch_votes, servo_commands
+    global current_game, rematch_votes, servo_commands, rematch_pending
     username = get_socket_user()
     if not is_admin(username):
         emit('error', {'message': 'Admin requis'}); return
@@ -1294,6 +1364,7 @@ def handle_reset():
         "team1_players": [], "team2_players": [], "active": False
     }
     rematch_votes = {"team1": [], "team2": []}
+    rematch_pending = False
     servo_commands["servo1"].append("close")
     servo_commands["servo2"].append("close")
     socketio.emit('game_reset', current_game, namespace='/')
