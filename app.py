@@ -310,6 +310,41 @@ def migrate_reservations_v2():
     except Exception as e:
         logger.warning(f"Migration v2: {e}")
 
+def migrate_teams_to_text():
+    """Convertit les colonnes team1/team2 de TEXT[] en TEXT si besoin (fix PostgreSQL array bug)."""
+    if not USE_POSTGRES:
+        return
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        # Verifier le type actuel des colonnes
+        cur.execute("""
+            SELECT column_name, data_type, udt_name
+            FROM information_schema.columns
+            WHERE table_name = 'reservations' AND column_name IN ('team1', 'team2')
+        """)
+        cols = {row['column_name']: row['udt_name'] for row in cur.fetchall()}
+        changed = False
+        for col in ['team1', 'team2']:
+            if col in cols and cols[col] != 'text':
+                logger.info(f"Migration: conversion de {col} ({cols[col]}) en TEXT")
+                cur.execute(f"""
+                    ALTER TABLE reservations
+                    ALTER COLUMN {col} TYPE TEXT USING {col}::text
+                """)
+                changed = True
+        if changed:
+            # Mettre a jour le DEFAULT aussi
+            cur.execute("ALTER TABLE reservations ALTER COLUMN team1 SET DEFAULT '[]'")
+            cur.execute("ALTER TABLE reservations ALTER COLUMN team2 SET DEFAULT '[]'")
+        conn.commit()
+        cur.close()
+        conn.close()
+        if changed:
+            logger.info("Migration team1/team2 TEXT[] -> TEXT terminee")
+    except Exception as e:
+        logger.warning(f"Migration teams_to_text: {e}")
+
 def seed_accounts():
     accounts = [
         ("alice", "test123"), ("bob", "test123"), ("charlie", "test123"), ("diana", "test123"),
@@ -502,6 +537,7 @@ def has_active_reservation(username):
 try:
     init_database()
     migrate_reservations_v2()
+    migrate_teams_to_text()
     seed_accounts()
     schedule_cleanup()
     schedule_zombie_game_cleanup()
@@ -1182,9 +1218,9 @@ def _do_reservation(username, start_time, end_time, duration, mode):
         if USE_POSTGRES:
             cur.execute("""
                 INSERT INTO reservations (day, time, team1, team2, mode, reserved_by, start_time, end_time, duration_minutes)
-                VALUES (%s, %s, %s::text, %s::text, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (start_time, reserved_by) DO NOTHING
-            """, (day_fr, time_display, json.dumps([]), json.dumps([]), mode, username, start_iso, end_iso, duration))
+            """, (day_fr, time_display, '[]', '[]', mode, username, start_iso, end_iso, duration))
         else:
             # Verifier doublon exact
             cur.execute(
