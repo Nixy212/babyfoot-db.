@@ -821,6 +821,31 @@ def user_stats(username):
     )
     cur.execute(q2, (username,))
     scores_rows = [row_to_dict(r) for r in cur.fetchall()]
+
+    # Calculer buts marqués et buts pris depuis la table games
+    goals_scored = 0
+    goals_conceded = 0
+    if USE_POSTGRES:
+        cur.execute("SELECT team1_players, team2_players, team1_score, team2_score FROM games")
+    else:
+        cur.execute("SELECT team1_players, team2_players, team1_score, team2_score FROM games")
+    for grow in cur.fetchall():
+        gr = row_to_dict(grow)
+        t1p = gr.get('team1_players', '[]')
+        t2p = gr.get('team2_players', '[]')
+        if isinstance(t1p, str):
+            try: t1p = json.loads(t1p)
+            except: t1p = []
+        if isinstance(t2p, str):
+            try: t2p = json.loads(t2p)
+            except: t2p = []
+        if username in t1p:
+            goals_scored += int(gr.get('team1_score') or 0)
+            goals_conceded += int(gr.get('team2_score') or 0)
+        elif username in t2p:
+            goals_scored += int(gr.get('team2_score') or 0)
+            goals_conceded += int(gr.get('team1_score') or 0)
+
     cur.close()
     conn.close()
     total_games = user.get('total_games', 0)
@@ -829,6 +854,8 @@ def user_stats(username):
         "username": user['username'],
         "total_games": total_games,
         "total_goals": total_goals,
+        "goals_scored": goals_scored,
+        "goals_conceded": goals_conceded,
         "ratio": round(total_goals / total_games, 2) if total_games > 0 else 0,
         "best_score": max([s['score'] for s in scores_rows], default=0),
         "average_score": round(sum([s['score'] for s in scores_rows]) / len(scores_rows), 2) if scores_rows else 0,
@@ -1310,6 +1337,14 @@ def api_active_lobby():
         return jsonify({"error": "Non connecte"}), 401
     return jsonify(active_lobby)
 
+@app.route("/api/online_users")
+def api_online_users():
+    if "username" not in session:
+        return jsonify({"error": "Non connecte"}), 401
+    # Dédupliquer : un user peut avoir plusieurs tabs ouvertes
+    online = list(set(connected_users.values()))
+    return jsonify({"online": online})
+
 @app.route("/api/public_stats")
 @handle_errors
 def api_public_stats():
@@ -1428,10 +1463,51 @@ def babyfoot_status():
         "server_time": now_str,
     })
 
+@app.route("/settings")
+def settings_page():
+    if "username" not in session:
+        return redirect(url_for('login_page'))
+    return render_template("settings.html")
+
+@app.route("/api/change_password", methods=["POST"])
+@handle_errors
+def api_change_password():
+    if "username" not in session:
+        return jsonify({"success": False, "message": "Non authentifie"}), 401
+    data = request.get_json(silent=True) or {}
+    username = session["username"]
+    current_pw = data.get("current_password", "")
+    new_pw = data.get("new_password", "")
+    if not current_pw or not new_pw:
+        return jsonify({"success": False, "message": "Champs requis"}), 400
+    try:
+        new_pw = validate_password(new_pw)
+    except ValueError as e:
+        return jsonify({"success": False, "message": str(e)}), 400
+    conn = get_db_connection()
+    cur = conn.cursor()
+    q = "SELECT password FROM users WHERE username = %s" if USE_POSTGRES else "SELECT password FROM users WHERE username = ?"
+    cur.execute(q, (username,))
+    row = row_to_dict(cur.fetchone())
+    if not row:
+        cur.close(); conn.close()
+        return jsonify({"success": False, "message": "Utilisateur introuvable"}), 404
+    if not bcrypt.checkpw(current_pw.encode(), row["password"].encode()):
+        cur.close(); conn.close()
+        return jsonify({"success": False, "message": "Mot de passe actuel incorrect"}), 401
+    hashed = bcrypt.hashpw(new_pw.encode(), bcrypt.gensalt()).decode()
+    q2 = "UPDATE users SET password = %s WHERE username = %s" if USE_POSTGRES else "UPDATE users SET password = ? WHERE username = ?"
+    cur.execute(q2, (hashed, username))
+    conn.commit()
+    cur.close(); conn.close()
+    logger.info(f"Mot de passe change pour {username}")
+    return jsonify({"success": True, "message": "Mot de passe mis à jour avec succès"})
+
 @app.route("/stats/<username>")
 @handle_errors
 def stats_by_username(username):
     return user_stats(username)
+
 
 # ── Arduino HTTP endpoints ────────────────────────────────────
 
@@ -1535,10 +1611,10 @@ def api_arduino_goal():
             except Exception as e:
                 logger.error(f"Erreur sauvegarde: {e}")
             socketio.emit("game_ended", current_game, namespace="/")
-            # Lancer le prompt rematch apres 6 secondes
+            # Lancer le prompt rematch apres 4 secondes
             def ask_rematch():
                 global rematch_pending
-                eventlet.sleep(6)
+                eventlet.sleep(4)
                 rematch_pending = True
                 socketio.emit("rematch_prompt", {}, namespace="/")
             eventlet.spawn(ask_rematch)
@@ -1569,11 +1645,18 @@ def handle_connect():
     if current_game.get('active'):
         join_room('game')
         emit('game_recovery', current_game)
-    # Partie terminee et popup victoire pas encore ferme → rejouer game_ended
+    # Partie terminée et popup victoire pas encore fermée → rejouer game_ended SEULEMENT si l'user était dans la partie
     elif current_game.get('winner') and not current_game.get('active'):
-        emit('game_ended', current_game)
-        if rematch_pending:
-            emit('rematch_prompt', {})
+        user_in_game = (
+            username in current_game.get('team1_players', []) or
+            username in current_game.get('team2_players', []) or
+            is_admin(username) or
+            username == current_game.get('started_by')
+        )
+        if user_in_game:
+            emit('game_ended', current_game)
+            if rematch_pending:
+                emit('rematch_prompt', {})
 
     # Invitation lobby en attente → la renvoyer
     if username in pending_invitations:
@@ -1592,6 +1675,10 @@ def handle_create_lobby(data):
     username = get_socket_user()
     if not is_admin(username) and not has_active_reservation(username):
         emit('error', {'message': 'Seuls admins/reservateurs peuvent creer un lobby'})
+        return
+    # Si un lobby est déjà actif, seul Imran peut en créer un nouveau (annule l'ancien)
+    if active_lobby.get('active') and not is_super_admin(username):
+        emit('error', {'message': 'Un lobby est déjà en cours — seul Imran peut le remplacer'})
         return
     if active_lobby.get('active'):
         socketio.emit('lobby_cancelled', {}, namespace='/')
@@ -1881,7 +1968,7 @@ def handle_score(data):
             socketio.emit('game_ended', current_game, namespace='/')
             def ask_rematch():
                 global rematch_pending
-                eventlet.sleep(6)
+                eventlet.sleep(4)
                 rematch_pending = True
                 socketio.emit('rematch_prompt', {}, namespace='/')
             eventlet.spawn(ask_rematch)
@@ -1973,7 +2060,7 @@ def handle_arduino_goal(data):
             socketio.emit('game_ended', current_game, namespace='/')
             def ask_rematch_delayed():
                 global rematch_pending
-                eventlet.sleep(6)
+                eventlet.sleep(4)
                 rematch_pending = True
                 socketio.emit('rematch_prompt', {}, namespace='/')
             eventlet.spawn(ask_rematch_delayed)
