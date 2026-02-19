@@ -151,6 +151,24 @@
       vertical-align: middle;
     }
 
+    /* Online dot */
+    .online-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #2ecc71;
+      box-shadow: 0 0 0 2px rgba(46,204,113,0.25), 0 0 6px rgba(46,204,113,0.5);
+      flex-shrink: 0;
+      animation: pulse-green 2s ease-in-out infinite;
+    }
+    @keyframes pulse-green {
+      0%,100% { box-shadow: 0 0 0 2px rgba(46,204,113,0.25), 0 0 6px rgba(46,204,113,0.5); }
+      50%      { box-shadow: 0 0 0 4px rgba(46,204,113,0.15), 0 0 12px rgba(46,204,113,0.4); }
+    }
+    .lb-av-wrap { position: relative; flex-shrink: 0; }
+    .lb-av-wrap .online-dot { position: absolute; bottom: 0; right: 0; width: 11px; height: 11px; border: 2px solid var(--bg-secondary); }
+
     /* Écran large : légère animation au hover */
     @media (hover: hover) {
       .lb-item:hover {
@@ -201,6 +219,7 @@
         <span class="nav-username" id="navUsername"></span>
       </div>
       <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</button>
+      <a href="/settings" class="btn btn-ghost" style="margin-left:0.5rem" title="Paramètres">⚙️</a>
     </div>
   </div>
 </nav>
@@ -275,11 +294,14 @@ fetch('/current_user').then(r => r.json()).then(d => {
 async function loadLeaderboard(me) {
   const el = document.getElementById('leaderboard');
   try {
-    const lb = await fetch('/leaderboard').then(r => r.json());
+    const [lb, onlineRes] = await Promise.all([
+      fetch('/leaderboard').then(r => r.json()),
+      fetch('/api/online_users').then(r => r.json())
+    ]);
+    const onlineSet = new Set((onlineRes.online || []));
 
     if (!lb || lb.length === 0) {
       el.innerHTML = `<div style="padding:3rem;text-align:center">
-        <div style="opacity:0.3;margin-bottom:1rem"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cd7f32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><path d="M6 9H4a2 2 0 0 1-2-2V5h4"/><path d="M18 9h2a2 2 0 0 0 2-2V5h-4"/><path d="M8 21h8"/><path d="M12 17v4"/><path d="M6 5h12v8a6 6 0 0 1-12 0z"/></svg></div>
         <p style="color:var(--text-tertiary)">Personne de classé pour l'instant — jouez une partie pour apparaître ici !</p>
       </div>`;
       return;
@@ -292,13 +314,17 @@ async function loadLeaderboard(me) {
       const avClass = rank === 1 ? 'av1' : rank === 2 ? 'av2' : rank === 3 ? 'av3' : '';
       const games = p.total_games || 0;
       const goals = p.total_goals || 0;
+      const isOnline = onlineSet.has(p.username);
 
       return `
         <div class="lb-item${isMe ? ' is-me' : ''}">
           <div class="lb-rank${isPodium ? ' podium' : ''}">
             ${isPodium ? PODIUM_ICONS[i] : '#' + rank}
           </div>
-          <div class="lb-av ${avClass}">${p.username[0].toUpperCase()}</div>
+          <div class="lb-av-wrap">
+            <div class="lb-av ${avClass}">${p.username[0].toUpperCase()}</div>
+            ${isOnline ? '<span class="online-dot" title="En ligne"></span>' : ''}
+          </div>
           <div class="lb-info">
             <div class="lb-name">
               ${p.username}${isMe ? '<span class="tag-me">vous</span>' : ''}

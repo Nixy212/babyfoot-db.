@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="BabyFoot">
+  <link rel="apple-touch-icon" href="/static/images/logo.svg">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paramètres — Baby-Foot Club</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='responsive-mobile.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
+  <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    .settings-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-normal);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .settings-section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+      padding: 1.25rem 1.5rem 0.75rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .settings-row {
+      padding: 1.25rem 1.5rem;
+    }
+    .pw-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+    .pw-input-wrap {
+      position: relative;
+    }
+    .pw-input-wrap input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-normal);
+      border-radius: 10px;
+      color: var(--text-primary);
+      font-size: 0.9375rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-sizing: border-box;
+    }
+    .pw-input-wrap input:focus {
+      border-color: var(--bronze);
+      box-shadow: 0 0 0 3px rgba(205,127,50,0.12);
+    }
+    .pw-label {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-tertiary);
+      margin-bottom: 0.3rem;
+    }
+    .pw-strength {
+      height: 3px;
+      border-radius: 99px;
+      background: var(--border-subtle);
+      overflow: hidden;
+      margin-top: 0.35rem;
+    }
+    .pw-strength-bar {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.3s, background 0.3s;
+      width: 0%;
+    }
+    .pw-strength-text {
+      font-size: 0.7rem;
+      margin-top: 0.2rem;
+      height: 0.85rem;
+      color: var(--text-muted);
+    }
+    .info-box {
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      background: rgba(205,127,50,0.07);
+      border: 1px solid rgba(205,127,50,0.2);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .info-box.blue {
+      background: rgba(52,152,219,0.07);
+      border-color: rgba(52,152,219,0.2);
+    }
+    .toast-settings {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: center;
+      pointer-events: none;
+    }
+    .toast-s {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-normal);
+      border-radius: 10px;
+      padding: 0.65rem 1.4rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+      animation: tsIn 0.25s ease;
+      white-space: nowrap;
+    }
+    .toast-s.ok  { border-color: rgba(39,174,96,.45); color: #2ecc71; }
+    .toast-s.err { border-color: rgba(231,76,60,.45); color: #e74c3c; }
+    @keyframes tsIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+
+    .avatar-big {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--gradient-bronze);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 800;
+      color: white;
+      margin-bottom: 1rem;
+      box-shadow: 0 0 0 4px rgba(205,127,50,0.15);
+    }
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .profile-name { font-size: 1.25rem; font-weight: 800; color: var(--text-primary); }
+    .profile-role { font-size: 0.8rem; color: var(--text-tertiary); margin-top: 2px; }
+  </style>
+</head>
+<body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+
+<nav class="nav nav-glass">
+  <div class="nav-inner">
+    <a href="/dashboard" class="nav-brand">
+      <div class="logo-wrapper">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="">
+        <div class="logo-pulse"></div>
+      </div>
+      <span class="brand-text">Baby-Foot Club</span>
+    </a>
+    <div class="nav-sep"></div>
+    <div class="nav-links">
+      <a href="/dashboard" class="nav-link"><span data-bficon="home" data-size="18" style="color:currentColor"></span><span>Dashboard</span></a>
+      <a href="/reservation" class="nav-link"><span data-bficon="calendar" data-size="18" style="color:currentColor"></span><span>Réserver</span></a>
+      <a href="/live-score" class="nav-link"><span data-bficon="gamepad" data-size="18" style="color:currentColor"></span><span>Partie Live</span></a>
+      <a href="/stats" class="nav-link"><span data-bficon="stats" data-size="18" style="color:currentColor"></span><span>Stats</span></a>
+      <a href="/top" class="nav-link"><span data-bficon="trophy" data-size="18" style="color:currentColor"></span><span>Classement</span></a>
+    </div>
+    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="nav-right">
+      <div class="user-profile-mini">
+        <div class="nav-avatar" id="navAv">?</div>
+        <span class="nav-username" id="navUsername"></span>
+      </div>
+      <button class="btn btn-ghost" style="margin-left:1rem" onclick="logout()">Déconnexion</button>
+    </div>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
+  <a href="/dashboard">Dashboard</a>
+  <a href="/reservation">Réserver</a>
+  <a href="/live-score">Partie Live</a>
+  <a href="/stats">Stats</a>
+  <a href="/top">Classement</a>
+  <a href="#" onclick="logout()">Déconnexion</a>
+</div>
+
+<div class="page">
+  <div class="container" style="max-width:600px">
+    <div class="page-header fade-up">
+      <h1>⚙️ Paramètres</h1>
+      <p>Gérez votre compte et vos préférences</p>
+    </div>
+
+    <!-- Profil -->
+    <div class="settings-card fade-up" style="animation-delay:.03s">
+      <div class="profile-header">
+        <div class="avatar-big" id="profileAv">?</div>
+        <div>
+          <div class="profile-name" id="profileName">—</div>
+          <div class="profile-role" id="profileRole">Joueur</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Changement de mot de passe -->
+    <div class="settings-card fade-up" style="animation-delay:.06s">
+      <div class="settings-section-title">🔒 Changer le mot de passe</div>
+      <div class="settings-row">
+        <div class="pw-group">
+          <div>
+            <div class="pw-label">Mot de passe actuel</div>
+            <div class="pw-input-wrap">
+              <input type="password" id="curPw" placeholder="Votre mot de passe actuel" autocomplete="current-password">
+            </div>
+          </div>
+          <div>
+            <div class="pw-label">Nouveau mot de passe</div>
+            <div class="pw-input-wrap">
+              <input type="password" id="newPw" placeholder="Min. 6 caractères" autocomplete="new-password" oninput="checkStrength(this.value)">
+            </div>
+            <div class="pw-strength"><div class="pw-strength-bar" id="strengthBar"></div></div>
+            <div class="pw-strength-text" id="strengthText"></div>
+          </div>
+          <div>
+            <div class="pw-label">Confirmer le nouveau mot de passe</div>
+            <div class="pw-input-wrap">
+              <input type="password" id="confirmPw" placeholder="Répétez le nouveau mot de passe" autocomplete="new-password">
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="changePassword()" id="btnChangePw">
+          Mettre à jour le mot de passe
+        </button>
+      </div>
+    </div>
+
+    <!-- Google / Email (info) -->
+    <div class="settings-card fade-up" style="animation-delay:.09s">
+      <div class="settings-section-title">📧 Connexion & Récupération</div>
+      <div class="settings-row">
+        <div class="info-box blue" style="margin-bottom:1rem">
+          <strong style="color:var(--text-primary)">Mot de passe oublié ?</strong><br>
+          Contactez un administrateur du club (Imran, Apoutou, Hamara ou MDA) — ils peuvent réinitialiser votre mot de passe depuis le panneau admin.
+        </div>
+        <div class="info-box">
+          <strong style="color:var(--text-primary)">Connexion Google</strong> — Fonctionnalité à venir.<br>
+          La connexion via Google nécessite une configuration OAuth2. Demandez à l'administrateur d'activer cette option dans les paramètres Railway.
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:1rem;margin-bottom:2rem">
+      <a href="/dashboard" class="btn btn-ghost">← Dashboard</a>
+    </div>
+  </div>
+</div>
+
+<div class="toast-settings" id="toastWrap"></div>
+
+<script>
+function toggleMenu() {
+  document.getElementById('burger').classList.toggle('open');
+  document.getElementById('mobileMenu').classList.toggle('open');
+  document.body.style.overflow = document.getElementById('mobileMenu').classList.contains('open') ? 'hidden' : '';
+}
+function logout() {
+  fetch('/api/logout', {method:'POST'}).then(() => location.href = '/');
+}
+
+function toast(msg, type = 'ok') {
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = `toast-s ${type}`;
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+function checkStrength(v) {
+  const bar = document.getElementById('strengthBar');
+  const txt = document.getElementById('strengthText');
+  if (!v) { bar.style.width = '0%'; txt.textContent = ''; return; }
+  let score = 0;
+  if (v.length >= 6) score++;
+  if (v.length >= 10) score++;
+  if (/[A-Z]/.test(v)) score++;
+  if (/[0-9]/.test(v)) score++;
+  if (/[^A-Za-z0-9]/.test(v)) score++;
+  const levels = [
+    { w: '20%', bg: '#e74c3c', label: 'Très faible' },
+    { w: '40%', bg: '#e67e22', label: 'Faible' },
+    { w: '60%', bg: '#f1c40f', label: 'Moyen' },
+    { w: '80%', bg: '#27ae60', label: 'Fort' },
+    { w: '100%', bg: '#2ecc71', label: 'Très fort' },
+  ];
+  const l = levels[Math.min(score - 1, 4)] || levels[0];
+  bar.style.width = l.w;
+  bar.style.background = l.bg;
+  txt.textContent = l.label;
+  txt.style.color = l.bg;
+}
+
+async function changePassword() {
+  const cur = document.getElementById('curPw').value;
+  const nw  = document.getElementById('newPw').value;
+  const cnf = document.getElementById('confirmPw').value;
+
+  if (!cur || !nw || !cnf) { toast('Tous les champs sont requis', 'err'); return; }
+  if (nw !== cnf) { toast('Les deux nouveaux mots de passe ne correspondent pas', 'err'); return; }
+  if (nw.length < 6) { toast('Nouveau mot de passe trop court (min. 6 caractères)', 'err'); return; }
+
+  const btn = document.getElementById('btnChangePw');
+  btn.disabled = true;
+  btn.textContent = 'Mise à jour…';
+
+  try {
+    const res = await fetch('/api/change_password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_password: cur, new_password: nw })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast('✓ ' + data.message, 'ok');
+      document.getElementById('curPw').value = '';
+      document.getElementById('newPw').value = '';
+      document.getElementById('confirmPw').value = '';
+      document.getElementById('strengthBar').style.width = '0%';
+      document.getElementById('strengthText').textContent = '';
+    } else {
+      toast('✕ ' + data.message, 'err');
+    }
+  } catch(e) {
+    toast('Erreur réseau', 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Mettre à jour le mot de passe';
+  }
+}
+
+// Init
+fetch('/current_user').then(r => r.json()).then(user => {
+  if (!user || !user.username) { location.href = '/login'; return; }
+  document.getElementById('navAv').textContent = user.username[0].toUpperCase();
+  document.getElementById('navUsername').textContent = user.username;
+  document.getElementById('profileAv').textContent = user.username[0].toUpperCase();
+  document.getElementById('profileName').textContent = user.username;
+  const role = user.is_super_admin ? '⭐ Super Admin' : user.is_admin ? '🛡️ Admin' : '🎮 Joueur';
+  document.getElementById('profileRole').textContent = role;
+});
+</script>
+
+<script src="{{ url_for('static', filename='icons.js') }}"></script>
+<script src="/static/pwa.js" defer></script>
+</body>
+</html>

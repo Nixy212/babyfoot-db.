@@ -67,14 +67,35 @@
     /* Timeline */
     .timeline-wrap{background:var(--bg-secondary);border:1px solid var(--border-normal);border-radius:16px;padding:1.25rem 1.5rem;margin-bottom:1.25rem}
     .tl-title{color:var(--text-secondary);font-size:.875rem;text-transform:uppercase;letter-spacing:.07em;margin:0 0 1rem}
-    .tl-bar{position:relative;height:36px;background:rgba(255,255,255,.04);border-radius:8px;overflow:hidden;margin-bottom:.4rem}
-    .tl-block{position:absolute;top:0;bottom:0;border-radius:6px;display:flex;align-items:center;padding:0 6px;font-size:.72rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
-    .tl-block.mine{background:linear-gradient(135deg,#cd7f32,#b8732f);color:#fff}
-    .tl-block.theirs{background:rgba(231,76,60,.35);border:1px solid rgba(231,76,60,.5);color:#ff6b6b}
+    .tl-outer{
+      border: 2px solid var(--border-accent);
+      border-radius: 10px;
+      padding: 3px;
+      background: rgba(205,127,50,0.04);
+      margin-bottom:.5rem;
+    }
+    .tl-bar{position:relative;height:44px;background:rgba(255,255,255,.04);border-radius:7px;overflow:hidden;margin-bottom:0}
+    /* Graduations verticales toutes les heures */
+    .tl-bar::before{
+      content:'';
+      position:absolute;inset:0;
+      background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent calc(100%/13 - 1px),
+        rgba(255,255,255,0.06) calc(100%/13 - 1px),
+        rgba(255,255,255,0.06) calc(100%/13)
+      );
+      pointer-events:none;z-index:1;
+    }
+    .tl-block{position:absolute;top:3px;bottom:3px;border-radius:5px;display:flex;align-items:center;padding:0 8px;font-size:.72rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;z-index:2}
+    .tl-block.mine{background:linear-gradient(135deg,#cd7f32,#b8732f);color:#fff;box-shadow:0 2px 8px rgba(205,127,50,0.35)}
+    .tl-block.theirs{background:rgba(231,76,60,.4);border:1px solid rgba(231,76,60,.6);color:#ff8080}
     .tl-block.past{opacity:.35;filter:grayscale(.6)}
-    .tl-labels{display:flex;justify-content:space-between;font-size:.72rem;color:var(--text-muted);margin-top:2px}
-    .tl-now{position:absolute;top:0;bottom:0;width:2px;background:#cd7f32;z-index:2;display:none}
-    .tl-now::before{content:'';position:absolute;top:-3px;left:-3px;width:8px;height:8px;border-radius:50%;background:#cd7f32}
+    .tl-labels{display:flex;justify-content:space-between;font-size:.7rem;color:var(--text-muted);margin-top:5px;padding:0 2px}
+    .tl-now{position:absolute;top:0;bottom:0;width:2px;background:#cd7f32;z-index:3;display:none}
+    .tl-now::before{content:'▼';position:absolute;top:-2px;left:50%;transform:translateX(-50%);font-size:8px;color:#cd7f32;line-height:1}
+    .tl-now::after{content:'';position:absolute;bottom:-3px;left:-3px;width:8px;height:8px;border-radius:50%;background:#cd7f32;box-shadow:0 0 6px rgba(205,127,50,0.7)}
 
     /* Next free */
     .free-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem}
@@ -228,8 +249,10 @@
     <!-- Timeline -->
     <div class="timeline-wrap">
       <div class="tl-title" id="tlTitle">Aujourd'hui</div>
-      <div class="tl-bar" id="tlBar"><div class="tl-now" id="tlNow"></div></div>
-      <div class="tl-labels"><span>8h</span><span>10h</span><span>12h</span><span>14h</span><span>16h</span><span>18h</span><span>20h</span></div>
+      <div class="tl-outer">
+        <div class="tl-bar" id="tlBar"><div class="tl-now" id="tlNow"></div></div>
+      </div>
+      <div class="tl-labels"><span>8h</span><span>9h</span><span>10h</span><span>11h</span><span>12h</span><span>13h</span><span>14h</span><span>15h</span><span>16h</span><span>17h</span><span>18h</span><span>19h</span><span>20h</span><span>21h</span></div>
       <div style="margin-top:.75rem">
         <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.4rem">Prochains créneaux libres :</div>
         <div class="free-row" id="freeRow"></div>

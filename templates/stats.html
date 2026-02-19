@@ -86,7 +86,7 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
         <div class="stat-val" id="sg">—</div>
       </div>
       <div class="stat-cell">
-        <div class="stat-label">Total Buts</div>
+        <div class="stat-label">Buts marqués</div>
         <div class="stat-val gold" id="sp">—</div>
       </div>
       <div class="stat-cell">
@@ -94,7 +94,7 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
         <div class="stat-val bronze" id="sr">—</div>
       </div>
       <div class="stat-cell">
-        <div class="stat-label">Meilleur score</div>
+        <div class="stat-label">⚽ Mis / 🥅 Pris</div>
         <div class="stat-val amber" id="sb">—</div>
       </div>
       <div class="stat-cell">
@@ -130,9 +130,9 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
     
     const s=await fetch(`/user_stats/${u}`).then(r=>r.json());
     document.getElementById('sg').textContent=s.total_games??0;
-    document.getElementById('sp').textContent=s.total_goals??0;
+    document.getElementById('sp').textContent=s.goals_scored??s.total_goals??0;
     document.getElementById('sr').textContent=s.ratio??0;
-    document.getElementById('sb').textContent=s.best_score||'—';
+    document.getElementById('sb').textContent=`${s.goals_scored??0} / ${s.goals_conceded??0}`;
     document.getElementById('sa').textContent=s.average_score||'—';
     
     const h=document.getElementById('hist');

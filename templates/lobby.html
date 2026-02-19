@@ -89,6 +89,23 @@
 .player-item button.btn-kick:hover {
   box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
 }
+/* Online dot lobby */
+.online-dot-lobby {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #2ecc71;
+  box-shadow: 0 0 0 2px rgba(46,204,113,0.25), 0 0 6px rgba(46,204,113,0.5);
+  flex-shrink: 0;
+  margin-right: 6px;
+  vertical-align: middle;
+  animation: pulse-g 2s ease-in-out infinite;
+}
+@keyframes pulse-g {
+  0%,100% { box-shadow: 0 0 0 2px rgba(46,204,113,0.25), 0 0 6px rgba(46,204,113,0.5); }
+  50%      { box-shadow: 0 0 0 4px rgba(46,204,113,0.12), 0 0 12px rgba(46,204,113,0.35); }
+}
 .status-bar {
   background: var(--bg-secondary);
   padding: 1.25rem;
@@ -321,6 +338,17 @@ let lobbyData = null;
 let currentSwapRequest = null;
 let allUsers = [];
 let selectedPlayers = [];
+let onlineUsers = new Set();
+
+async function refreshOnlineUsers() {
+  try {
+    const res = await fetch('/api/online_users');
+    const data = await res.json();
+    onlineUsers = new Set(data.online || []);
+  } catch(e) {}
+}
+// Rafraîchir les users en ligne toutes les 15s
+setInterval(refreshOnlineUsers, 15000);
 
 async function loadCurrentUser() {
   try {
@@ -503,7 +531,7 @@ function updateLobbyUI() {
     }
     
     item.innerHTML = `
-      <span>${player}${player === lobbyData.host ? ' ★' : ''}</span>
+      <span>${onlineUsers.has(player) ? '<span class="online-dot-lobby" title="En ligne"></span>' : ''}<span>${player}${player === lobbyData.host ? ' ★' : ''}</span></span>
       <div style="display:flex;gap:0.5rem">${buttons}</div>
     `;
     team1List.appendChild(item);
@@ -522,7 +550,7 @@ function updateLobbyUI() {
     }
     
     item.innerHTML = `
-      <span>${player}${player === lobbyData.host ? ' ★' : ''}</span>
+      <span>${onlineUsers.has(player) ? '<span class="online-dot-lobby" title="En ligne"></span>' : ''}<span>${player}${player === lobbyData.host ? ' ★' : ''}</span></span>
       <div style="display:flex;gap:0.5rem">${buttons}</div>
     `;
     team2List.appendChild(item);
@@ -613,9 +641,12 @@ socket.on('game_started', () => {
   location.href = '/live-score';
 });
 
-socket.on('kicked_from_lobby', () => {
-  alert('Vous avez été exclu du lobby');
-  location.href = '/dashboard';
+socket.on('kicked_from_lobby', (data) => {
+  if (data && data.kicked_user === currentUser) {
+    alert('Vous avez été exclu du lobby');
+    location.href = '/dashboard';
+  }
+  // sinon c'est un autre joueur qui a été exclu → lobby_update gérera l'UI
 });
 
 
@@ -636,6 +667,7 @@ function toast(msg, type='inf') {
 // IMPORTANT: Charger l'utilisateur AVANT le lobby pour éviter la race condition
 async function initPage() {
   await loadCurrentUser();
+  await refreshOnlineUsers();
   await loadLobby();
 }
 

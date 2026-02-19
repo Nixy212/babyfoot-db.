@@ -187,6 +187,15 @@
   </div>
 </div>
 
+<!-- POPUP EXPIRATION RESERVATION -->
+<div id="resaExpiryPopup" style="display:none;position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:9990;min-width:300px;max-width:90vw">
+  <div style="background:var(--bg-elevated);border:1px solid rgba(231,152,0,0.5);border-radius:16px;padding:1.25rem 1.5rem;box-shadow:0 8px 32px rgba(0,0,0,0.5);backdrop-filter:blur(12px);text-align:center">
+    <div style="font-size:1.5rem;margin-bottom:0.5rem" id="resaExpiryIcon">⏰</div>
+    <div style="font-weight:700;color:var(--text-primary);margin-bottom:0.25rem" id="resaExpiryTitle">Réservation bientôt terminée</div>
+    <div style="font-size:0.85rem;color:var(--text-tertiary)" id="resaExpirySub">Il vous reste 2 minutes</div>
+  </div>
+</div>
+
 <!-- WINNER OVERLAY -->
 <div id="winnerOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9998;align-items:center;justify-content:center;backdrop-filter:blur(12px)">
   <div class="winner-box">
@@ -475,10 +484,10 @@ function showWinner(game) {
     }
   }
 
-  // Fermer automatiquement après 7 secondes
+  // Fermer automatiquement après 4 secondes
   winnerOverlayTimer = setTimeout(() => {
     document.getElementById('winnerOverlay').style.display = 'none';
-  }, 7000);
+  }, 4000);
 }
 
 // ── Socket events ──
@@ -504,12 +513,21 @@ socket.on('game_recovery', (game) => {
   }
 });
 
-socket.on('game_started', () => {
-  // Fermer tous les overlays/popups
+socket.on('game_started', (game) => {
+  // Fermer tous les overlays/popups immédiatement
   document.getElementById('winnerOverlay').style.display = 'none';
   document.getElementById('rematchPopup').style.display = 'none';
+  hideResaExpiry();
+  resaExpiryWarned2min = false;
+  resaExpiryWarned0min = false;
   if (winnerOverlayTimer) { clearTimeout(winnerOverlayTimer); winnerOverlayTimer = null; }
-  // Recharger l'état du jeu
+  // Pré-mettre à jour lastGame si le serveur envoie les données du jeu
+  if (game && game.team1_players) {
+    const t1 = parsePlayers(game.team1_players);
+    const t2 = parsePlayers(game.team2_players);
+    lastGame = {...game, team1_players: t1, team2_players: t2};
+  }
+  // Recharger l'état du jeu depuis le serveur
   checkActiveGame();
 });
 
@@ -528,7 +546,18 @@ socket.on('game_ended', (game) => {
   lastGame = parsed;
   if (canControl) updateGameUI(parsed);
   else updateSpectatorUI(parsed);
-  showWinner(parsed);
+
+  // Afficher le popup victoire uniquement pour les participants et admins
+  const isParticipant = t1.includes(currentUser) || t2.includes(currentUser) || canControl || isAdmin;
+  if (isParticipant) {
+    showWinner(parsed);
+  } else {
+    // Spectateur lambda : afficher une bannière discrète puis retourner au dashboard
+    showToast('🏆 Partie terminée !', 'info');
+    setTimeout(() => {
+      showArea('noGameArea');
+    }, 3000);
+  }
 });
 
 socket.on('game_stopped', () => {
@@ -542,7 +571,7 @@ socket.on('game_reset', () => {
 socket.on('rematch_prompt', () => {
   // Annuler le timer de fermeture automatique du popup victoire
   if (winnerOverlayTimer) { clearTimeout(winnerOverlayTimer); winnerOverlayTimer = null; }
-  // Laisser le popup victoire visible encore 3 secondes avant de montrer le rematch
+  // Laisser le popup victoire visible encore 2 secondes avant de montrer le rematch
   setTimeout(() => {
     document.getElementById('winnerOverlay').style.display = 'none';
     const t1 = parsePlayers(lastGame ? lastGame.team1_players : []);
@@ -550,12 +579,20 @@ socket.on('rematch_prompt', () => {
     const isInGame = t1.includes(currentUser) || t2.includes(currentUser) || canControl || isAdmin;
     if (isInGame) {
       document.getElementById('rematchPopup').style.display = 'flex';
+    } else {
+      // Spectateur lambda : pas de popup rematch, retour au dashboard
+      showToast('Partie terminée — retour au dashboard...', 'info');
+      setTimeout(() => location.href = '/dashboard', 2000);
     }
-  }, 3000);
+  }, 2000);
 });
 
 socket.on('rematch_cancelled', () => {
-  setTimeout(() => location.href = '/dashboard', 500);
+  document.getElementById('rematchPopup').style.display = 'none';
+  document.getElementById('winnerOverlay').style.display = 'none';
+  if (winnerOverlayTimer) { clearTimeout(winnerOverlayTimer); winnerOverlayTimer = null; }
+  showToast('Pas de revanche — retour au dashboard...', 'info');
+  setTimeout(() => location.href = '/dashboard', 1500);
 });
 
 socket.on('servo1_unlock', () => {
@@ -593,9 +630,89 @@ async function init() {
     }
 
     await checkActiveGame();
+    startResaExpiryWatch();
   } catch(e) {
     console.error('Erreur init:', e);
   }
+}
+
+// ── Surveillance expiration réservation ──
+let resaExpiryWarned2min = false;
+let resaExpiryWarned0min = false;
+let resaExpiryInterval = null;
+
+function startResaExpiryWatch() {
+  if (resaExpiryInterval) clearInterval(resaExpiryInterval);
+  resaExpiryInterval = setInterval(checkResaExpiry, 30000); // toutes les 30s
+  checkResaExpiry(); // vérifier immédiatement
+}
+
+async function checkResaExpiry() {
+  // Seulement si une partie est active
+  if (!lastGame || !lastGame.active) return;
+  // Seulement si l'utilisateur est impliqué (hôte ou joueur)
+  const t1 = parsePlayers(lastGame ? lastGame.team1_players : []);
+  const t2 = parsePlayers(lastGame ? lastGame.team2_players : []);
+  const isInGame = t1.includes(currentUser) || t2.includes(currentUser) || isAdmin;
+  if (!isInGame) return;
+
+  try {
+    const res = await fetch('/api/babyfoot_status');
+    const status = await res.json();
+    const current = status.current; // réservation en cours
+
+    if (!current) {
+      // Plus de réservation active pendant la partie
+      if (!resaExpiryWarned0min) {
+        resaExpiryWarned0min = true;
+        showResaExpiry(
+          '⚠️',
+          'Réservation expirée',
+          'Votre créneau est terminé — finissez votre partie ou arrêtez-la',
+          'rgba(231,76,60,0.5)'
+        );
+        // Fermer après 10s
+        setTimeout(() => hideResaExpiry(), 10000);
+      }
+      return;
+    }
+
+    // Calculer le temps restant
+    const endTime = new Date(current.end_time);
+    const now = new Date();
+    const msLeft = endTime - now;
+    const minLeft = Math.floor(msLeft / 60000);
+
+    if (minLeft <= 2 && minLeft > 0 && !resaExpiryWarned2min) {
+      resaExpiryWarned2min = true;
+      showResaExpiry(
+        '⏰',
+        'Réservation bientôt terminée',
+        `Il vous reste environ ${minLeft} minute${minLeft > 1 ? 's' : ''} — pensez à conclure !`,
+        'rgba(231,152,0,0.5)'
+      );
+      // Fermer après 8s
+      setTimeout(() => hideResaExpiry(), 8000);
+    } else if (minLeft > 2) {
+      // Réinitialiser les flags si la réservation est loin d'expirer (ex: rematch avec nouvelle résa)
+      resaExpiryWarned2min = false;
+      resaExpiryWarned0min = false;
+    }
+  } catch(e) {
+    console.warn('checkResaExpiry error:', e);
+  }
+}
+
+function showResaExpiry(icon, title, sub, borderColor) {
+  const popup = document.getElementById('resaExpiryPopup');
+  document.getElementById('resaExpiryIcon').textContent = icon;
+  document.getElementById('resaExpiryTitle').textContent = title;
+  document.getElementById('resaExpirySub').textContent = sub;
+  popup.querySelector('div').style.borderColor = borderColor;
+  popup.style.display = 'block';
+}
+function hideResaExpiry() {
+  document.getElementById('resaExpiryPopup').style.display = 'none';
 }
 
 init();
