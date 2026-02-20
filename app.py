@@ -1689,49 +1689,58 @@ def api_update_profile():
 
 @app.route("/api/upload_avatar", methods=["POST"])
 def api_upload_avatar():
-    import base64, os, uuid as _uuid
+    """
+    Stocke l'avatar directement comme data URL en base de données.
+    Pas de système de fichiers — compatible Railway (filesystem éphémère).
+    L'image est redimensionnée côté client avant envoi.
+    """
+    import base64 as _base64
     username = session.get("username")
     if not username:
         return jsonify({"error": "Non connecté"}), 401
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     img_data = data.get("image", "")
-    if not img_data.startswith("data:image/"):
-        return jsonify({"error": "Image invalide"}), 400
-    # Validation taille côté serveur (max 2 Mo en base64 ≈ 2.7 Mo de string)
-    MAX_B64_LEN = 13_600_000  # 10 Mo en base64 ≈ 13.3 Mo string
-    header, b64 = img_data.split(",", 1)
-    if len(b64) > MAX_B64_LEN:
-        return jsonify({"error": "Image trop grande (max 10 Mo)"}), 413
-    # Vérifier type autorisé
-    if not any(t in header for t in ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']):
-        return jsonify({"error": "Format non supporté (jpg, png, webp, gif)"}), 400
-    avatars_dir = os.path.join(os.path.dirname(__file__), "static", "avatars")
-    os.makedirs(avatars_dir, exist_ok=True)
-    ext = "png" if "png" in header else "webp" if "webp" in header else "gif" if "gif" in header else "jpg"
-    filename = f"{username}_{_uuid.uuid4().hex[:8]}.{ext}"
-    decoded = base64.b64decode(b64)
-    with open(os.path.join(avatars_dir, filename), "wb") as f:
-        f.write(decoded)
-    avatar_url = f"/static/avatars/{filename}"
-    # Supprimer l'ancien avatar si existant
-    conn = get_db_connection()
-    cur = conn.cursor()
-    q_old = "SELECT avatar_url FROM users WHERE username = %s" if USE_POSTGRES else "SELECT avatar_url FROM users WHERE username = ?"
-    cur.execute(q_old, (username,))
-    old_row = row_to_dict(cur.fetchone())
-    if old_row and old_row.get("avatar_url"):
-        old_path = os.path.join(os.path.dirname(__file__), old_row["avatar_url"].lstrip("/"))
+
+    # Accepter data:image/* ET data:application/octet-stream (HEIC sur certains navigateurs)
+    if not (img_data.startswith("data:image/") or img_data.startswith("data:application/octet-stream")):
+        return jsonify({"error": "Format d'image invalide"}), 400
+
+    # Taille max : 3 Mo de data URL (≈ 2 Mo d'image réelle après compression côté client)
+    MAX_LEN = 3_200_000
+    if len(img_data) > MAX_LEN:
+        return jsonify({"error": "Image trop grande — réduisez la taille (max ~2 Mo)"}), 413
+
+    # Normaliser le type MIME : forcer jpeg pour octet-stream et heic
+    if "heic" in img_data or "heif" in img_data or img_data.startswith("data:application/"):
+        # Ré-encoder comme JPEG data URL
         try:
-            if os.path.exists(old_path):
-                os.remove(old_path)
+            b64_part = img_data.split(",", 1)[1]
+            img_data = f"data:image/jpeg;base64,{b64_part}"
         except Exception:
             pass
-    if USE_POSTGRES:
-        cur.execute("UPDATE users SET avatar_url=%s, avatar_preset=NULL WHERE username=%s", (avatar_url, username))
-    else:
-        cur.execute("UPDATE users SET avatar_url=?, avatar_preset=NULL WHERE username=?", (avatar_url, username))
-    conn.commit(); cur.close(); conn.close()
-    return jsonify({"success": True, "avatar_url": avatar_url})
+
+    # Vérifier que le b64 est valide
+    try:
+        b64_part = img_data.split(",", 1)[1]
+        _base64.b64decode(b64_part)
+    except Exception:
+        return jsonify({"error": "Données image corrompues"}), 400
+
+    # Stocker la data URL directement en DB (pas de fichier sur disque)
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        if USE_POSTGRES:
+            cur.execute("UPDATE users SET avatar_url=%s, avatar_preset=NULL WHERE username=%s", (img_data, username))
+        else:
+            cur.execute("UPDATE users SET avatar_url=?, avatar_preset=NULL WHERE username=?", (img_data, username))
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
+
+    # Retourner la data URL directement (utilisable dans src="...")
+    return jsonify({"success": True, "avatar_url": img_data})
 
 @app.route("/settings")
 def settings_page():
