@@ -395,7 +395,9 @@ function renderTL(){
   const nm=(now.getHours()-SH)*60+now.getMinutes();
   if(dayOff===0&&nm>=0&&nm<=TOT){nowEl.style.display='block';nowEl.style.left=(nm/TOT*100)+'%';}
   else nowEl.style.display='none';
+  const GUEST_RE = /^Joueur\d+$/i;
   resas.forEach(r=>{
+    if(GUEST_RE.test(r.reserved_by) && r.reserved_by!==ME) return;
     const l=pct(r.start_time),w=pct(r.end_time)-l;
     if(w<=0)return;
     const b=document.createElement('div');b.className='tl-block';

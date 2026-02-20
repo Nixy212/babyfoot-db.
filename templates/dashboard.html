@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 <head>
   <link rel="manifest" href="/static/manifest.json">
@@ -20,6 +19,182 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
   <style>
+    /* ── Carte Lobby ─────────────────────────────────────────── */
+    .lobby-card {
+      border-radius: 16px;
+      padding: 1.75rem;
+      border: 2px solid;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s;
+    }
+    .lobby-card-active {
+      background: linear-gradient(135deg, rgba(205,127,50,0.18) 0%, rgba(255,215,0,0.08) 100%);
+      border-color: rgba(205,127,50,0.5);
+    }
+    .lobby-card-active::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #cd7f32, #ffd700, #cd7f32);
+    }
+    .lobby-card-disabled {
+      background: var(--bg-secondary);
+      border-color: var(--border-subtle);
+      opacity: 0.7;
+    }
+    .lobby-card-waiting {
+      background: linear-gradient(135deg, rgba(52,152,219,0.12) 0%, rgba(52,152,219,0.04) 100%);
+      border-color: rgba(52,152,219,0.4);
+    }
+    .lobby-card-waiting::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #2980b9, #3498db, #2980b9);
+    }
+
+    .lobby-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.5rem;
+    }
+    .lobby-title-icon {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .lobby-desc {
+      color: var(--text-tertiary);
+      font-size: 0.875rem;
+      line-height: 1.5;
+      margin-bottom: 1.25rem;
+    }
+    .lobby-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.75rem;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .badge-available { background: rgba(39,174,96,0.15); color: #2ecc71; border: 1px solid rgba(39,174,96,0.3); }
+    .badge-unavailable { background: rgba(231,76,60,0.12); color: #e74c3c; border: 1px solid rgba(231,76,60,0.25); }
+    .badge-inlobby { background: rgba(205,127,50,0.15); color: #cd7f32; border: 1px solid rgba(205,127,50,0.3); }
+    .badge-waiting { background: rgba(52,152,219,0.15); color: #3498db; border: 1px solid rgba(52,152,219,0.3); }
+
+    .lobby-main-btn {
+      width: 100%;
+      padding: 0.9rem 1.25rem;
+      border-radius: 10px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      font-family: inherit;
+    }
+    .lobby-main-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+    .lobby-main-btn:not(:disabled):hover { transform: translateY(-2px); }
+    .btn-gold {
+      background: linear-gradient(135deg, #cd7f32 0%, #ffd700 100%);
+      color: white;
+      box-shadow: 0 4px 20px rgba(205,127,50,0.35);
+    }
+    .btn-gold:not(:disabled):hover { box-shadow: 0 6px 28px rgba(205,127,50,0.5); }
+    .btn-blue {
+      background: linear-gradient(135deg, #2980b9 0%, #3498db 100%);
+      color: white;
+      box-shadow: 0 4px 20px rgba(52,152,219,0.3);
+    }
+    .btn-blue:not(:disabled):hover { box-shadow: 0 6px 28px rgba(52,152,219,0.45); }
+    .btn-ghost-grey {
+      background: rgba(255,255,255,0.05);
+      color: var(--text-muted);
+      border: 1px solid var(--border-subtle);
+    }
+    .btn-ghost-grey:not(:disabled):hover { background: rgba(255,255,255,0.09); color: var(--text-primary); }
+
+    /* ── Carte Réservation ───────────────────────────────────── */
+    .resa-card {
+      border-radius: 16px;
+      padding: 1.75rem;
+      border: 2px solid;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s;
+    }
+    .resa-card-has {
+      background: linear-gradient(135deg, rgba(39,174,96,0.15) 0%, rgba(39,174,96,0.05) 100%);
+      border-color: rgba(39,174,96,0.4);
+    }
+    .resa-card-has::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #27ae60, #2ecc71, #27ae60);
+    }
+    .resa-card-empty {
+      background: linear-gradient(135deg, rgba(205,127,50,0.12) 0%, rgba(205,127,50,0.04) 100%);
+      border-color: rgba(205,127,50,0.4);
+      animation: resa-pulse 3s ease-in-out infinite;
+    }
+    .resa-card-empty::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, #cd7f32, #ffd700, #cd7f32);
+      background-size: 200% auto;
+      animation: gradient-slide 3s linear infinite;
+    }
+    @keyframes gradient-slide { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
+    @keyframes resa-pulse { 0%,100% { border-color: rgba(205,127,50,0.4); } 50% { border-color: rgba(205,127,50,0.7); } }
+
+    .resa-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 0.5rem;
+    }
+    .resa-icon-wrap {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .resa-slot-display {
+      background: rgba(39,174,96,0.1);
+      border: 1px solid rgba(39,174,96,0.25);
+      border-radius: 10px;
+      padding: 0.875rem 1rem;
+      margin: 1rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.875rem;
+    }
+    .resa-slot-time {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #2ecc71;
+      line-height: 1;
+    }
+    .resa-slot-label { font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Notif bar ────────────────────────────────────────────── */
     .notification-bar {
       position: fixed;
       top: 70px;
@@ -40,34 +215,15 @@
       border: 1px solid var(--border-normal);
       color: var(--text-primary);
     }
-    @keyframes slideIn {
-      from { transform: translateX(400px); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
+    @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     .notification-buttons { display: flex; gap: 0.5rem; }
-    .notification-buttons button {
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.9rem;
-      transition: all 0.2s;
-    }
+    .notification-buttons button { padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; }
     .btn-accept { background: linear-gradient(135deg, #cd7f32 0%, #ffd700 100%); color: white; }
     .btn-accept:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(205,127,50,0.4); }
     .btn-decline { background: #e74c3c; color: white; }
     .btn-decline:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(231,76,60,0.4); }
-    #invitation-section {
-      margin-top: 1.5rem;
-      padding: 1.5rem;
-      background: linear-gradient(135deg, rgba(205,127,50,0.2) 0%, rgba(255,215,0,0.2) 100%);
-      border: 1px solid var(--border-accent);
-      border-radius: 12px;
-      color: var(--text-primary);
-      display: block;
-    }
-    #invitation-section h3 { color: var(--bronze); margin-top: 0; }
+
+    /* ── Servo ────────────────────────────────────────────────── */
     #servo-controls {
       margin-top: 1.5rem;
       padding: 1.5rem;
@@ -96,9 +252,7 @@
       <a href="/stats" class="nav-link"><span class="nav-link-icon" data-bficon="stats" data-size="18" style="color:currentColor"></span><span>Stats</span></a>
       <a href="/top" class="nav-link"><span class="nav-link-icon" data-bficon="trophy" data-size="18" style="color:currentColor"></span><span>Classement</span></a>
     </div>
-    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
+    <button class="burger" id="burger" onclick="toggleMenu()" aria-label="Menu"><span></span><span></span><span></span></button>
     <div class="nav-right">
       <div class="user-profile-mini">
         <div class="nav-avatar" id="navAv">?</div>
@@ -120,7 +274,9 @@
   <a href="/top"><span data-bficon="trophy" data-size="16"></span> Classement</a>
   <a href="/admin" id="adminBtnMobile" style="display:none;background:rgba(231,76,60,0.2);color:#e74c3c;font-weight:bold"><i class="fas fa-cog"></i> Admin</a>
   <a href="#" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</a>
-  <button id="pwa-install-trigger" onclick="triggerPwaInstall()" style="display:none;width:100%;text-align:left;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));border:1px solid rgba(205,127,50,0.4);color:#cd7f32;font-weight:700;font-size:1rem;padding:0.9rem 1.25rem;border-radius:10px;cursor:pointer;margin-top:0.5rem;font-family:inherit;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 13h6M12 10v6"/></svg> Installer l'app</button>
+  <button id="pwa-install-trigger" onclick="triggerPwaInstall()" style="display:none;width:100%;text-align:left;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));border:1px solid rgba(205,127,50,0.4);color:#cd7f32;font-weight:700;font-size:1rem;padding:0.9rem 1.25rem;border-radius:10px;cursor:pointer;margin-top:0.5rem;font-family:inherit;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 13h6M12 10v6"/></svg>Installer l'app
+  </button>
 </div>
 
 <div class="notification-bar" id="notificationBar"></div>
@@ -140,41 +296,71 @@ function logout() {
   <div class="container" style="max-width:1200px">
     <div class="page-header fade-up">
       <h1><span data-bficon="home" data-size="16"></span> Mon espace</h1>
-      <p>Voici votre tableau de bord — tout ce qu'il vous faut pour jouer est ici</p>
+      <p>Tout ce qu'il vous faut pour jouer au baby-foot est ici</p>
     </div>
 
-<div class="grid-3 fade-up" style="animation-delay:.05s">
-  <div class="card card-hover">
-    <div class="card-header"><h3><span data-bficon="calendar" data-size="16"></span> Réserver</h3></div>
-    <div class="card-body">
-      <p>Bloquez votre créneau à l'avance pour être sûr d'avoir le baby-foot disponible</p>
-      <a href="/reservation" class="btn btn-primary btn-full">Réserver un créneau</a>
+<!-- ── Grille principale : Réservation + Lobby ──────────────────────────── -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem" class="fade-up" style="animation-delay:.05s">
+
+  <!-- CARTE RÉSERVATION -->
+  <div id="resaCardWrapper">
+    <div class="resa-card resa-card-empty" id="resaCard">
+      <div class="resa-title">
+        <div class="resa-icon-wrap" style="background:linear-gradient(135deg,rgba(205,127,50,0.25),rgba(205,127,50,0.1))">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#cd7f32" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+        <span id="resaTitle">Réserver un créneau</span>
+      </div>
+      <div class="lobby-desc" id="resaDesc">Bloquez votre heure à l'avance pour garantir l'accès au baby-foot — les réservations sont confirmées immédiatement</div>
+      <div id="resaSlotDisplay" style="display:none" class="resa-slot-display">
+        <div>
+          <div class="resa-slot-time" id="resaSlotTime">—</div>
+          <div class="resa-slot-label">votre créneau</div>
+        </div>
+        <div style="flex:1;font-size:0.82rem;color:var(--text-tertiary)" id="resaSlotDetail"></div>
+      </div>
+      <a href="/reservation" class="lobby-main-btn btn-gold" id="resaBtn" style="text-decoration:none;margin-top:0.25rem">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        Réserver maintenant
+      </a>
     </div>
   </div>
-  <div class="card card-hover">
-    <div class="card-header"><h3><span data-bficon="gamepad" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Jouer</h3></div>
-    <div class="card-body">
-      <p>Créez un lobby, invitez vos adversaires et comptez les buts en temps réel</p>
-      <a href="/live-score" class="btn btn-primary btn-full">Lancer une partie</a>
-    </div>
-  </div>
-  <div class="card card-hover">
-    <div class="card-header"><h3><span data-bficon="stats" data-size="16"></span> Mes stats</h3></div>
-    <div class="card-body">
-      <p>Suivez votre évolution, vos buts et comparez-vous aux autres joueurs du club</p>
-      <a href="/stats" class="btn btn-primary btn-full">Voir mes stats</a>
+
+  <!-- CARTE LOBBY -->
+  <div id="lobbyCardWrapper">
+    <div class="lobby-card lobby-card-disabled" id="lobbyCard">
+      <div class="lobby-title">
+        <div class="lobby-title-icon" id="lobbyTitleIcon" style="background:rgba(255,255,255,0.05)">
+          <i class="fas fa-gamepad" style="color:var(--text-muted)"></i>
+        </div>
+        <span id="lobbyTitle">Créer un Lobby</span>
+      </div>
+      <div class="lobby-badge badge-unavailable" id="lobbyBadge">
+        <span>⚪</span> Réservation requise
+      </div>
+      <div class="lobby-desc" id="lobbyDesc">Réservez d'abord un créneau pour déverrouiller la création de lobby et inviter des adversaires</div>
+      <button class="lobby-main-btn btn-ghost-grey" id="lobbyBtn" disabled onclick="handleLobbyBtn()">
+        <i class="fas fa-gamepad"></i> Créer un Lobby
+      </button>
     </div>
   </div>
 </div>
 
-<div id="invitation-section" class="fade-up" style="animation-delay:.1s">
-  <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> Créer un Lobby</h3>
-  <p id="lobby-description">Créez un lobby, puis invitez vos adversaires directement depuis la page lobby — ils recevront une notification en temps réel</p>
-  <button id="create-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold" onclick="createEmptyLobby()"><i class="fas fa-gamepad"></i> Créer un Lobby</button>
-  <button id="rejoin-lobby-btn" class="btn btn-full" style="margin-top:1rem;background:linear-gradient(135deg,#cd7f32 0%,#ffd700 100%);color:white;font-weight:bold;display:none" onclick="rejoinLobby()"><span data-bficon="replay" data-size="18" style="vertical-align:middle"></span> Retourner dans le Lobby</button>
+<!-- ── Mes stats ─────────────────────────────────────────────────────────── -->
+<div class="card fade-up" style="animation-delay:.15s;margin-top:0">
+  <div class="card-header">
+    <h3><span data-bficon="gamepad" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Partie Live</h3>
+    <a href="/live-score" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">Voir →</a>
+  </div>
+  <div class="card-body">
+    <p style="color:var(--text-tertiary);font-size:0.875rem;margin:0 0 1rem">Rejoignez ou suivez les parties en cours — les scores sont mis à jour en temps réel pour tous</p>
+    <a href="/live-score" class="btn btn-primary" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.5rem">
+      <i class="fas fa-eye"></i> Voir la partie en cours
+    </a>
+  </div>
 </div>
 
-<div id="servo-controls" class="fade-up" style="animation-delay:.15s">
+<div id="servo-controls" class="fade-up" style="animation-delay:.2s">
   <h3><i class="fas fa-gamepad"></i> Déverrouillage de la balle</h3>
   <p>En tant qu'admin, vous pouvez débloquer manuellement la balle pour démarrer une partie</p>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem">
@@ -188,14 +374,17 @@ function logout() {
   <div id="servo-feedback" style="margin-top:1rem;padding:0.75rem;border-radius:8px;display:none;text-align:center"></div>
 </div>
 
-<div class="card fade-up" style="animation-delay:.2s;margin-top:1.5rem">
-  <div class="card-header"><h3><span data-bficon="trophy" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Top 3 du club</h3><a href="/top" style="font-size:0.8125rem;color:var(--bronze);text-decoration:none;font-weight:600;white-space:nowrap">Voir tout le classement →</a></div>
+<div class="card fade-up" style="animation-delay:.25s;margin-top:1.5rem">
+  <div class="card-header">
+    <h3><span data-bficon="trophy" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Top 3 du club</h3>
+    <a href="/top" style="font-size:0.8125rem;color:var(--bronze);text-decoration:none;font-weight:600;white-space:nowrap">Voir tout →</a>
+  </div>
   <div class="card-body">
     <div id="leaderboard"></div>
   </div>
 </div>
 
-<div class="card fade-up" style="animation-delay:.25s;margin-top:1.5rem">
+<div class="card fade-up" style="animation-delay:.3s;margin-top:1.5rem">
   <div class="card-header">
     <h3><span data-bficon="calendar" data-size="18" style="color:var(--bronze);vertical-align:middle"></span> Vos prochains créneaux</h3>
     <a href="/reservation" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">+ Réserver →</a>
@@ -205,9 +394,9 @@ function logout() {
   </div>
 </div>
 
-<div class="card fade-up" style="animation-delay:.3s;margin-top:1.5rem">
+<div class="card fade-up" style="animation-delay:.35s;margin-top:1.5rem">
   <div class="card-header">
-    <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Mes Statistiques</h3>
+    <h3><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Mes Statistiques</h3>
     <a href="/stats" style="font-size:0.8rem;color:var(--bronze);text-decoration:none;font-weight:600">Tout voir →</a>
   </div>
   <div class="card-body">
@@ -222,31 +411,23 @@ function logout() {
 let socket;
 try {
   socket = io({
-    reconnection: true,
-    reconnectionDelay: 1000,       // Attendre 1s avant 1ère tentative
-    reconnectionDelayMax: 10000,   // Max 10s entre tentatives
-    reconnectionAttempts: Infinity, // Toujours réessayer
-    timeout: 20000,                // 20s avant d'abandonner une connexion
-    transports: ['websocket', 'polling'],  // WebSocket d'abord, polling en fallback
+    reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 10000,
+    reconnectionAttempts: Infinity, timeout: 20000,
+    transports: ['websocket', 'polling'],
   });
   if (window.initReconnectIndicator) initReconnectIndicator(socket);
-  socket.on('connect', () => {
-  });
-  socket.on('connect_error', (err) => {
-  });
-  socket.on('disconnect', () => {
-  });
 } catch(e) {
-  alert('⚠️ Connexion temps réel impossible. Rechargez la page.');
-  socket = { 
-    emit: (event, data) => { console.warn(`✕ Socket factice: emit(${event}) ignoré`); },
-    on: () => {},
-    connected: false
-  };
+  socket = { emit: () => {}, on: () => {}, connected: false };
 }
+
 let currentUsername = null;
 let isAdmin = false;
 let hasReservation = false;
+let myResaData = null; // données de la résa actuelle
+
+// ── Lobby state ────────────────────────────────────────────────────────────
+let activeLobbyState = null; // { active, host, accepted, invited, ... }
+let myJoinRequestPending = false;
 
 async function loadCurrentUser() {
   try {
@@ -256,114 +437,196 @@ async function loadCurrentUser() {
       currentUsername = user.username;
       isAdmin = user.is_admin;
       hasReservation = user.has_reservation;
+      window._currentUsername = user.username;
       document.getElementById('navUsername').textContent = user.username;
       document.getElementById('navAv').textContent = user.username[0].toUpperCase();
       if (isAdmin) {
         document.getElementById('adminBtn').style.display = 'inline-block';
         document.getElementById('adminBtnMobile').style.display = 'block';
-      }
-      document.getElementById('invitation-section').style.display = 'block';
-      if (!isAdmin && !hasReservation) {
-        document.getElementById('create-lobby-btn').disabled = true;
-        document.getElementById('create-lobby-btn').style.opacity = '0.4';
-        document.getElementById('create-lobby-btn').style.cursor = 'not-allowed';
-        document.getElementById('create-lobby-btn').title = 'Réservation requise';
-        document.getElementById('lobby-description').textContent = 'Réservez d\'abord un créneau pour pouvoir créer un lobby et jouer';
-      }
-      if (isAdmin) {
         document.getElementById('servo-controls').style.display = 'block';
       }
       await checkActiveLobby();
+      await loadMyResa();
       loadUserStats(user.username);
     }
-  } catch (e) { console.error('Erreur chargement user:', e); }
+  } catch(e) { console.error(e); }
 }
 
+// ── Réservation ────────────────────────────────────────────────────────────
+async function loadMyResa() {
+  try {
+    const res = await fetch('/api/babyfoot_status');
+    const data = await res.json();
+    const now = new Date();
+    const all = [...(data.all_today || []), ...(data.all_tomorrow || [])];
+    const mine = all.find(r => r.reserved_by === currentUsername && new Date(r.end_time) > now);
+    const resaCard = document.getElementById('resaCard');
+    if (mine) {
+      myResaData = mine;
+      hasReservation = true;
+      resaCard.className = 'resa-card resa-card-has';
+      document.getElementById('resaTitle').textContent = 'Créneau réservé ✓';
+      document.getElementById('resaDesc').textContent = 'Votre créneau est confirmé — le baby-foot vous est réservé à cette heure';
+      // Afficher le créneau
+      const slotDisp = document.getElementById('resaSlotDisplay');
+      slotDisp.style.display = 'flex';
+      const startDate = new Date(mine.start_time);
+      const endDate = new Date(mine.end_time);
+      const todayStr = startDate.toDateString() === now.toDateString() ? "Aujourd'hui" : 'Demain';
+      const fmt = d => `${String(d.getHours()).padStart(2,'0')}h${String(d.getMinutes()).padStart(2,'0')}`;
+      document.getElementById('resaSlotTime').textContent = `${fmt(startDate)} – ${fmt(endDate)}`;
+      document.getElementById('resaSlotDetail').textContent = `${todayStr} · ${mine.duration_minutes || 15} min · ${mine.mode}`;
+      // Bouton → annuler ou aller à la réservation
+      const btn = document.getElementById('resaBtn');
+      btn.textContent = 'Gérer ma réservation';
+      btn.style.background = 'rgba(39,174,96,0.15)';
+      btn.style.color = '#2ecc71';
+      btn.style.border = '1px solid rgba(39,174,96,0.35)';
+      btn.style.boxShadow = 'none';
+      btn.href = '/reservation';
+    } else {
+      myResaData = null;
+      // Pas de résa → garder l'apparence dorée (priorité d'action)
+    }
+    // Mettre à jour l'état du lobby
+    updateLobbyCardUI();
+  } catch(e) {}
+}
+
+// ── Lobby card ─────────────────────────────────────────────────────────────
 async function checkActiveLobby() {
   try {
     const res = await fetch('/api/active_lobby');
-    const lobby = await res.json();
-    if (lobby.active) {
-      if (lobby.host === currentUsername || lobby.accepted.includes(currentUsername)) {
-        // Je suis dans ce lobby → bouton rejoindre
-        document.getElementById('create-lobby-btn').style.display = 'none';
-        document.getElementById('rejoin-lobby-btn').style.display = 'block';
-        document.getElementById('lobby-description').textContent = 'Vous avez déjà un lobby en cours — cliquez pour y retourner';
-      } else if (isAdmin) {
-        // Admin : peut toujours créer (le serveur annulera l'ancien lobby)
-        document.getElementById('create-lobby-btn').style.display = 'block';
-        document.getElementById('rejoin-lobby-btn').style.display = 'none';
-        document.getElementById('create-lobby-btn').disabled = false;
-        document.getElementById('create-lobby-btn').style.opacity = '1';
-        document.getElementById('create-lobby-btn').style.cursor = 'pointer';
-        document.getElementById('create-lobby-btn').title = `Lobby en cours (hôte : ${lobby.host}) — vous pouvez le remplacer`;
-        document.getElementById('lobby-description').textContent = `Lobby en cours (hôte : ${lobby.host}) — cliquez pour le remplacer`;
-      } else {
-        // Un autre lobby est actif, je n'en fais pas partie
-        document.getElementById('create-lobby-btn').style.display = 'block';
-        document.getElementById('rejoin-lobby-btn').style.display = 'none';
-        document.getElementById('create-lobby-btn').disabled = true;
-        document.getElementById('create-lobby-btn').style.opacity = '0.4';
-        document.getElementById('create-lobby-btn').style.cursor = 'not-allowed';
-        document.getElementById('create-lobby-btn').title = `Un lobby est déjà en cours (hôte : ${lobby.host}) — attendez qu'il se termine`;
-        document.getElementById('lobby-description').textContent = `Un lobby est déjà en cours (hôte : ${lobby.host})`;
-      }
+    activeLobbyState = await res.json();
+    updateLobbyCardUI();
+  } catch(e) {}
+}
+
+function updateLobbyCardUI() {
+  if (!currentUsername) return;
+  const card = document.getElementById('lobbyCard');
+  const badge = document.getElementById('lobbyBadge');
+  const btn = document.getElementById('lobbyBtn');
+  const title = document.getElementById('lobbyTitle');
+  const desc = document.getElementById('lobbyDesc');
+  const icon = document.getElementById('lobbyTitleIcon');
+  const canCreate = isAdmin || hasReservation;
+
+  if (activeLobbyState && activeLobbyState.active) {
+    const lobby = activeLobbyState;
+    const imInLobby = lobby.host === currentUsername ||
+                      (lobby.accepted || []).includes(currentUsername) ||
+                      (lobby.invited || []).includes(currentUsername);
+
+    if (imInLobby) {
+      // Je suis dans le lobby → bouton retourner
+      card.className = 'lobby-card lobby-card-active';
+      icon.style.background = 'linear-gradient(135deg,rgba(205,127,50,0.3),rgba(255,215,0,0.15))';
+      icon.innerHTML = '<i class="fas fa-gamepad" style="color:#cd7f32"></i>';
+      title.textContent = 'Lobby en cours';
+      badge.className = 'lobby-badge badge-inlobby';
+      badge.innerHTML = '<span>🟡</span> Vous êtes dans le lobby';
+      desc.textContent = `Hôte : ${lobby.host} · ${(lobby.accepted||[]).length} joueur(s) prêt(s) — cliquez pour retourner dans le lobby`;
+      btn.className = 'lobby-main-btn btn-gold';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Retourner dans le Lobby';
+    } else if (myJoinRequestPending) {
+      // J'ai déjà envoyé une demande → en attente
+      card.className = 'lobby-card lobby-card-waiting';
+      icon.style.background = 'linear-gradient(135deg,rgba(52,152,219,0.25),rgba(52,152,219,0.1))';
+      icon.innerHTML = '<i class="fas fa-clock" style="color:#3498db"></i>';
+      title.textContent = 'Demande envoyée';
+      badge.className = 'lobby-badge badge-waiting';
+      badge.innerHTML = '<span>🔵</span> En attente de réponse';
+      desc.textContent = `Votre demande a été envoyée à ${lobby.host} — en attente de son acceptation`;
+      btn.className = 'lobby-main-btn btn-ghost-grey';
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-hourglass-half"></i> En attente…';
     } else {
-      document.getElementById('create-lobby-btn').style.display = 'block';
-      document.getElementById('rejoin-lobby-btn').style.display = 'none';
-      document.getElementById('lobby-description').textContent = 'Créez un lobby, puis invitez vos adversaires — ils recevront une notification en temps réel';
+      // Lobby d'un autre → demander à rejoindre
+      card.className = 'lobby-card lobby-card-waiting';
+      icon.style.background = 'linear-gradient(135deg,rgba(52,152,219,0.25),rgba(52,152,219,0.1))';
+      icon.innerHTML = '<i class="fas fa-users" style="color:#3498db"></i>';
+      title.textContent = 'Lobby ouvert';
+      badge.className = 'lobby-badge badge-waiting';
+      badge.innerHTML = `<span>🔵</span> Hôte : ${lobby.host}`;
+      desc.textContent = `${lobby.host} a un lobby en cours avec ${(lobby.accepted||[]).length} joueur(s) — envoyez une demande pour rejoindre`;
+      btn.className = 'lobby-main-btn btn-blue';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-hand-paper"></i> Demander à rejoindre';
     }
-  } catch (e) { console.error('Erreur vérification lobby:', e); }
+
+  } else {
+    // Pas de lobby actif
+    if (canCreate) {
+      card.className = 'lobby-card lobby-card-active';
+      icon.style.background = 'linear-gradient(135deg,rgba(205,127,50,0.3),rgba(255,215,0,0.15))';
+      icon.innerHTML = '<i class="fas fa-plus" style="color:#cd7f32"></i>';
+      title.textContent = 'Créer un Lobby';
+      badge.className = 'lobby-badge badge-available';
+      badge.innerHTML = '<span>🟢</span> Disponible';
+      desc.textContent = 'Créez un lobby et invitez vos adversaires — ils recevront une notification instantanée';
+      btn.className = 'lobby-main-btn btn-gold';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-gamepad"></i> Créer un Lobby';
+    } else {
+      card.className = 'lobby-card lobby-card-disabled';
+      icon.style.background = 'rgba(255,255,255,0.05)';
+      icon.innerHTML = '<i class="fas fa-lock" style="color:var(--text-muted)"></i>';
+      title.textContent = 'Créer un Lobby';
+      badge.className = 'lobby-badge badge-unavailable';
+      badge.innerHTML = '<span>🔴</span> Réservation requise';
+      desc.textContent = 'Réservez d\'abord un créneau pour déverrouiller la création de lobby';
+      btn.className = 'lobby-main-btn btn-ghost-grey';
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-lock"></i> Créer un Lobby';
+    }
+    myJoinRequestPending = false;
+  }
 }
 
-function rejoinLobby() { location.href = '/lobby'; }
-function createEmptyLobby() {
-
-
-  socket.emit('create_lobby', { invited: [] });
+function handleLobbyBtn() {
+  if (activeLobbyState && activeLobbyState.active) {
+    const lobby = activeLobbyState;
+    const imInLobby = lobby.host === currentUsername ||
+                      (lobby.accepted || []).includes(currentUsername) ||
+                      (lobby.invited || []).includes(currentUsername);
+    if (imInLobby) {
+      location.href = '/lobby';
+    } else if (!myJoinRequestPending) {
+      // Envoyer une demande
+      socket.emit('request_join_lobby');
+      myJoinRequestPending = true;
+      updateLobbyCardUI();
+      showNotification('Demande envoyée à ' + lobby.host + ' — en attente de réponse', 'info');
+    }
+  } else {
+    socket.emit('create_lobby', { invited: [] });
+  }
 }
 
-function unlockServo1(btn) {
-  const feedback = document.getElementById('servo-feedback');
-  btn.disabled = true; btn.style.opacity = '0.5';
-  feedback.style.display = 'block';
-  feedback.style.background = 'rgba(52,152,219,0.1)';
-  feedback.style.border = '1px solid #3498db';
-  feedback.textContent = 'Déverrouillage Servo 1 en cours… (5 secondes)';
-  socket.emit('unlock_servo1');
-  setTimeout(() => {
-    btn.disabled = false; btn.style.opacity = '1';
-    feedback.style.background = 'rgba(39,174,96,0.1)';
-    feedback.style.border = '1px solid #27ae60';
-    feedback.textContent = '✓ Servo 1 reverrouillé automatiquement';
-    setTimeout(() => { feedback.style.display = 'none'; }, 3000);
-  }, 5000);
+// ── Notifications ──────────────────────────────────────────────────────────
+function showNotification(message, type) {
+  const bar = document.getElementById('notificationBar');
+  const notif = document.createElement('div');
+  notif.className = 'notification';
+  const borderColor = type === 'error' ? '#e74c3c' : type === 'success' ? '#27ae60' : 'var(--border-accent)';
+  notif.style.borderLeft = `3px solid ${borderColor}`;
+  notif.innerHTML = `<div style="flex:1;color:var(--text-primary)">${message}</div>`;
+  bar.appendChild(notif);
+  setTimeout(() => { notif.style.animation = 'slideOut 0.3s ease'; setTimeout(() => notif.remove(), 300); }, 4000);
 }
 
-function unlockServo2(btn) {
-  const feedback = document.getElementById('servo-feedback');
-  btn.disabled = true; btn.style.opacity = '0.5';
-  feedback.style.display = 'block';
-  feedback.style.background = 'rgba(231,76,60,0.1)';
-  feedback.style.border = '1px solid #e74c3c';
-  feedback.textContent = 'Déverrouillage Servo 2 en cours… (5 secondes)';
-  socket.emit('unlock_servo2');
-  setTimeout(() => {
-    btn.disabled = false; btn.style.opacity = '1';
-    feedback.style.background = 'rgba(39,174,96,0.1)';
-    feedback.style.border = '1px solid #27ae60';
-    feedback.textContent = '✓ Servo 2 reverrouillé automatiquement';
-    setTimeout(() => { feedback.style.display = 'none'; }, 3000);
-  }, 5000);
-}
-
+// ── Leaderboard ────────────────────────────────────────────────────────────
 async function loadLeaderboard() {
   try {
     const res = await fetch('/leaderboard');
     const data = await res.json();
+    const GUEST_PAT = /^Joueur\d+$/i;
+    data = data.filter(p => !GUEST_PAT.test(p.username));
     const el = document.getElementById('leaderboard');
     if (!data || data.length === 0) {
-      el.innerHTML = '<p style="color:var(--text-muted);text-align:center">Personne encore classé — jouez une partie pour apparaître ici !</p>';
+      el.innerHTML = '<p style="color:var(--text-muted);text-align:center">Personne encore classé — jouez une partie !</p>';
       return;
     }
     const medals = [
@@ -373,14 +636,15 @@ async function loadLeaderboard() {
     ];
     el.innerHTML = data.slice(0, 3).map((p, i) => `
       <div style="display:flex;align-items:center;gap:0.75rem;padding:0.65rem 0;${i < 2 ? 'border-bottom:1px solid var(--border-subtle)' : ''}">
-        <span style="font-size:1.375rem;width:30px;text-align:center;flex-shrink:0">${medals[i]}</span>
-        <span style="font-weight:700;color:var(--text-primary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.username}</span>
-        <span style="font-family:'Space Mono',monospace;font-weight:900;color:var(--bronze);font-size:1rem;white-space:nowrap;flex-shrink:0">${p.total_goals} <span style="font-size:0.7rem;font-weight:600;color:var(--text-tertiary)">buts</span></span>
+        ${medals[i]}
+        <span style="font-weight:700;color:var(--text-primary);flex:1">${p.username}</span>
+        <span style="font-weight:900;color:var(--bronze);font-size:1rem">${p.total_goals} <span style="font-size:0.7rem;font-weight:600;color:var(--text-tertiary)">buts</span></span>
       </div>
     `).join('');
-  } catch (e) { console.error('Erreur leaderboard:', e); }
+  } catch(e) {}
 }
 
+// ── Reservations ───────────────────────────────────────────────────────────
 async function loadReservations() {
   try {
     const res = await fetch('/reservations_today');
@@ -390,69 +654,39 @@ async function loadReservations() {
       el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:0.5rem 0">Aucune réservation — <a href="/reservation" style="color:var(--bronze)">prenez un créneau</a> pour jouer !</p>';
       return;
     }
-
-    // Heure actuelle pour détecter les créneaux passés
     const now = new Date();
     const todayFr = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'][now.getDay()];
-    const tomorrowDate = new Date(now); tomorrowDate.setDate(now.getDate() + 1);
-    const tomorrowFr = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'][tomorrowDate.getDay()];
-
     function isPast(r) {
-      if (r.day !== todayFr) return false; // demain → pas passé
-      // Utiliser end_time si disponible (précis)
+      if (r.day !== todayFr) return false;
       if (r.end_time) return now > new Date(r.end_time);
-      // Fallback : extraire heure de début et ajouter la durée
-      const match = r.time.match(/^(\d{2}):(\d{2})/);
-      if (!match) return false;
-      const slotH = parseInt(match[1]), slotM = parseInt(match[2]);
-      const dur = r.duration_minutes || 15;
-      const slotEnd = new Date(now); slotEnd.setHours(slotH, slotM + dur, 0, 0);
-      return now > slotEnd;
+      return false;
     }
-
-    // Trier : aujourd'hui d'abord (heure croissante), puis demain
     data.sort((a, b) => {
-      const dayOrder = (d) => d.day === todayFr ? 0 : 1;
+      const dayOrder = d => d.day === todayFr ? 0 : 1;
       if (dayOrder(a) !== dayOrder(b)) return dayOrder(a) - dayOrder(b);
       return a.time.localeCompare(b.time);
     });
-
-    const upcoming = data.filter(r => !isPast(r));
-    const past = data.filter(r => isPast(r));
-    const sorted = [...upcoming, ...past];
-
-    if (sorted.length === 0) {
-      el.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:0.5rem 0">Aucune réservation à venir</p>';
-      return;
-    }
-
-    el.innerHTML = sorted.map((r, i) => {
+    el.innerHTML = data.map((r, i) => {
       const isMine = r.reserved_by === currentUsername;
       const past = isPast(r);
-      const isLast = i === sorted.length - 1;
       const isNext = !past && i === 0;
-
       return `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;
-          ${isLast ? '' : 'border-bottom:1px solid var(--border-subtle);'}
-          opacity:${past ? '0.38' : '1'};
-          filter:${past ? 'grayscale(0.4)' : 'none'};
-          transition:opacity 0.2s;">
-          <div style="display:flex;align-items:center;gap:0.6rem;">
-            ${isNext ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#cd7f32;box-shadow:0 0 6px #cd7f32;flex-shrink:0"></span>' : (past ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);flex-shrink:0"></span>' : '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(205,127,50,0.35);flex-shrink:0"></span>')}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0.75rem 0;${i < data.length-1 ? 'border-bottom:1px solid var(--border-subtle);' : ''}opacity:${past ? '0.38' : '1'}">
+          <div style="display:flex;align-items:center;gap:0.6rem">
+            ${isNext ? '<span style="width:8px;height:8px;border-radius:50%;background:#cd7f32;box-shadow:0 0 6px #cd7f32;flex-shrink:0;display:inline-block"></span>' : '<span style="width:8px;height:8px;border-radius:50%;background:rgba(205,127,50,0.35);flex-shrink:0;display:inline-block"></span>'}
             <div>
-              <div style="font-weight:600;color:${past ? 'var(--text-tertiary)' : 'var(--text-primary)'}">
+              <div style="font-weight:600;color:${past?'var(--text-tertiary)':'var(--text-primary)'}">
                 ${r.day === todayFr ? "Aujourd'hui" : 'Demain'} · ${r.time}
-                ${past ? '<span style="font-size:0.7rem;color:var(--text-muted);font-weight:400;margin-left:4px">passé</span>' : ''}
+                ${past ? '<span style="font-size:0.7rem;color:var(--text-muted);margin-left:4px">passé</span>' : ''}
               </div>
               <div style="color:var(--text-tertiary);font-size:0.82rem">${r.mode} — ${r.reserved_by}</div>
             </div>
           </div>
-          ${isMine ? '<span style="font-size:0.75rem;padding:3px 10px;border-radius:20px;background:rgba(205,127,50,0.15);color:var(--bronze);font-weight:600;flex-shrink:0">Vous</span>' : ''}
+          ${isMine ? '<span style="font-size:0.75rem;padding:3px 10px;border-radius:20px;background:rgba(205,127,50,0.15);color:var(--bronze);font-weight:600">Vous</span>' : ''}
         </div>
       `;
     }).join('');
-  } catch (e) { console.error('Erreur réservations:', e); }
+  } catch(e) {}
 }
 
 async function loadUserStats(username) {
@@ -462,120 +696,125 @@ async function loadUserStats(username) {
     const data = await res.json();
     document.getElementById('userStats').innerHTML = `
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;text-align:center">
-        <div>
-          <div style="font-size:2rem;font-weight:700;color:var(--bronze)">${data.total_goals ?? 0}</div>
-          <div style="color:var(--text-tertiary);font-size:0.85rem">Buts marqués</div>
-        </div>
-        <div>
-          <div style="font-size:2rem;font-weight:700;color:var(--bronze)">${data.total_games ?? 0}</div>
-          <div style="color:var(--text-tertiary);font-size:0.85rem">Parties jouées</div>
-        </div>
-        <div>
-          <div style="font-size:2rem;font-weight:700;color:var(--bronze)">${data.ratio ?? 0}</div>
-          <div style="color:var(--text-tertiary);font-size:0.85rem">Buts / partie</div>
-        </div>
+        <div><div style="font-size:2rem;font-weight:700;color:var(--bronze)">${data.total_goals ?? 0}</div><div style="color:var(--text-tertiary);font-size:0.85rem">Buts marqués</div></div>
+        <div><div style="font-size:2rem;font-weight:700;color:var(--bronze)">${data.total_games ?? 0}</div><div style="color:var(--text-tertiary);font-size:0.85rem">Parties jouées</div></div>
+        <div><div style="font-size:2rem;font-weight:700;color:var(--bronze)">${data.ratio ?? 0}</div><div style="color:var(--text-tertiary);font-size:0.85rem">Buts / partie</div></div>
       </div>
       <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;color:var(--text-tertiary)">
         <span>Meilleur score : <strong style="color:var(--text-primary)">${data.best_score || '—'}</strong></span>
         <a href="/stats" style="color:var(--bronze);font-weight:600;text-decoration:none">Détails →</a>
       </div>
     `;
-  } catch (e) {
-    document.getElementById('userStats').innerHTML =
-      '<p style="color:var(--text-muted);text-align:center">Stats indisponibles</p>';
+  } catch(e) {
+    document.getElementById('userStats').innerHTML = '<p style="color:var(--text-muted);text-align:center">Stats indisponibles</p>';
   }
 }
 
-function showNotification(message, type) {
-  const bar = document.getElementById('notificationBar');
-  const notif = document.createElement('div');
-  notif.className = 'notification';
-  const borderColor = type === 'error' ? '#e74c3c' : type === 'success' ? '#27ae60' : 'var(--border-accent)';
-  notif.style.borderLeft = `3px solid ${borderColor}`;
-  notif.innerHTML = `<div style="flex:1;color:var(--text-primary)">${message}</div>`;
-  bar.appendChild(notif);
-  setTimeout(() => {
-    notif.style.animation = 'slideOut 0.3s ease';
-    setTimeout(() => notif.remove(), 300);
-  }, 4000);
+// Servo admin
+function unlockServo1(btn) {
+  const feedback = document.getElementById('servo-feedback');
+  btn.disabled = true; btn.style.opacity = '0.5';
+  feedback.style.display = 'block'; feedback.style.background = 'rgba(52,152,219,0.1)'; feedback.style.border = '1px solid #3498db'; feedback.textContent = 'Déverrouillage Servo 1 en cours… (5 secondes)';
+  socket.emit('unlock_servo1');
+  setTimeout(() => { btn.disabled = false; btn.style.opacity = '1'; feedback.style.background = 'rgba(39,174,96,0.1)'; feedback.style.border = '1px solid #27ae60'; feedback.textContent = '✓ Servo 1 reverrouillé'; setTimeout(() => { feedback.style.display = 'none'; }, 3000); }, 5000);
+}
+function unlockServo2(btn) {
+  const feedback = document.getElementById('servo-feedback');
+  btn.disabled = true; btn.style.opacity = '0.5';
+  feedback.style.display = 'block'; feedback.style.background = 'rgba(231,76,60,0.1)'; feedback.style.border = '1px solid #e74c3c'; feedback.textContent = 'Déverrouillage Servo 2 en cours… (5 secondes)';
+  socket.emit('unlock_servo2');
+  setTimeout(() => { btn.disabled = false; btn.style.opacity = '1'; feedback.style.background = 'rgba(39,174,96,0.1)'; feedback.style.border = '1px solid #27ae60'; feedback.textContent = '✓ Servo 2 reverrouillé'; setTimeout(() => { feedback.style.display = 'none'; }, 3000); }, 5000);
 }
 
+// ── Socket events ──────────────────────────────────────────────────────────
 socket.on('lobby_created', (data) => {
   if (data.host === currentUsername) {
-    // Je suis l'hôte → aller au lobby
     showNotification('Lobby créé ! Redirection…', 'success');
     setTimeout(() => location.href = '/lobby', 500);
   } else if (data.invited && data.invited.includes(currentUsername)) {
-    // J'étais dans la liste invited initiale → aller au lobby
     showNotification('Lobby créé ! Redirection…', 'success');
     setTimeout(() => location.href = '/lobby', 500);
-  }
-  // Sinon : un autre user a créé un lobby, on rafraîchit juste le bouton
-  else {
+  } else {
     checkActiveLobby();
   }
 });
 
-// Lobby annulé → rafraîchir le bouton
-socket.on('lobby_cancelled', () => {
-  checkActiveLobby();
-});
-
-// Lobby mis à jour → rafraîchir si je suis membre
-socket.on('lobby_update', (data) => {
-  if (!currentUsername) return;
-  const isMember = (data.accepted || []).includes(currentUsername)
-                || (data.invited  || []).includes(currentUsername)
-                || data.host === currentUsername;
-  if (isMember) checkActiveLobby();
-  else checkActiveLobby(); // refresher aussi pour les autres (bouton grisé)
-});
-
-// Partie démarrée → rafraîchir état
+socket.on('lobby_cancelled', () => { activeLobbyState = null; myJoinRequestPending = false; updateLobbyCardUI(); });
+socket.on('lobby_update', (data) => { activeLobbyState = data; updateLobbyCardUI(); });
 socket.on('game_started', () => { checkActiveLobby(); });
 socket.on('game_stopped', () => { checkActiveLobby(); });
 
-socket.on('error', (data) => {
-  showNotification('✕ ' + (data.message || 'Erreur'), 'error');
+// Résultat de ma demande à rejoindre
+socket.on('join_request_result', (data) => {
+  myJoinRequestPending = false;
+  if (data.accepted) {
+    showNotification('✓ Demande acceptée par ' + data.host + ' — redirection…', 'success');
+    setTimeout(() => location.href = '/lobby', 800);
+  } else {
+    showNotification('✕ ' + data.host + ' a refusé votre demande', 'error');
+    checkActiveLobby();
+  }
 });
 
+// Invitation reçue
 socket.on('lobby_invitation', (data) => {
   if (data.to === currentUsername) {
     const bar = document.getElementById('notificationBar');
     const notif = document.createElement('div');
     notif.className = 'notification';
     notif.innerHTML = `
-      <div style="flex:1;color:var(--text-primary)">
-        <strong style="color:var(--bronze)">${data.from}</strong> vous invite à jouer
-      </div>
+      <div style="flex:1;color:var(--text-primary)"><strong style="color:var(--bronze)">${data.from}</strong> vous invite à jouer</div>
       <div class="notification-buttons">
         <button class="btn-accept" onclick="acceptLobby(this.closest('.notification'))">✓</button>
         <button class="btn-decline" onclick="declineLobby(this.closest('.notification'))">✕</button>
       </div>
     `;
     bar.appendChild(notif);
+    setTimeout(() => notif.remove && notif.remove(), 15000);
   }
 });
+
+// Demandes à rejoindre (côté hôte — sur dashboard)
+socket.on('join_request', (data) => {
+  if (data.host === currentUsername || isAdmin) {
+    if (window._globalShowJoinRequest) window._globalShowJoinRequest(data, socket);
+    else {
+      const bar = document.getElementById('notificationBar');
+      const notif = document.createElement('div');
+      notif.className = 'notification';
+      notif.style.borderLeft = '3px solid #3498db';
+      notif.innerHTML = `
+        <div style="flex:1;color:var(--text-primary)"><strong style="color:#3498db">${data.from}</strong> veut rejoindre votre lobby</div>
+        <div class="notification-buttons">
+          <button class="btn-accept" style="background:linear-gradient(135deg,#2980b9,#3498db)" onclick="socket.emit('accept_join_request',{from:'${data.from}',request_id:'${data.request_id}'});this.closest('.notification').remove()">✓</button>
+          <button class="btn-decline" onclick="socket.emit('decline_join_request',{from:'${data.from}',request_id:'${data.request_id}'});this.closest('.notification').remove()">✕</button>
+        </div>
+      `;
+      bar.appendChild(notif);
+      setTimeout(() => notif.remove && notif.remove(), 20000);
+    }
+  }
+});
+
+socket.on('error', (data) => { showNotification('✕ ' + (data.message || 'Erreur'), 'error'); });
 
 function acceptLobby(notifEl) {
   socket.emit('accept_lobby');
   if (notifEl) notifEl.remove();
-  document.querySelectorAll('.notification').forEach(n => n.remove());
   setTimeout(() => location.href = '/lobby', 500);
 }
 function declineLobby(notifEl) {
   socket.emit('decline_lobby');
   if (notifEl) notifEl.remove();
-  document.querySelectorAll('.notification').forEach(n => n.remove());
 }
 
+// ── Init ───────────────────────────────────────────────────────────────────
 loadCurrentUser();
 loadLeaderboard();
 loadReservations();
 </script>
 
-
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
-  <script src="/static/pwa.js" defer></script>
+<script src="/static/pwa.js" defer></script>
 </body>
 </html>

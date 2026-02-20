@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 <head>
   <link rel="manifest" href="/static/manifest.json">
@@ -28,188 +27,189 @@
       margin: 2rem 0;
     }
     .team-box {
-      padding: 2rem;
+      padding: 1.5rem;
       border-radius: 12px;
-      min-height: 250px;
+      min-height: 220px;
       border: 2px solid;
       background: var(--bg-secondary);
     }
-    .team1-box { 
+    .team1-box {
       border-color: #cd7f32;
-      background: linear-gradient(135deg, rgba(205, 127, 50, 0.1) 0%, rgba(205, 127, 50, 0.05) 100%);
+      background: linear-gradient(135deg, rgba(205,127,50,0.1) 0%, rgba(205,127,50,0.05) 100%);
     }
-    .team2-box { 
+    .team2-box {
       border-color: #ffd700;
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 215, 0, 0.05) 100%);
+      background: linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,215,0,0.05) 100%);
     }
-    .team-box h3 { 
-      margin-top: 0;
-      font-size: 1.5rem;
-      font-weight: 700;
-    }
+    .team-box h3 { margin-top: 0; font-size: 1.25rem; font-weight: 700; }
     .team1-box h3 { color: #cd7f32; }
     .team2-box h3 { color: #ffd700; }
 
-.player-item {
-  background: var(--bg-elevated);
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 0.75rem;
-  color: var(--text-primary);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-  font-weight: 600;
-  border: 1px solid var(--border-normal);
-  transition: all 0.2s;
-}
-.player-item:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-accent);
-}
-.player-item button {
-  background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%);
-  border: none;
-  padding: 0.4rem 0.9rem;
-  border-radius: 6px;
-  color: white;
-  cursor: pointer;
-  font-size: 0.9rem;
-  font-weight: 600;
-  transition: all 0.2s;
-}
-.player-item button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(205, 127, 50, 0.4);
-}
-.player-item button.btn-kick {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-}
-.player-item button.btn-kick:hover {
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
-}
-/* Online dot lobby */
-.online-dot-lobby {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: #2ecc71;
-  box-shadow: 0 0 0 2px rgba(46,204,113,0.25), 0 0 6px rgba(46,204,113,0.5);
-  flex-shrink: 0;
-  margin-right: 6px;
-  vertical-align: middle;
-  animation: pulse-g 2s ease-in-out infinite;
-}
-@keyframes pulse-g {
-  0%,100% { box-shadow: 0 0 0 2px rgba(46,204,113,0.25), 0 0 6px rgba(46,204,113,0.5); }
-  50%      { box-shadow: 0 0 0 4px rgba(46,204,113,0.12), 0 0 12px rgba(46,204,113,0.35); }
-}
-.status-bar {
-  background: var(--bg-secondary);
-  padding: 1.25rem;
-  border-radius: 8px;
-  margin-bottom: 1.5rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 1px solid var(--border-normal);
-}
-.status-indicator {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-.status-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #ffd700;
-  animation: pulse 2s infinite;
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
+    .player-item {
+      background: var(--bg-elevated);
+      padding: 0.875rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.6rem;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      font-weight: 600;
+      border: 1px solid var(--border-normal);
+      transition: all 0.2s;
+    }
+    .player-item:hover { background: var(--bg-hover); border-color: var(--border-accent); }
 
-#invite-section {
-  background: var(--bg-secondary);
-  padding: 1.5rem;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;
-  border: 1px solid var(--border-normal);
-}
-#invite-section h3 {
-  color: var(--text-primary);
-  margin-top: 0;
-  margin-bottom: 1rem;
-}
+    /* Joueur fantôme (slot libre) */
+    .player-ghost {
+      background: rgba(255,255,255,0.02);
+      padding: 0.875rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px dashed rgba(255,255,255,0.12);
+      opacity: 0.55;
+      transition: all 0.2s;
+    }
+    .player-ghost-name {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      font-style: italic;
+    }
+    .player-ghost-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      border: 1px dashed rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .btn-add-ghost {
+      padding: 0.3rem 0.75rem;
+      border-radius: 6px;
+      border: 1px solid rgba(205,127,50,0.4);
+      background: rgba(205,127,50,0.1);
+      color: #cd7f32;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-add-ghost:hover { background: rgba(205,127,50,0.2); transform: translateY(-1px); }
 
-.search-box {
-  position: relative;
-  margin-bottom: 1rem;
-}
-.search-box input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-normal);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 0.95rem;
-  transition: all 0.2s;
-}
-.search-box input:focus {
-  outline: none;
-  border-color: var(--border-accent);
-  box-shadow: 0 0 0 3px rgba(205, 127, 50, 0.1);
-}
-.search-box input::placeholder {
-  color: var(--text-muted);
-}
+    .player-item button {
+      background: linear-gradient(135deg, #cd7f32 0%, #b87333 100%);
+      border: none;
+      padding: 0.35rem 0.8rem;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .player-item button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(205,127,50,0.4); }
+    .player-item button.btn-kick { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }
+    .player-item button.btn-kick:hover { box-shadow: 0 4px 12px rgba(231,76,60,0.4); }
 
-.player-selector {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 0.5rem;
-}
-.player-chip {
-  padding: 0.6rem 1.2rem;
-  background: var(--bg-elevated);
-  border: 2px solid var(--border-normal);
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: var(--text-primary);
-  font-weight: 600;
-}
-.player-chip:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-accent);
-  transform: translateY(-2px);
-}
-.player-chip.selected {
-  background: linear-gradient(135deg, #cd7f32 0%, #ffd700 100%);
-  color: white;
-  border-color: #cd7f32;
-}
+    .online-dot-lobby {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #2ecc71;
+      box-shadow: 0 0 0 2px rgba(46,204,113,0.25), 0 0 6px rgba(46,204,113,0.5);
+      flex-shrink: 0;
+      margin-right: 6px;
+      vertical-align: middle;
+      animation: pulse-g 2s ease-in-out infinite;
+    }
+    @keyframes pulse-g {
+      0%,100% { box-shadow: 0 0 0 2px rgba(46,204,113,0.25), 0 0 6px rgba(46,204,113,0.5); }
+      50%      { box-shadow: 0 0 0 4px rgba(46,204,113,0.12), 0 0 12px rgba(46,204,113,0.35); }
+    }
 
-#declinedSection {
-  background: rgba(231, 76, 60, 0.1);
-  border: 2px solid #e74c3c;
-}
-#declinedMessage {
-  color: #e74c3c;
-}
+    .status-bar {
+      background: var(--bg-secondary);
+      padding: 1.25rem;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid var(--border-normal);
+    }
+    .status-indicator { display: flex; gap: 0.75rem; align-items: center; font-weight: 600; color: var(--text-primary); }
+    .status-dot { width: 14px; height: 14px; border-radius: 50%; background: #ffd700; animation: pulse 2s infinite; box-shadow: 0 0 10px rgba(255,215,0,0.5); }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 
+    #invite-section {
+      background: var(--bg-secondary);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border-normal);
+    }
+    .search-box { position: relative; margin-bottom: 1rem; }
+    .search-box input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-normal);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      box-sizing: border-box;
+    }
+    .search-box input:focus { outline: none; border-color: var(--border-accent); box-shadow: 0 0 0 3px rgba(205,127,50,0.1); }
+    .search-box input::placeholder { color: var(--text-muted); }
+    .player-selector { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; max-height: 200px; overflow-y: auto; padding: 0.5rem; }
+    .player-chip {
+      padding: 0.55rem 1.1rem;
+      background: var(--bg-elevated);
+      border: 2px solid var(--border-normal);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    .player-chip:hover { background: var(--bg-hover); border-color: var(--border-accent); transform: translateY(-2px); }
+    .player-chip.selected { background: linear-gradient(135deg, #cd7f32 0%, #ffd700 100%); color: white; border-color: #cd7f32; }
+
+    /* Demandes en attente (côté hôte) */
+    .join-request-item {
+      background: rgba(52,152,219,0.1);
+      border: 1px solid rgba(52,152,219,0.3);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.6rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    .join-request-item .jreq-name { color: #3498db; }
+    .join-request-item .jreq-btns { display: flex; gap: 0.5rem; }
+    .jreq-btn-accept { padding: 0.35rem 0.8rem; border: none; border-radius: 6px; background: linear-gradient(135deg, #2980b9, #3498db); color: white; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
+    .jreq-btn-decline { padding: 0.35rem 0.8rem; border: 1px solid rgba(231,76,60,0.4); border-radius: 6px; background: rgba(231,76,60,0.1); color: #e74c3c; font-weight: 700; font-size: 0.82rem; cursor: pointer; }
+
+    @media (max-width: 600px) {
+      .team-container { grid-template-columns: 1fr; gap: 1rem; }
+    }
   </style>
 </head>
 <body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
@@ -230,9 +230,7 @@
       <a href="/stats" class="nav-link"><span class="nav-link-icon" data-bficon="stats" data-size="18" style="color:currentColor"></span><span>Stats</span></a>
       <a href="/top" class="nav-link"><span class="nav-link-icon" data-bficon="trophy" data-size="18" style="color:currentColor"></span><span>Classement</span></a>
     </div>
-    <button class="burger" id="burger" onclick="toggleMenu()">
-      <span></span><span></span><span></span>
-    </button>
+    <button class="burger" id="burger" onclick="toggleMenu()"><span></span><span></span><span></span></button>
     <div class="nav-right">
       <div class="user-profile-mini">
         <div class="nav-avatar" id="navAv">?</div>
@@ -250,7 +248,6 @@
   <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
   <a href="/top"><span data-bficon="trophy" data-size="16"></span> Classement</a>
   <a href="#" onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.href='/')">Déconnexion</a>
-  <button id="pwa-install-trigger" onclick="triggerPwaInstall()" style="display:none;width:100%;text-align:left;background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));border:1px solid rgba(205,127,50,0.4);color:#cd7f32;font-weight:700;font-size:1rem;padding:0.9rem 1.25rem;border-radius:10px;cursor:pointer;margin-top:0.5rem;font-family:inherit;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 13h6M12 10v6"/></svg> Installer l'app</button>
 </div>
 
 <script>
@@ -265,28 +262,40 @@ function toggleMenu() {
   <div class="container" style="max-width:1000px">
     <div class="page-header fade-up">
       <h1><i class="fas fa-gamepad"></i> Lobby de Partie</h1>
-      <p>Invitez vos adversaires ci-dessous — ils recevront une notification et pourront accepter ou refuser</p>
+      <p>Configurez votre partie, invitez des adversaires — tout le monde sera notifié en temps réel</p>
     </div>
 
 <div class="status-bar">
   <div class="status-indicator">
     <div class="status-dot"></div>
-    <span><strong id="acceptedCount">0</strong> / <strong id="invitedCount">0</strong> joueurs prêts</span>
+    <span><strong id="acceptedCount">0</strong> joueur<span id="acceptedPlural">s</span> prêt<span id="acceptedPlural2">s</span></span>
   </div>
-  <div style="font-weight:600;color:#333">Hôte : <span id="hostName" style="color:#667eea"></span></div>
+  <div style="font-weight:600;color:var(--text-tertiary);font-size:0.875rem">Hôte : <span id="hostName" style="color:var(--bronze)"></span></div>
+</div>
+
+<!-- Demandes à rejoindre (visibles par l'hôte) -->
+<div id="join-requests-section" style="display:none;margin-bottom:1.5rem">
+  <div style="font-size:0.8rem;text-transform:uppercase;letter-spacing:0.08em;color:#3498db;font-weight:700;margin-bottom:0.75rem">
+    <i class="fas fa-user-plus"></i> Demandes à rejoindre
+  </div>
+  <div id="joinRequestsList"></div>
 </div>
 
 <div id="invite-section">
-  <h3 style="margin-top:0;color:var(--text-primary)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg> Inviter des joueurs</h3>
-  <p style="color:var(--text-tertiary);font-size:0.875rem;margin-bottom:0.75rem">Recherchez un joueur et envoyez-lui une invitation — il peut être en 2v2 ou jouer en 1v1</p>
+  <h3 style="margin-top:0;color:var(--text-primary);margin-bottom:0.5rem">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Inviter des joueurs
+  </h3>
+  <p style="color:var(--text-tertiary);font-size:0.85rem;margin-bottom:0.75rem">Sélectionnez des joueurs et envoyez-leur une invitation — ils pourront l'accepter ou la refuser depuis n'importe quelle page</p>
   <div class="search-box">
     <input type="text" id="searchInput" placeholder="Rechercher un joueur..." oninput="filterPlayers()">
   </div>
   <div class="player-selector" id="playerSelector"></div>
-  <button class="btn btn-primary btn-full" style="margin-top:1rem" onclick="inviteSelected()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg> Envoyer les invitations</button>
+  <button class="btn btn-primary btn-full" style="margin-top:1rem" onclick="inviteSelected()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>Envoyer les invitations
+  </button>
 </div>
 
-<div id="declinedSection" style="display:none;background:rgba(231,76,60,0.1);padding:1rem;border-radius:8px;margin-bottom:1rem;border:2px solid #e74c3c">
+<div id="declinedSection" style="display:none;padding:1rem;border-radius:8px;background:rgba(231,76,60,0.1);border:2px solid #e74c3c;margin-bottom:1rem">
   <p id="declinedMessage" style="color:#e74c3c;font-weight:600;margin:0"></p>
   <div style="display:flex;gap:1rem;margin-top:0.75rem">
     <button class="btn btn-primary" onclick="continueWithCurrent()">Continuer</button>
@@ -294,23 +303,33 @@ function toggleMenu() {
   </div>
 </div>
 
+<!-- Équipes avec slots fantômes -->
 <div class="team-container">
   <div class="team-box team1-box">
-    <h3><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#cd7f32;margin-right:6px"></span>Équipe 1</h3>
+    <h3>
+      <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#cd7f32;margin-right:6px"></span>Équipe 1
+      <span id="team1Mode" style="font-size:0.75rem;font-weight:500;color:var(--text-muted);margin-left:8px"></span>
+    </h3>
     <div id="team1List"></div>
   </div>
   <div class="team-box team2-box">
-    <h3><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#a0a0a0;margin-right:6px"></span>Équipe 2</h3>
+    <h3>
+      <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#a0a0a0;margin-right:6px"></span>Équipe 2
+      <span id="team2Mode" style="font-size:0.75rem;font-weight:500;color:var(--text-muted);margin-left:8px"></span>
+    </h3>
     <div id="team2List"></div>
   </div>
 </div>
 
-<div style="text-align:center;margin-top:2rem">
-  <button id="startButton" class="btn btn-primary btn-lg" style="display:none" onclick="startGame()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;display:inline-block;flex-shrink:0"><circle cx="14" cy="12" r="6"/><path d="M8 12H2"/><path d="M20 4 14 8"/><path d="M18 6 22 2"/></svg> Lancer la partie</button>
-  <button class="btn" style="margin-left:1rem;background:#95a5a6;color:white" onclick="cancelLobby()">✕ Quitter le lobby</button>
+<div style="text-align:center;margin-top:2rem;display:flex;justify-content:center;gap:1rem;flex-wrap:wrap">
+  <button id="startButton" class="btn btn-primary btn-lg" style="display:none" onclick="startGame()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px"><circle cx="14" cy="12" r="6"/><path d="M8 12H2"/><path d="M20 4 14 8"/></svg>Lancer la partie
+  </button>
+  <button class="btn" style="background:rgba(231,76,60,0.15);color:#e74c3c;border:1px solid rgba(231,76,60,0.3)" onclick="cancelLobby()">✕ Quitter le lobby</button>
 </div>
 
-<div id="swapRequestNotif" style="display:none;position:fixed;top:80px;right:20px;background:var(--bg-elevated);padding:1.5rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:300px;border:2px solid var(--border-accent)">
+<!-- Notif échange d'équipe -->
+<div id="swapRequestNotif" style="display:none;position:fixed;top:80px;right:20px;background:var(--bg-elevated);padding:1.5rem;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.3);max-width:300px;border:2px solid var(--border-accent);z-index:9999">
   <p id="swapMessage" style="margin:0;color:var(--text-primary);font-weight:600"></p>
   <div style="display:flex;gap:0.5rem;margin-top:1rem">
     <button class="btn btn-primary" style="flex:1" onclick="acceptSwap()">✓ Accepter</button>
@@ -321,17 +340,21 @@ function toggleMenu() {
   </div>
 </div>
 
+<div class="toast-wrap" id="toast-lobby"></div>
+
 <script>
 let socket;
-try { socket = io({
-    reconnection: true,
-    reconnectionDelay: 1000,       // Attendre 1s avant 1ère tentative
-    reconnectionDelayMax: 10000,   // Max 10s entre tentatives
-    reconnectionAttempts: Infinity, // Toujours réessayer
-    timeout: 20000,                // 20s avant d'abandonner une connexion
-    transports: ['websocket', 'polling'],  // WebSocket d'abord, polling en fallback
+try {
+  socket = io({
+    reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 10000,
+    reconnectionAttempts: Infinity, timeout: 20000,
+    transports: ['websocket', 'polling'],
   });
-  if (window.initReconnectIndicator) initReconnectIndicator(socket); } catch(e) { console.warn("Socket.IO non disponible:", e); socket = { emit: () => {}, on: () => {} }; }
+  if (window.initReconnectIndicator) initReconnectIndicator(socket);
+} catch(e) {
+  socket = { emit: () => {}, on: () => {} };
+}
+
 let currentUsername = null;
 let isAdmin = false;
 let lobbyData = null;
@@ -347,7 +370,6 @@ async function refreshOnlineUsers() {
     onlineUsers = new Set(data.online || []);
   } catch(e) {}
 }
-// Rafraîchir les users en ligne toutes les 15s
 setInterval(refreshOnlineUsers, 15000);
 
 async function loadCurrentUser() {
@@ -357,12 +379,11 @@ async function loadCurrentUser() {
       const user = await res.json();
       currentUsername = user.username;
       isAdmin = user.is_admin;
+      window._currentUsername = user.username;
       document.getElementById('navUsername').textContent = user.username;
       document.getElementById('navAv').textContent = user.username[0].toUpperCase();
     }
-  } catch (e) {
-    // silencieux en production
-  }
+  } catch(e) {}
 }
 
 async function loadPlayers() {
@@ -370,44 +391,31 @@ async function loadPlayers() {
     const res = await fetch('/users_list');
     const users = await res.json();
     allUsers = users.filter(u => u !== currentUsername);
-    
     renderPlayerSelector();
-  } catch (e) {
-  }
+  } catch(e) {}
 }
 
 function renderPlayerSelector() {
   const selector = document.getElementById('playerSelector');
   const searchTerm = document.getElementById('searchInput').value.toLowerCase();
   selector.innerHTML = '';
-  
-  const filteredUsers = allUsers.filter(u => {
-    if (lobbyData.invited.includes(u) || lobbyData.accepted.includes(u)) {
-      return false;
-    }
-    return u.toLowerCase().includes(searchTerm);
-  });
-  
-  if (filteredUsers.length === 0) {
-    selector.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:1rem">Aucun autre joueur disponible pour l\'instant</p>';
+  const inLobby = [...(lobbyData.invited||[]), ...(lobbyData.accepted||[])];
+  const filtered = allUsers.filter(u => !inLobby.includes(u) && u.toLowerCase().includes(searchTerm));
+  if (filtered.length === 0) {
+    selector.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:1rem;font-size:0.875rem">Tous les joueurs disponibles sont déjà dans le lobby</p>';
     return;
   }
-  
-  filteredUsers.forEach(u => {
+  filtered.forEach(u => {
     const chip = document.createElement('div');
-    chip.className = 'player-chip';
-    chip.textContent = u;
-    if (selectedPlayers.includes(u)) {
-      chip.classList.add('selected');
-    }
+    chip.className = 'player-chip' + (selectedPlayers.includes(u) ? ' selected' : '');
+    const isOnline = onlineUsers.has(u);
+    chip.innerHTML = `${isOnline ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#2ecc71;margin-right:5px;vertical-align:middle"></span>' : ''}${u}`;
     chip.onclick = () => togglePlayer(u, chip);
     selector.appendChild(chip);
   });
 }
 
-function filterPlayers() {
-  renderPlayerSelector();
-}
+function filterPlayers() { renderPlayerSelector(); }
 
 function togglePlayer(username, chip) {
   if (selectedPlayers.includes(username)) {
@@ -420,24 +428,14 @@ function togglePlayer(username, chip) {
 }
 
 function inviteSelected() {
-  if (!canInvite()) {
-    alert('Seul l\'hôte et les admins peuvent inviter des joueurs');
-    return;
-  }
-  
-  if (selectedPlayers.length === 0) return;
-  
-  selectedPlayers.forEach(user => {
-    socket.emit('invite_to_lobby', { user });
-  });
-  
+  if (!canInvite()) { toast('Seul l\'hôte peut inviter des joueurs', 'err'); return; }
+  if (selectedPlayers.length === 0) { toast('Sélectionnez au moins un joueur', 'err'); return; }
+  selectedPlayers.forEach(user => socket.emit('invite_to_lobby', { user }));
   selectedPlayers = [];
   setTimeout(loadPlayers, 500);
 }
 
-function canInvite() {
-  return currentUsername === lobbyData.host || isAdmin;
-}
+function canInvite() { return currentUsername === lobbyData.host || isAdmin; }
 
 function canKick(playerUsername) {
   if (playerUsername === currentUsername) return false;
@@ -446,140 +444,165 @@ function canKick(playerUsername) {
 }
 
 function kickPlayer(playerUsername) {
-  if (!canKick(playerUsername)) {
-    alert('Seul l\'hôte et les admins peuvent exclure des joueurs');
-    return;
-  }
-  
-  if (confirm(`Exclure ${playerUsername} du lobby ?`)) {
-    socket.emit('kick_from_lobby', { user: playerUsername });
-  }
+  if (!canKick(playerUsername)) return;
+  if (confirm(`Exclure ${playerUsername} du lobby ?`)) socket.emit('kick_from_lobby', { user: playerUsername });
 }
 
 async function loadLobby() {
   try {
-
-    
     const res = await fetch('/api/active_lobby');
     const data = await res.json();
-    
-    if (!data.active) {
-      location.href = '/dashboard';
-      return;
-    }
-    
-    // VÉRIFICATION CRITIQUE : L'utilisateur est-il vraiment dans ce lobby ?
+    if (!data.active) { location.href = '/dashboard'; return; }
     const isInvited = data.invited.includes(currentUsername);
     const isAccepted = data.accepted.includes(currentUsername);
-
-
-    
-    if (!isInvited && !isAccepted) {
-
-
-
-      location.href = '/dashboard';
-      return;
-    }
+    if (!isInvited && !isAccepted) { location.href = '/dashboard'; return; }
     lobbyData = data;
     updateLobbyUI();
     loadPlayers();
-  } catch (e) {
-    location.href = '/dashboard';
+  } catch(e) { location.href = '/dashboard'; }
+}
+
+// Déterminer le mode de jeu en fonction des acceptés (2v2 si >=4, sinon 1v1)
+function getGameMode() {
+  const total = (lobbyData.accepted || []).length;
+  return total >= 4 ? '2v2' : '1v1';
+}
+
+function renderTeam(containerId, players, teamColor, maxSlots) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  const isHost = currentUsername === lobbyData.host || isAdmin;
+  const mode = getGameMode();
+
+  // Joueurs réels
+  players.forEach(player => {
+    const item = document.createElement('div');
+    item.className = 'player-item';
+    let buttons = '';
+    if (player !== currentUsername && canRequestSwap(player)) {
+      buttons += `<button onclick="requestSwap('${player}')" style="font-size:0.8rem;padding:0.3rem 0.7rem">↔️</button>`;
+    }
+    if (canKick(player)) {
+      buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')" style="font-size:0.8rem;padding:0.3rem 0.7rem">✕</button>`;
+    }
+    item.innerHTML = `
+      <span style="display:flex;align-items:center;gap:6px">
+        ${onlineUsers.has(player) ? '<span class="online-dot-lobby" title="En ligne"></span>' : ''}
+        <span style="font-weight:700">${player}${player === lobbyData.host ? ' <span style="color:var(--bronze);font-size:0.75rem">★ hôte</span>' : ''}</span>
+      </span>
+      <div style="display:flex;gap:0.4rem">${buttons}</div>
+    `;
+    container.appendChild(item);
+  });
+
+  // Slots fantômes (complètent jusqu'à maxSlots)
+  const ghosts = maxSlots - players.length;
+  for (let i = 0; i < ghosts; i++) {
+    const ghost = document.createElement('div');
+    ghost.className = 'player-ghost';
+    const slotNum = players.length + i + 1;
+    ghost.innerHTML = `
+      <div class="player-ghost-name">
+        <div class="player-ghost-avatar"><i class="fas fa-user" style="font-size:11px;color:rgba(255,255,255,0.2)"></i></div>
+        <span>Joueur ${slotNum} <span style="font-size:0.75rem">(slot libre)</span></span>
+      </div>
+      ${isHost ? `<button class="btn-add-ghost" onclick="focusInvite()">+ Inviter</button>` : ''}
+    `;
+    container.appendChild(ghost);
   }
+}
+
+function focusInvite() {
+  document.getElementById('searchInput').focus();
+  document.getElementById('invite-section').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function updateLobbyUI() {
   if (!lobbyData) return;
-  
+
   document.getElementById('hostName').textContent = lobbyData.host;
-  document.getElementById('hostName').style.color = 'var(--bronze)';
-  document.getElementById('acceptedCount').textContent = lobbyData.accepted.length;
-  document.getElementById('invitedCount').textContent = lobbyData.accepted.length + lobbyData.invited.length;
-  
-  // Afficher/masquer la section d'invitation selon les permissions
+
+  const accepted = lobbyData.accepted || [];
+  const cnt = accepted.length;
+  document.getElementById('acceptedCount').textContent = cnt;
+  document.getElementById('acceptedPlural').textContent = cnt > 1 ? 's' : '';
+  document.getElementById('acceptedPlural2').textContent = cnt > 1 ? 's' : '';
+
   const inviteSection = document.getElementById('invite-section');
-  if (canInvite()) {
-    inviteSection.style.display = 'block';
-  } else {
-    inviteSection.style.display = 'none';
-  }
-  
-  const team1List = document.getElementById('team1List');
-  const team2List = document.getElementById('team2List');
-  
-  team1List.innerHTML = '';
-  team2List.innerHTML = '';
-  
-  if (lobbyData.team1.length === 0) {
-    team1List.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem">En attente de joueurs…</p>';
-  }
-  if (lobbyData.team2.length === 0) {
-    team2List.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:2rem">En attente de joueurs…</p>';
-  }
-  
-  lobbyData.team1.forEach(player => {
-    const item = document.createElement('div');
-    item.className = 'player-item';
-    
-    let buttons = '';
-    if (player !== currentUsername && canRequestSwap(player)) {
-      buttons += `<button onclick="requestSwap('${player}')">↔️ Échanger</button>`;
-    }
-    if (canKick(player)) {
-      buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')">✕ Exclure</button>`;
-    }
-    
-    item.innerHTML = `
-      <span>${onlineUsers.has(player) ? '<span class="online-dot-lobby" title="En ligne"></span>' : ''}<span>${player}${player === lobbyData.host ? ' ★' : ''}</span></span>
-      <div style="display:flex;gap:0.5rem">${buttons}</div>
-    `;
-    team1List.appendChild(item);
-  });
-  
-  lobbyData.team2.forEach(player => {
-    const item = document.createElement('div');
-    item.className = 'player-item';
-    
-    let buttons = '';
-    if (player !== currentUsername && canRequestSwap(player)) {
-      buttons += `<button onclick="requestSwap('${player}')">↔️ Échanger</button>`;
-    }
-    if (canKick(player)) {
-      buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')">✕ Exclure</button>`;
-    }
-    
-    item.innerHTML = `
-      <span>${onlineUsers.has(player) ? '<span class="online-dot-lobby" title="En ligne"></span>' : ''}<span>${player}${player === lobbyData.host ? ' ★' : ''}</span></span>
-      <div style="display:flex;gap:0.5rem">${buttons}</div>
-    `;
-    team2List.appendChild(item);
-  });
-  
-  if (lobbyData.declined.length > 0) {
+  inviteSection.style.display = canInvite() ? 'block' : 'none';
+
+  // Mode de jeu détecté
+  const mode = getGameMode();
+  const slotsPerTeam = mode === '2v2' ? 2 : 1;
+  document.getElementById('team1Mode').textContent = mode === '2v2' ? '(2v2)' : '(1v1)';
+  document.getElementById('team2Mode').textContent = mode === '2v2' ? '(2v2)' : '(1v1)';
+
+  renderTeam('team1List', lobbyData.team1 || [], '#cd7f32', slotsPerTeam);
+  renderTeam('team2List', lobbyData.team2 || [], '#ffd700', slotsPerTeam);
+
+  if ((lobbyData.declined || []).length > 0) {
     document.getElementById('declinedSection').style.display = 'block';
-    document.getElementById('declinedMessage').textContent = `${lobbyData.declined.join(', ')} ${lobbyData.declined.length > 1 ? 'ont' : 'a'} refusé l'invitation`;
+    document.getElementById('declinedMessage').textContent =
+      `${lobbyData.declined.join(', ')} ${lobbyData.declined.length > 1 ? 'ont' : 'a'} refusé l'invitation`;
   }
-  
-  if (currentUsername === lobbyData.host || isAdmin) {
-    if (lobbyData.accepted.length >= 2) {
-      document.getElementById('startButton').style.display = 'inline-block';
-    } else {
-      document.getElementById('startButton').style.display = 'none';
-    }
-  }
+
+  const isHost = currentUsername === lobbyData.host || isAdmin;
+  const canStart = isHost && accepted.length >= 2;
+  document.getElementById('startButton').style.display = canStart ? 'inline-flex' : 'none';
+
+  // Demandes en attente (côté hôte)
+  renderJoinRequests();
 }
 
+// ── Gestion demandes rejoindre ─────────────────────────────────────────────
+let pendingJoinRequests = {};
+
+function renderJoinRequests() {
+  const section = document.getElementById('join-requests-section');
+  const list = document.getElementById('joinRequestsList');
+  const isHost = currentUsername === lobbyData.host || isAdmin;
+  const keys = Object.keys(pendingJoinRequests);
+
+  if (!isHost || keys.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = 'block';
+  list.innerHTML = '';
+  keys.forEach(reqId => {
+    const req = pendingJoinRequests[reqId];
+    const item = document.createElement('div');
+    item.className = 'join-request-item';
+    item.innerHTML = `
+      <span><span class="jreq-name">${req.from}</span> veut rejoindre le lobby</span>
+      <div class="jreq-btns">
+        <button class="jreq-btn-accept" onclick="acceptJoinReq('${reqId}','${req.from}')">✓ Accepter</button>
+        <button class="jreq-btn-decline" onclick="declineJoinReq('${reqId}','${req.from}')">✕ Refuser</button>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+}
+
+function acceptJoinReq(reqId, from) {
+  socket.emit('accept_join_request', { from, request_id: reqId });
+  delete pendingJoinRequests[reqId];
+  renderJoinRequests();
+}
+
+function declineJoinReq(reqId, from) {
+  socket.emit('decline_join_request', { from, request_id: reqId });
+  delete pendingJoinRequests[reqId];
+  renderJoinRequests();
+}
+
+// ── Swap d'équipe ──────────────────────────────────────────────────────────
 function canRequestSwap(targetPlayer) {
-  const myTeam = lobbyData.team1.includes(currentUsername) ? 'team1' : 'team2';
-  const targetTeam = lobbyData.team1.includes(targetPlayer) ? 'team1' : 'team2';
+  const myTeam = (lobbyData.team1 || []).includes(currentUsername) ? 'team1' : 'team2';
+  const targetTeam = (lobbyData.team1 || []).includes(targetPlayer) ? 'team1' : 'team2';
   return myTeam !== targetTeam;
 }
-
-function requestSwap(withPlayer) {
-  socket.emit('request_team_swap', { with: withPlayer });
-}
-
+function requestSwap(withPlayer) { socket.emit('request_team_swap', { with: withPlayer }); }
 function acceptSwap() {
   if (currentSwapRequest) {
     socket.emit('accept_team_swap', { request_id: currentSwapRequest });
@@ -587,7 +610,6 @@ function acceptSwap() {
     currentSwapRequest = null;
   }
 }
-
 function declineSwap() {
   if (currentSwapRequest) {
     socket.emit('decline_team_swap', { request_id: currentSwapRequest });
@@ -596,30 +618,15 @@ function declineSwap() {
   }
 }
 
-function continueWithCurrent() {
-  document.getElementById('declinedSection').style.display = 'none';
-}
+function continueWithCurrent() { document.getElementById('declinedSection').style.display = 'none'; }
+function cancelLobby() { if (confirm('Quitter / annuler le lobby ?')) socket.emit('cancel_lobby'); }
+function startGame() { socket.emit('start_game_from_lobby'); }
 
-function cancelLobby() {
-  if (confirm('Annuler le lobby ?')) {
-    socket.emit('cancel_lobby');
-  }
-}
-
-function startGame() {
-  socket.emit('start_game_from_lobby');
-}
-
+// ── Socket events ──────────────────────────────────────────────────────────
 socket.on('lobby_update', (data) => {
-  // VÉRIFICATION : Suis-je toujours dans ce lobby ?
-  const isInvited = data.invited.includes(currentUsername);
-  const isAccepted = data.accepted.includes(currentUsername);
-  
-  if (!isInvited && !isAccepted) {
-    location.href = '/dashboard';
-    return;
-  }
-  
+  const isInvited = (data.invited || []).includes(currentUsername);
+  const isAccepted = (data.accepted || []).includes(currentUsername);
+  if (!isInvited && !isAccepted) { location.href = '/dashboard'; return; }
   lobbyData = data;
   updateLobbyUI();
   loadPlayers();
@@ -633,29 +640,27 @@ socket.on('team_swap_request', (data) => {
   }
 });
 
-socket.on('lobby_cancelled', () => {
-  location.href = '/dashboard';
-});
-
-socket.on('game_started', () => {
-  location.href = '/live-score';
-});
-
-socket.on('kicked_from_lobby', (data) => {
-  if (data && data.kicked_user === currentUser) {
-    alert('Vous avez été exclu du lobby');
-    location.href = '/dashboard';
+// Quelqu'un demande à rejoindre le lobby
+socket.on('join_request', (data) => {
+  if (data.host === currentUsername || isAdmin) {
+    pendingJoinRequests[data.request_id] = { from: data.from };
+    renderJoinRequests();
   }
-  // sinon c'est un autre joueur qui a été exclu → lobby_update gérera l'UI
 });
 
-
-socket.on('error', (data) => {
-  toast('✕ ' + (data.message || 'Erreur'), 'err');
+socket.on('lobby_cancelled', () => { location.href = '/dashboard'; });
+socket.on('game_started', () => { location.href = '/live-score'; });
+socket.on('kicked_from_lobby', (data) => {
+  if (data && data.kicked_user === currentUsername) {
+    toast('Vous avez été exclu du lobby', 'err');
+    setTimeout(() => location.href = '/dashboard', 1500);
+  }
 });
+
+socket.on('error', (data) => { toast('✕ ' + (data.message || 'Erreur'), 'err'); });
 
 function toast(msg, type='inf') {
-  let c = document.getElementById('toast-lobby');
+  const c = document.getElementById('toast-lobby');
   if (!c) return;
   const t = document.createElement('div');
   t.className = 'toast ' + type;
@@ -664,20 +669,15 @@ function toast(msg, type='inf') {
   setTimeout(() => t.remove(), 3500);
 }
 
-// IMPORTANT: Charger l'utilisateur AVANT le lobby pour éviter la race condition
 async function initPage() {
   await loadCurrentUser();
   await refreshOnlineUsers();
   await loadLobby();
 }
-
 initPage();
 </script>
 
-<div class="toast-wrap" id="toast-lobby"></div>
-
-
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
-  <script src="/static/pwa.js" defer></script>
+<script src="/static/pwa.js" defer></script>
 </body>
 </html>

@@ -299,6 +299,9 @@ async function loadLeaderboard(me) {
       fetch('/api/online_users').then(r => r.json())
     ]);
     const onlineSet = new Set((onlineRes.online || []));
+    // Filtrer les comptes guest (Joueur1, Joueur2, etc.) du classement
+    const GUEST_PATTERN = /^Joueur\d+$/i;
+    lb = lb.filter(p => !GUEST_PATTERN.test(p.username));
 
     if (!lb || lb.length === 0) {
       el.innerHTML = `<div style="padding:3rem;text-align:center">
