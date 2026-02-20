@@ -1676,6 +1676,10 @@ def handle_create_lobby(data):
     if not is_admin(username) and not has_active_reservation(username):
         emit('error', {'message': 'Seuls admins/reservateurs peuvent creer un lobby'})
         return
+    # Bloquer si une partie est en cours (sauf super admin)
+    if current_game.get('active') and not is_super_admin(username):
+        emit('error', {'message': 'Une partie est en cours — impossible de créer un lobby'})
+        return
     # Si un lobby est déjà actif, seul Imran peut en créer un nouveau (annule l'ancien)
     if active_lobby.get('active') and not is_super_admin(username):
         emit('error', {'message': 'Un lobby est déjà en cours — seul Imran peut le remplacer'})
@@ -1714,11 +1718,11 @@ def handle_invite_to_lobby(data):
     pending_invitations[invited_user] = {'from': active_lobby['host'], 'timestamp': _time.time()}
     if is_guest_player(invited_user):
         active_lobby['accepted'].append(invited_user)
-        t1, t2 = len(active_lobby['team1']), len(active_lobby['team2'])
-        if t1 < 2 and t1 <= t2:
-            active_lobby['team1'].append(invited_user)
-        elif t2 < 2:
-            active_lobby['team2'].append(invited_user)
+        # Équipes fixes : Joueur1→team2, Joueur2→team1, Joueur3→team2
+        guest_team_map = {'Joueur1': 'team2', 'Joueur2': 'team1', 'Joueur3': 'team2'}
+        target_team = guest_team_map.get(invited_user, 'team2')
+        if len(active_lobby[target_team]) < 2:
+            active_lobby[target_team].append(invited_user)
         else:
             active_lobby['accepted'].remove(invited_user)
             emit('error', {'message': 'Equipes completes'})
