@@ -234,13 +234,15 @@
 
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
-  <a href="/dashboard">Dashboard</a>
-  <a href="/reservation">Réserver</a>
-  <a href="/live-score">Partie Live</a>
-  <a href="/stats">Stats</a>
-  <a href="/top">Classement</a>
+  <a href="/dashboard">🏠 Dashboard</a>
+  <a href="/reservation">📅 Réserver</a>
+  <a href="/live-score">🎮 Partie Live</a>
+  <a href="/lobby">👥 Lobby</a>
+  <a href="/stats">📊 Stats</a>
+  <a href="/top">🏆 Classement</a>
+  <a href="/scores">📋 Historique</a>
   <a href="/settings" class="active">⚙️ Paramètres</a>
-  <a href="#" onclick="logout()">Déconnexion</a>
+  <a href="#" onclick="logout()">🚪 Déconnexion</a>
 </div>
 
 <div class="page">
@@ -256,6 +258,7 @@
         <div class="avatar-big" id="profileAv">?</div>
         <div>
           <div class="profile-name" id="profileName">—</div>
+          <div class="profile-role" id="profileRole" style="display:none">Joueur</div>
         </div>
       </div>
     </div>
@@ -294,7 +297,7 @@
             </div>
           </div>
         </div>
-        <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)">
+        <input type="file" id="avatarFileInput" accept="image/*,.heic,.heif" style="display:none" onchange="handleAvatarUpload(this)">
 
         <!-- Surnom -->
         <div style="margin-bottom:1rem">
@@ -323,19 +326,20 @@
 
     <!-- ── ELO / NIVEAU ───────────────────────────────────────── -->
     <div class="settings-card fade-up" style="animation-delay:.09s">
-      <div class="settings-section-title">📊 Mon niveau ELO</div>
+      <div class="settings-section-title">📊 Mon niveau</div>
       <div class="settings-row">
-        <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+        <!-- Badge niveau actuel -->
+        <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.25rem">
           <div class="elo-badge">
             <span id="eloIcon" style="font-size:2rem">🎮</span>
             <div class="elo-info">
               <span class="elo-value" id="eloValue">1000</span>
-              <span class="elo-tier" id="eloTier">Débutant</span>
+              <span class="elo-tier" id="eloTier">Débutant+</span>
               <span class="elo-label">Points ELO</span>
             </div>
           </div>
           <div style="flex:1;min-width:180px">
-            <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.5rem">Progression vers le niveau suivant</div>
+            <div id="eloDesc" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.6rem;font-style:italic"></div>
             <div style="background:var(--bg-tertiary);border-radius:8px;height:8px;overflow:hidden">
               <div id="eloProgressBar" style="height:100%;border-radius:8px;background:linear-gradient(90deg,#cd7f32,#ffd700);transition:width .5s"></div>
             </div>
@@ -345,19 +349,21 @@
           </div>
         </div>
 
-        <!-- Explication -->
-        <div style="background:rgba(205,127,50,0.06);border:1px solid rgba(205,127,50,0.2);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem">
-          <div style="font-size:0.78rem;font-weight:700;color:var(--bronze);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em">💡 Comment fonctionne l'ELO ?</div>
-          <div style="font-size:0.84rem;color:var(--text-secondary);line-height:1.7">
-            Tout le monde <strong style="color:var(--text-primary)">commence à 1000 points</strong>. C'est le point de départ neutre.<br>
-            Après chaque partie, le vainqueur <strong style="color:#2ecc71">gagne des points</strong> et le perdant <strong style="color:#e74c3c">en perd</strong>.<br>
-            <strong style="color:var(--text-primary)">L'astuce :</strong> battre quelqu'un de plus fort que toi rapporte <em>beaucoup plus</em> de points, et perdre contre plus fort en fait perdre <em>beaucoup moins</em>. C'est pourquoi deux joueurs avec le même nombre de victoires peuvent avoir des ELO très différents selon le niveau de leurs adversaires.
-          </div>
+        <!-- Explication système ELO babyfoot -->
+        <div style="background:var(--bg-tertiary);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;font-size:0.82rem;color:var(--text-muted);line-height:1.6">
+          <div style="font-weight:700;color:var(--text-primary);margin-bottom:0.5rem">💡 Comment fonctionne l'ELO ?</div>
+          <div>Chaque joueur commence à <strong style="color:#cd7f32">1000 points</strong>. Après chaque partie :</div>
+          <ul style="margin:0.5rem 0 0.5rem 1rem;padding:0">
+            <li>Tu <strong style="color:#2ecc71">gagnes des points</strong> si tu bats quelqu'un de fort</li>
+            <li>Tu <strong style="color:#e74c3c">perds des points</strong> si tu perds contre quelqu'un de moins bon</li>
+            <li>Battre un expert vaut plus que battre un débutant</li>
+          </ul>
+          <div>Un gain typique est de <strong style="color:#cd7f32">±20 à ±40 pts</strong> par partie selon le niveau des adversaires.</div>
         </div>
 
-        <!-- Tableau des paliers -->
-        <div style="font-size:0.78rem;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">Tous les paliers</div>
-        <div id="eloTiersTable" style="display:flex;flex-direction:column;gap:0.4rem"></div>
+        <!-- Tableau de tous les niveaux -->
+        <div style="font-weight:700;color:var(--text-primary);font-size:0.875rem;margin-bottom:0.75rem">🏅 Tous les niveaux</div>
+        <div id="eloTiersGrid" style="display:flex;flex-direction:column;gap:0.5rem"></div>
       </div>
     </div>
 
@@ -393,12 +399,12 @@
       </div>
     </div>
 
-    <!-- Récupération mot de passe -->
+    <!-- Google / Email (info) -->
     <div class="settings-card fade-up" style="animation-delay:.09s">
       <div class="settings-section-title">📧 Mot de passe oublié ?</div>
       <div class="settings-row">
         <div class="info-box blue">
-          Si tu as oublié ton mot de passe, contacte un administrateur du club — il peut le réinitialiser depuis le panneau d'administration.
+          Contactez un membre du club pour réinitialiser votre mot de passe.
         </div>
       </div>
     </div>
@@ -492,16 +498,21 @@ async function changePassword() {
   }
 }
 
-// ── ELO tiers ─────────────────────────────────────────────────────────────
+// ── ELO tiers (synchronisé avec le backend) ───────────────────────────────
 const ELO_TIERS = [
-  { name:'Débutant',      icon:'🎮', min:0,    max:899  },
-  { name:'Débutant+',     icon:'🌱', min:900,  max:999  },
-  { name:'Intermédiaire', icon:'⚡', min:1000, max:1099 },
-  { name:'Confirmé',      icon:'🔥', min:1100, max:1199 },
-  { name:'Expert',        icon:'💎', min:1200, max:1399 },
-  { name:'Légende',       icon:'👑', min:1400, max:9999 },
+  { name:'Débutant 🎮',       icon:'🎮', min:800,  max:949,  desc:'Tu apprends les bases, chaque partie compte !' },
+  { name:'Débutant+ 🌱',      icon:'🌱', min:950,  max:1049, desc:'La technique commence à se voir, continue !' },
+  { name:'Intermédiaire 🔥',  icon:'🔥', min:1050, max:1199, desc:'Tu contrôles le jeu et tu gagnes régulièrement.' },
+  { name:'Confirmé ⚡',        icon:'⚡', min:1200, max:1349, desc:'Adversaire redoutable — tout le monde le sait.' },
+  { name:'Expert 💎',          icon:'💎', min:1350, max:1499, desc:'Top 5 du club, sérieusement.' },
+  { name:'Maître 🏆',          icon:'🏆', min:1500, max:9999, desc:'Imbattable. La table te appartient.' },
 ];
-function getEloTier(elo) { return ELO_TIERS.find(t => elo >= t.min && elo <= t.max) || ELO_TIERS[0]; }
+function getEloTier(elo) {
+  for (let i = ELO_TIERS.length - 1; i >= 0; i--) {
+    if (elo >= ELO_TIERS[i].min) return ELO_TIERS[i];
+  }
+  return ELO_TIERS[0];
+}
 
 // ── Avatar state ───────────────────────────────────────────────────────────
 let currentPreset = '';
@@ -537,7 +548,7 @@ function selectPreset(emoji) {
 async function handleAvatarUpload(input) {
   const file = input.files[0];
   if (!file) return;
-  // Pas de limite de taille — toutes les photos acceptées
+  if (file.size > 10 * 1024 * 1024) { toast('Image trop grande (max 10 Mo)', 'err'); return; }
   const reader = new FileReader();
   reader.onload = async (e) => {
     const base64 = e.target.result;
@@ -588,20 +599,34 @@ function renderElo(elo) {
   document.getElementById('eloValue').textContent = elo;
   document.getElementById('eloTier').textContent = tier.name;
   document.getElementById('eloIcon').textContent = tier.icon;
+  if (document.getElementById('eloDesc')) document.getElementById('eloDesc').textContent = tier.desc;
   const pct = tier.max >= 9999 ? 100 : Math.round((elo - tier.min) / (tier.max - tier.min + 1) * 100);
   document.getElementById('eloProgressBar').style.width = pct + '%';
   document.getElementById('eloMin').textContent = tier.min + ' pts';
-  document.getElementById('eloMax').textContent = tier.max >= 9999 ? 'MAX' : tier.max + ' pts';
-  // Surligner le palier actuel dans le tableau
-  ELO_TIERS.forEach(t => {
-    const row = document.getElementById('tier-row-' + t.name.replace(/[^a-z]/gi,''));
-    if (!row) return;
-    if (t.name === tier.name) {
-      row.style.background = 'linear-gradient(90deg,rgba(205,127,50,0.2),rgba(205,127,50,0.06))';
-      row.style.borderColor = 'rgba(205,127,50,0.45)';
-      row.innerHTML += '<span style="font-size:0.7rem;font-weight:700;color:#cd7f32;background:rgba(205,127,50,0.15);padding:2px 8px;border-radius:20px">Ton niveau</span>';
-    }
-  });
+  document.getElementById('eloMax').textContent = tier.max >= 9999 ? 'MAX 🏆' : tier.max + ' pts';
+
+  // Grille de tous les niveaux
+  const grid = document.getElementById('eloTiersGrid');
+  if (grid) {
+    grid.innerHTML = ELO_TIERS.map(t => {
+      const isCurrent = (elo >= t.min && elo <= t.max);
+      return `<div style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0.875rem;border-radius:10px;
+        background:${isCurrent ? 'rgba(205,127,50,0.15)' : 'var(--bg-tertiary)'};
+        border:1px solid ${isCurrent ? 'rgba(205,127,50,0.5)' : 'var(--border-subtle)'};
+        transition:all 0.2s">
+        <span style="font-size:1.5rem;flex-shrink:0">${t.icon}</span>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:0.875rem;color:${isCurrent ? '#cd7f32' : 'var(--text-primary)'}">
+            ${t.name}${isCurrent ? ' <span style="font-size:0.7rem;padding:1px 6px;background:rgba(205,127,50,0.25);border-radius:4px;margin-left:4px">MON NIVEAU</span>' : ''}
+          </div>
+          <div style="font-size:0.75rem;color:var(--text-muted)">${t.desc}</div>
+        </div>
+        <div style="text-align:right;font-size:0.75rem;color:var(--text-muted);flex-shrink:0;white-space:nowrap">
+          ${t.min}${t.max >= 9999 ? '+' : '–' + t.max} pts
+        </div>
+      </div>`;
+    }).join('');
+  }
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────
@@ -612,21 +637,6 @@ async function init() {
   window._me = user.username;
   document.getElementById('navUsername').textContent = user.username;
   document.getElementById('profileName').textContent = user.username;
-  // Pas d'affichage du type de compte
-
-  // Tableau des paliers ELO
-  const tiersTable = document.getElementById('eloTiersTable');
-  if (tiersTable) {
-    tiersTable.innerHTML = ELO_TIERS.map(t => `
-      <div id="tier-row-${t.name.replace(/[^a-z]/gi,'')}" style="display:flex;align-items:center;gap:0.75rem;padding:0.6rem 0.875rem;border-radius:10px;background:var(--bg-tertiary);border:1px solid var(--border-subtle)">
-        <span style="font-size:1.3rem;flex-shrink:0">${t.icon}</span>
-        <div style="flex:1">
-          <div style="font-weight:700;font-size:0.9rem;color:var(--text-primary)">${t.name}</div>
-          <div style="font-size:0.75rem;color:var(--text-muted)">${t.max >= 9999 ? t.min + ' pts et plus' : t.min + ' – ' + t.max + ' pts'}</div>
-        </div>
-      </div>
-    `).join('');
-  }
 
   // Charger le profil
   const profRes = await fetch('/api/profile');

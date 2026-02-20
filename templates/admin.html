@@ -55,13 +55,16 @@
 
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
-  <a href="/dashboard"><span data-bficon="home" data-size="16"></span> Dashboard</a>
-  <a href="/reservation"><span data-bficon="calendar" data-size="16"></span> Réserver</a>
-  <a href="/live-score"><span data-bficon="gamepad" data-size="16"></span> Partie Live</a>
-  <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
-  <a href="/top"><span data-bficon="trophy" data-size="16"></span> Classement</a>
-  <a href="/admin" class="active"><i class="fas fa-cog"></i> Admin</a>
-  <a href="#" onclick="logout()"><span data-bficon="logout" data-size="16" style="color:currentColor"></span> Déconnexion</a>
+  <a href="/dashboard">🏠 Dashboard</a>
+  <a href="/reservation">📅 Réserver</a>
+  <a href="/live-score">🎮 Partie Live</a>
+  <a href="/lobby">👥 Lobby</a>
+  <a href="/stats">📊 Stats</a>
+  <a href="/top">🏆 Classement</a>
+  <a href="/scores">📋 Historique</a>
+  <a href="/settings">⚙️ Paramètres</a>
+  <a href="/admin" class="active">⚙️ Admin</a>
+  <a href="#" onclick="logout()">🚪 Déconnexion</a>
 </div>
 
 <div class="page">
@@ -223,26 +226,11 @@ fetch('/current_user').then(r => {
       return;
     }
     isSuperAdmin = d.is_super_admin || false;
-    // Classe 1 uniquement : afficher la zone danger
+    // Super admin uniquement : afficher la zone danger
     const dangerZone = document.getElementById('dangerZone');
     if (dangerZone) {
       dangerZone.style.display = isSuperAdmin ? 'block' : 'none';
     }
-    // Badge classe visible dans la nav
-    const badge = document.createElement('span');
-    badge.style.cssText = 'font-size:0.7rem;padding:2px 8px;border-radius:20px;font-weight:700;margin-left:0.5rem;vertical-align:middle;';
-    if (isSuperAdmin) {
-      badge.textContent = 'CLASSE 1';
-      badge.style.background = 'rgba(255,215,0,0.2)';
-      badge.style.color = '#ffd700';
-      badge.style.border = '1px solid rgba(255,215,0,0.4)';
-    } else {
-      badge.textContent = 'CLASSE 2';
-      badge.style.background = 'rgba(205,127,50,0.2)';
-      badge.style.color = '#cd7f32';
-      badge.style.border = '1px solid rgba(205,127,50,0.4)';
-    }
-    document.getElementById('navUsername').appendChild(badge);
   } else {
     location.href = '/login';
   }
@@ -347,8 +335,8 @@ async function loadUsers() {
       if (isSuperAdmin && !isGuest) {
         roleSel = `<select onchange="setUserRole('${username}', parseInt(this.value))" style="font-size:0.75rem;padding:0.3rem 0.5rem;border-radius:6px;border:1px solid var(--border-normal);background:var(--bg-secondary);color:var(--text-primary);cursor:pointer">
           <option value="0">Joueur</option>
-          <option value="2">Admin</option>
-          <option value="1">Super Admin</option>
+          <option value="2">Responsable</option>
+          <option value="1">Responsable+</option>
         </select>`;
       }
 

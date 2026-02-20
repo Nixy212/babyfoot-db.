@@ -242,13 +242,15 @@
 
 <div class="mobile-menu" id="mobileMenu">
   <button class="mobile-menu-close" onclick="toggleMenu()">✕</button>
-  <a href="/dashboard"><span data-bficon="home" data-size="16"></span> Dashboard</a>
-  <a href="/reservation"><span data-bficon="calendar" data-size="16"></span> Réserver</a>
-  <a href="/lobby"><i class="fas fa-gamepad"></i> Lobby</a>
-  <a href="/stats"><span data-bficon="stats" data-size="16"></span> Stats</a>
-  <a href="/top"><span data-bficon="trophy" data-size="16"></span> Classement</a>
+  <a href="/dashboard">🏠 Dashboard</a>
+  <a href="/reservation">📅 Réserver</a>
+  <a href="/live-score">🎮 Partie Live</a>
+  <a href="/lobby" class="active">👥 Lobby</a>
+  <a href="/stats">📊 Stats</a>
+  <a href="/top">🏆 Classement</a>
+  <a href="/scores">📋 Historique</a>
   <a href="/settings">⚙️ Paramètres</a>
-  <a href="#" onclick="fetch('/api/logout',{method:'POST'}).then(()=>location.href='/')">Déconnexion</a>
+  <a href="#" onclick="logout()">🚪 Déconnexion</a>
 </div>
 
 <script>
