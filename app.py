@@ -41,9 +41,10 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
 
 # ── SocketIO ──────────────────────────────────────────────────
 
+_ALLOWED_ORIGINS = os.environ.get('CORS_ORIGINS', '*')
 socketio = SocketIO(
     app,
-    cors_allowed_origins="*",
+    cors_allowed_origins=_ALLOWED_ORIGINS,
     logger=False,
     engineio_logger=False,
     ping_timeout=45,
@@ -184,7 +185,8 @@ def init_database():
                 bio VARCHAR(200) DEFAULT NULL,
                 avatar_preset VARCHAR(10) DEFAULT NULL,
                 avatar_url TEXT DEFAULT NULL,
-                elo INTEGER DEFAULT 1000
+                elo INTEGER DEFAULT 1000,
+                role INTEGER DEFAULT 0
             )
         """)
         cur.execute("""
@@ -236,7 +238,8 @@ def init_database():
                 bio TEXT DEFAULT NULL,
                 avatar_preset TEXT DEFAULT NULL,
                 avatar_url TEXT DEFAULT NULL,
-                elo INTEGER DEFAULT 1000
+                elo INTEGER DEFAULT 1000,
+                role INTEGER DEFAULT 0
             )
         """)
         cur.execute("""
@@ -374,6 +377,7 @@ def migrate_teams_to_text():
             ('avatar_preset', 'VARCHAR(10)'),
             ('avatar_url', 'TEXT'),
             ('elo', 'INTEGER DEFAULT 1000'),
+            ('role', 'INTEGER DEFAULT 0'),
         ]:
             try:
                 cur.execute(f"ALTER TABLE users ADD COLUMN {col} {definition}")
@@ -389,25 +393,31 @@ def migrate_teams_to_text():
         logger.warning(f"Migration schema: {e}")
 
 def seed_accounts():
+    # (username, password, role) — role: 0=user, 1=super_admin, 2=admin
     accounts = [
-        ("alice", "test123"), ("bob", "test123"), ("charlie", "test123"), ("diana", "test123"),
-        ("Imran", "imran2024"), ("Apoutou", "admin123"), ("Hamara", "admin123"), ("MDA", "admin123"),
-        ("Joueur1", "guest"), ("Joueur2", "guest"), ("Joueur3", "guest"),
+        ("alice", "test123", 0), ("bob", "test123", 0), ("charlie", "test123", 0), ("diana", "test123", 0),
+        ("Imran", "imran2024", 1), ("Apoutou", "admin123", 2), ("Hamara", "admin123", 2), ("MDA", "admin123", 2),
+        ("Joueur1", "guest", 0), ("Joueur2", "guest", 0), ("Joueur3", "guest", 0),
     ]
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        for username, password in accounts:
-            q = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
+        for username, password, role in accounts:
+            q = "SELECT username, role FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username, role FROM users WHERE username = ?"
             cur.execute(q, (username,))
-            if not cur.fetchone():
+            existing = row_to_dict(cur.fetchone())
+            if not existing:
                 hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
                 q2 = (
-                    "INSERT INTO users (username, password, total_goals, total_games) VALUES (%s, %s, 0, 0)"
+                    "INSERT INTO users (username, password, total_goals, total_games, role) VALUES (%s, %s, 0, 0, %s)"
                     if USE_POSTGRES else
-                    "INSERT INTO users (username, password, total_goals, total_games) VALUES (?, ?, 0, 0)"
+                    "INSERT INTO users (username, password, total_goals, total_games, role) VALUES (?, ?, 0, 0, ?)"
                 )
-                cur.execute(q2, (username, hashed))
+                cur.execute(q2, (username, hashed, role))
+            elif existing.get('role') is None or existing.get('role') != role:
+                # Mettre à jour le rôle si changé
+                q3 = "UPDATE users SET role = %s WHERE username = %s" if USE_POSTGRES else "UPDATE users SET role = ? WHERE username = ?"
+                cur.execute(q3, (role, username))
         conn.commit()
         cur.close()
         conn.close()
@@ -506,13 +516,46 @@ def _launch_rematch(game):
 
 # ── Roles ─────────────────────────────────────────────────────
 
+# Cache roles pour eviter des requetes DB a chaque appel socket
+_role_cache = {}
+
+def _get_user_role(username):
+    """Retourne le role depuis la DB avec cache memoire (0=user, 1=super_admin, 2=admin)."""
+    if not username:
+        return 0
+    if username in _role_cache:
+        return _role_cache[username]
+    # Fallback hardcodé pour compatibilité (écrasé si en DB)
+    hardcoded = {"Imran": 1, "Apoutou": 2, "Hamara": 2, "MDA": 2}
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        q = "SELECT role FROM users WHERE username = %s" if USE_POSTGRES else "SELECT role FROM users WHERE username = ?"
+        cur.execute(q, (username,))
+        row = row_to_dict(cur.fetchone())
+        cur.close(); conn.close()
+        if row is not None and row.get('role') is not None:
+            role = int(row['role'])
+        else:
+            role = hardcoded.get(username, 0)
+    except Exception:
+        role = hardcoded.get(username, 0)
+    _role_cache[username] = role
+    return role
+
+def invalidate_role_cache(username=None):
+    if username:
+        _role_cache.pop(username, None)
+    else:
+        _role_cache.clear()
+
 def is_super_admin(username):
-    """Classe 1 — Imran uniquement. Acces illimite."""
-    return username == "Imran"
+    """Classe 1 — role=1. Acces illimite."""
+    return _get_user_role(username) == 1
 
 def is_admin(username):
-    """Classe 2 — Tous les admins (inclut classe 1)."""
-    return username in ["Imran", "Apoutou", "Hamara", "MDA"]
+    """Classe 2 — role >= 1 (inclut super admin)."""
+    return _get_user_role(username) >= 1
 
 def is_guest_player(username):
     return username in ["Joueur1", "Joueur2", "Joueur3"]
@@ -766,8 +809,21 @@ def current_user():
     if not username:
         return jsonify(None), 401
     admin_class = 1 if is_super_admin(username) else (2 if is_admin(username) else 0)
+    # Charger les infos profil pour affichage global (nav avatar, surnom)
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        q = "SELECT nickname, avatar_preset, avatar_url FROM users WHERE username = %s" if USE_POSTGRES else "SELECT nickname, avatar_preset, avatar_url FROM users WHERE username = ?"
+        cur.execute(q, (username,))
+        prof = row_to_dict(cur.fetchone()) or {}
+        cur.close(); conn.close()
+    except Exception:
+        prof = {}
     return jsonify({
         "username": username,
+        "nickname": prof.get("nickname") or "",
+        "avatar_preset": prof.get("avatar_preset") or "",
+        "avatar_url": prof.get("avatar_url") or "",
         "is_admin": is_admin(username),
         "is_super_admin": is_super_admin(username),
         "admin_class": admin_class,
@@ -819,7 +875,33 @@ def leaderboard():
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("SELECT username, total_goals, total_games FROM users ORDER BY total_goals DESC")
+        # Exclure les comptes guest et calculer les victoires depuis la table games
+        if USE_POSTGRES:
+            cur.execute("""
+                SELECT u.username, u.total_goals, u.total_games, u.elo,
+                       COALESCE(w.wins, 0) as wins
+                FROM users u
+                LEFT JOIN (
+                    SELECT p.username, COUNT(*) as wins
+                    FROM (
+                        SELECT json_array_elements_text(team1_players::json) as username, winner
+                        FROM games WHERE winner = 'team1'
+                        UNION ALL
+                        SELECT json_array_elements_text(team2_players::json) as username, winner
+                        FROM games WHERE winner = 'team2'
+                    ) p
+                    GROUP BY p.username
+                ) w ON u.username = w.username
+                WHERE u.username NOT IN ('Joueur1', 'Joueur2', 'Joueur3')
+                ORDER BY u.elo DESC
+            """)
+        else:
+            cur.execute("""
+                SELECT username, total_goals, total_games, elo, 0 as wins
+                FROM users
+                WHERE username NOT IN ('Joueur1', 'Joueur2', 'Joueur3')
+                ORDER BY elo DESC
+            """)
         rows = cur.fetchall()
     finally:
         cur.close()
@@ -892,7 +974,8 @@ def user_stats(username):
     is_browser_nav = accept_header.startswith('text/html') or accept_header.startswith('application/xhtml')
     if is_browser_nav:
         current_u = session.get('username')
-        if is_admin(current_u):
+        # Admin peut voir n'importe qui, un joueur peut voir ses propres stats
+        if is_admin(current_u) or current_u == username:
             return render_template('stats.html', user_stats=stats_data, target_username=username)
         else:
             return redirect(url_for('dashboard'))
@@ -989,7 +1072,34 @@ def delete_user():
     cur.close()
     conn.close()
     logger.info(f"Admin {admin_username} a supprime le compte {username_to_delete}")
+    invalidate_role_cache(username_to_delete)
     return jsonify({"success": True, "message": f"Compte '{username_to_delete}' supprime avec succes"})
+
+@app.route('/api/set_user_role', methods=['POST'])
+@handle_errors
+def set_user_role():
+    """Permet au super admin de changer le rôle d'un utilisateur."""
+    admin_username = session.get('username')
+    if not is_super_admin(admin_username):
+        return jsonify({"success": False, "message": "Réservé au super admin"}), 403
+    data = request.get_json()
+    target = data.get('username')
+    role = data.get('role')
+    if not target or role not in [0, 1, 2]:
+        return jsonify({"success": False, "message": "Paramètres invalides (role: 0=user, 1=super_admin, 2=admin)"}), 400
+    if target == admin_username:
+        return jsonify({"success": False, "message": "Vous ne pouvez pas changer votre propre rôle"}), 400
+    conn = get_db_connection()
+    cur = conn.cursor()
+    q = "UPDATE users SET role = %s WHERE username = %s" if USE_POSTGRES else "UPDATE users SET role = ? WHERE username = ?"
+    cur.execute(q, (role, target))
+    if cur.rowcount == 0:
+        cur.close(); conn.close()
+        return jsonify({"success": False, "message": "Utilisateur introuvable"}), 404
+    conn.commit(); cur.close(); conn.close()
+    invalidate_role_cache(target)
+    logger.info(f"{admin_username} a changé le rôle de {target} → {role}")
+    return jsonify({"success": True, "message": f"Rôle de {target} mis à jour"})
 
 # ── Reservations ──────────────────────────────────────────────
 
@@ -1167,6 +1277,9 @@ def reserve_and_lobby():
     result = _do_reservation(username, start_time, end_time, duration, mode)
     result_data = result.get_json() if hasattr(result, 'get_json') else {}
     if result_data and result_data.get("success"):
+        # Bloquer si une partie est en cours (sauf super admin)
+        if current_game.get('active') and not is_super_admin(username):
+            return jsonify({"success": False, "message": "Une partie est en cours — impossible de créer un lobby"}), 400
         # Creer le lobby avec l'utilisateur comme hote
         if active_lobby.get('active'):
             socketio.emit('lobby_cancelled', {}, namespace='/')
@@ -1333,12 +1446,18 @@ def users_list():
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("SELECT username FROM users ORDER BY username ASC")
+        cur.execute("SELECT username, nickname, avatar_preset, avatar_url, elo FROM users ORDER BY username ASC")
         rows = cur.fetchall()
     finally:
         cur.close()
         conn.close()
-    return jsonify([row_to_dict(r)['username'] for r in rows])
+    return jsonify([{
+        "username": row_to_dict(r)['username'],
+        "nickname": row_to_dict(r).get('nickname') or "",
+        "avatar_preset": row_to_dict(r).get('avatar_preset') or "",
+        "avatar_url": row_to_dict(r).get('avatar_url') or "",
+        "elo": row_to_dict(r).get('elo') or 1000,
+    } for r in rows])
 
 @app.route("/api/current_game")
 def api_current_game():
@@ -1539,7 +1658,7 @@ def api_update_profile():
         return jsonify({"error": "Non connecté"}), 401
     data = request.get_json()
     nickname = (data.get("nickname") or "").strip()[:50]
-    bio = (data.get("bio") or "").strip()[:200]
+    bio = (data.get("bio") or "").strip()[:120]
     avatar_preset = (data.get("avatar_preset") or "").strip()[:10]
     conn = get_db_connection()
     cur = conn.cursor()
@@ -1562,16 +1681,35 @@ def api_upload_avatar():
     img_data = data.get("image", "")
     if not img_data.startswith("data:image/"):
         return jsonify({"error": "Image invalide"}), 400
+    # Validation taille côté serveur (max 2 Mo en base64 ≈ 2.7 Mo de string)
+    MAX_B64_LEN = 2_800_000
+    header, b64 = img_data.split(",", 1)
+    if len(b64) > MAX_B64_LEN:
+        return jsonify({"error": "Image trop grande (max 2 Mo)"}), 413
+    # Vérifier type autorisé
+    if not any(t in header for t in ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']):
+        return jsonify({"error": "Format non supporté (jpg, png, webp, gif)"}), 400
     avatars_dir = os.path.join(os.path.dirname(__file__), "static", "avatars")
     os.makedirs(avatars_dir, exist_ok=True)
-    header, b64 = img_data.split(",", 1)
-    ext = "png" if "png" in header else "jpg"
+    ext = "png" if "png" in header else "webp" if "webp" in header else "gif" if "gif" in header else "jpg"
     filename = f"{username}_{_uuid.uuid4().hex[:8]}.{ext}"
+    decoded = base64.b64decode(b64)
     with open(os.path.join(avatars_dir, filename), "wb") as f:
-        f.write(base64.b64decode(b64))
+        f.write(decoded)
     avatar_url = f"/static/avatars/{filename}"
+    # Supprimer l'ancien avatar si existant
     conn = get_db_connection()
     cur = conn.cursor()
+    q_old = "SELECT avatar_url FROM users WHERE username = %s" if USE_POSTGRES else "SELECT avatar_url FROM users WHERE username = ?"
+    cur.execute(q_old, (username,))
+    old_row = row_to_dict(cur.fetchone())
+    if old_row and old_row.get("avatar_url"):
+        old_path = os.path.join(os.path.dirname(__file__), old_row["avatar_url"].lstrip("/"))
+        try:
+            if os.path.exists(old_path):
+                os.remove(old_path)
+        except Exception:
+            pass
     if USE_POSTGRES:
         cur.execute("UPDATE users SET avatar_url=%s, avatar_preset=NULL WHERE username=%s", (avatar_url, username))
     else:
@@ -1727,13 +1865,8 @@ def api_arduino_goal():
             except Exception as e:
                 logger.error(f"Erreur sauvegarde: {e}")
             socketio.emit("game_ended", current_game, namespace="/")
-            # Lancer le prompt rematch apres 4 secondes
-            def ask_rematch():
-                global rematch_pending
-                eventlet.sleep(4)
-                rematch_pending = True
-                socketio.emit("rematch_prompt", {}, namespace="/")
-            eventlet.spawn(ask_rematch)
+            rematch_pending = True
+            socketio.emit("rematch_prompt", {}, namespace="/")
             return jsonify({"success": True, "game_ended": True, "winner": team})
         else:
             socketio.emit("score_updated", current_game, namespace="/")
@@ -2056,7 +2189,10 @@ def handle_start_game_from_lobby():
 def handle_start_game(data):
     global current_game, rematch_votes, servo_commands
     try:
-        username = get_socket_user() or ''
+        username = get_socket_user()
+        if not username:
+            emit('error', {'message': 'Non authentifié'})
+            return
         if not is_admin(username) and not has_active_reservation(username):
             emit('error', {'message': 'Reservation active ou admin requis'})
             return
@@ -2137,6 +2273,9 @@ def handle_score(data):
     global current_game, rematch_pending
     try:
         username = get_socket_user()
+        if not username:
+            emit('error', {'message': 'Non authentifié'})
+            return
         if not current_game.get('active'):
             emit('error', {'message': 'Aucune partie en cours'})
             return
@@ -2157,12 +2296,8 @@ def handle_score(data):
             except Exception as e:
                 logger.error(f"Save error: {e}")
             socketio.emit('game_ended', current_game, namespace='/')
-            def ask_rematch():
-                global rematch_pending
-                eventlet.sleep(4)
-                rematch_pending = True
-                socketio.emit('rematch_prompt', {}, namespace='/')
-            eventlet.spawn(ask_rematch)
+            rematch_pending = True
+            socketio.emit('rematch_prompt', {}, namespace='/')
         else:
             socketio.emit('score_updated', current_game, namespace='/')
             emit('score_ack', {'team': team, 'score': current_game[f"{team}_score"]})
@@ -2174,6 +2309,8 @@ def handle_score(data):
 def handle_vote_rematch(data):
     global rematch_votes, rematch_no_votes, current_game, servo_commands, rematch_pending
     username = get_socket_user()
+    if not username:
+        return
     all_players = list(current_game.get('team1_players', [])) + list(current_game.get('team2_players', []))
     host = current_game.get('started_by')
 
@@ -2217,12 +2354,12 @@ def handle_vote_rematch(data):
         'yes': yes_count, 'no': no_count,
         'total': len(all_players)
     }, namespace='/')
-    # Lancer si tous les OUI sont là (en excluant ceux qui ont dit NON)
-    remaining = [p for p in all_players if p not in rematch_no_votes]
-    t1_remaining = [p for p in current_game.get('team1_players', []) if p not in rematch_no_votes]
-    t2_remaining = [p for p in current_game.get('team2_players', []) if p not in rematch_no_votes]
-    if (len(rematch_votes['team1']) >= len(current_game.get('team1_players', [])) and
-            len(rematch_votes['team2']) >= len(current_game.get('team2_players', []))):
+    # Lancer uniquement si tous les joueurs qui N'ONT PAS voté NON ont voté OUI
+    t1_needed = [p for p in current_game.get('team1_players', []) if p not in rematch_no_votes]
+    t2_needed = [p for p in current_game.get('team2_players', []) if p not in rematch_no_votes]
+    t1_yes = [p for p in rematch_votes['team1'] if p not in rematch_no_votes]
+    t2_yes = [p for p in rematch_votes['team2'] if p not in rematch_no_votes]
+    if len(t1_yes) >= len(t1_needed) and len(t2_yes) >= len(t2_needed) and (t1_needed or t2_needed):
         rematch_no_votes.clear()
         _launch_rematch(current_game)
 
