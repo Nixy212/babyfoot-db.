@@ -28,6 +28,7 @@ if not _secret_key:
     logger.warning("SECRET_KEY non definie — cle aleatoire generee (sessions invalidees au redemarrage). Definissez SECRET_KEY dans Railway !")
 
 app.secret_key = _secret_key
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 Mo max par requête
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = (
@@ -52,7 +53,7 @@ socketio = SocketIO(
     async_mode="eventlet",
     manage_session=True,
     allow_upgrades=True,
-    max_http_buffer_size=1_000_000,
+    max_http_buffer_size=50_000_000,
 )
 
 # ── Service Worker ────────────────────────────────────────────
@@ -395,7 +396,6 @@ def migrate_teams_to_text():
 def seed_accounts():
     # (username, password, role) — role: 0=user, 1=super_admin, 2=admin
     accounts = [
-        ("alice", "test123", 0), ("bob", "test123", 0), ("charlie", "test123", 0), ("diana", "test123", 0),
         ("Imran", "imran2024", 1), ("Apoutou", "admin123", 2), ("Hamara", "admin123", 2), ("MDA", "admin123", 2),
         ("Joueur1", "guest", 0), ("Joueur2", "guest", 0), ("Joueur3", "guest", 0),
     ]
@@ -1051,7 +1051,7 @@ def delete_user():
         return jsonify({"success": False, "message": "Nom d'utilisateur requis"}), 400
     if username_to_delete == admin_username:
         return jsonify({"success": False, "message": "Vous ne pouvez pas vous supprimer vous-meme"}), 400
-    protected_accounts = ['alice', 'bob', 'charlie', 'diana']
+    protected_accounts = []
     if username_to_delete in protected_accounts:
         return jsonify({"success": False, "message": f"Le compte '{username_to_delete}' est protege"}), 400
     conn = get_db_connection()
@@ -1681,11 +1681,9 @@ def api_upload_avatar():
     img_data = data.get("image", "")
     if not img_data.startswith("data:image/"):
         return jsonify({"error": "Image invalide"}), 400
-    # Validation taille côté serveur (max 2 Mo en base64 ≈ 2.7 Mo de string)
-    MAX_B64_LEN = 2_800_000
+    # Pas de limite de taille côté serveur
+    # Pas de limite de taille — toutes les photos acceptées
     header, b64 = img_data.split(",", 1)
-    if len(b64) > MAX_B64_LEN:
-        return jsonify({"error": "Image trop grande (max 2 Mo)"}), 413
     # Vérifier type autorisé
     if not any(t in header for t in ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']):
         return jsonify({"error": "Format non supporté (jpg, png, webp, gif)"}), 400
@@ -2494,7 +2492,30 @@ def save_game_results(game):
 
             for player in real_players:
                 player_score = t1_score if player in t1_players else t2_score
-                new_elo = new_elos.get(player, elos.get(player, 1000))
+                old_elo = elos.get(player, 1000)
+                new_elo = new_elos.get(player, old_elo)
+
+                # Détecter changement de palier ELO
+                def elo_tier_name(e):
+                    if e >= 1400: return "Légende"
+                    if e >= 1200: return "Expert"
+                    if e >= 1100: return "Confirmé"
+                    if e >= 1000: return "Intermédiaire"
+                    if e >= 900:  return "Débutant+"
+                    return "Débutant"
+                old_tier = elo_tier_name(old_elo)
+                new_tier_n = elo_tier_name(new_elo)
+                if new_elo > old_elo and new_tier_n != old_tier:
+                    tier_icons = {"Légende":"👑","Expert":"💎","Confirmé":"🔥","Intermédiaire":"⚡","Débutant+":"🌱","Débutant":"🎮"}
+                    icon = tier_icons.get(new_tier_n, "🎉")
+                    socketio.emit('elo_tier_up', {
+                        'player': player,
+                        'old_tier': old_tier,
+                        'new_tier': new_tier_n,
+                        'new_elo': new_elo,
+                        'icon': icon,
+                    }, namespace='/')
+
                 if USE_POSTGRES:
                     cur.execute("UPDATE users SET total_games = total_games + 1, elo = %s WHERE username = %s", (new_elo, player))
                     if player_score > 0:
