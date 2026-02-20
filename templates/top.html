@@ -294,7 +294,7 @@ fetch('/current_user').then(r => r.json()).then(d => {
 async function loadLeaderboard(me) {
   const el = document.getElementById('leaderboard');
   try {
-    const [lb, onlineRes] = await Promise.all([
+    let [lb, onlineRes] = await Promise.all([
       fetch('/leaderboard').then(r => r.json()),
       fetch('/api/online_users').then(r => r.json())
     ]);

@@ -390,7 +390,8 @@ async function loadPlayers() {
   try {
     const res = await fetch('/users_list');
     const users = await res.json();
-    allUsers = users.filter(u => u !== currentUsername);
+    const GUEST_RE = /^Joueur\d+$/i;
+    allUsers = users.filter(u => u !== currentUsername && !GUEST_RE.test(u));
     renderPlayerSelector();
   } catch(e) {}
 }
@@ -462,54 +463,121 @@ async function loadLobby() {
   } catch(e) { location.href = '/dashboard'; }
 }
 
-// Déterminer le mode de jeu en fonction des acceptés (2v2 si >=4, sinon 1v1)
-function getGameMode() {
-  const total = (lobbyData.accepted || []).length;
-  return total >= 4 ? '2v2' : '1v1';
+// Pool de joueurs guests disponibles pour compléter les équipes
+const GUEST_POOL = ['Joueur1', 'Joueur2', 'Joueur3'];
+
+// Retourne les guests déjà dans les équipes (pour savoir lesquels sont libres)
+function usedGuests() {
+  const all = [...(lobbyData.team1 || []), ...(lobbyData.team2 || [])];
+  return all.filter(p => GUEST_POOL.includes(p));
 }
 
-function renderTeam(containerId, players, teamColor, maxSlots) {
+// Prochain guest disponible non encore dans une équipe
+function nextAvailableGuest() {
+  const used = usedGuests();
+  return GUEST_POOL.find(g => !used.includes(g)) || null;
+}
+
+function renderTeam(containerId, players, teamColor) {
   const container = document.getElementById(containerId);
   container.innerHTML = '';
   const isHost = currentUsername === lobbyData.host || isAdmin;
-  const mode = getGameMode();
+  const MAX_SLOTS = 2; // toujours 2 slots par équipe (1v1 ou 2v2)
 
-  // Joueurs réels
+  // ── Joueurs réels (vrais comptes)
   players.forEach(player => {
-    const item = document.createElement('div');
-    item.className = 'player-item';
-    let buttons = '';
-    if (player !== currentUsername && canRequestSwap(player)) {
-      buttons += `<button onclick="requestSwap('${player}')" style="font-size:0.8rem;padding:0.3rem 0.7rem">↔️</button>`;
+    const isGuest = GUEST_POOL.includes(player);
+
+    if (isGuest) {
+      // Joueur guest : affiché grisé, bouton "Remplacer" pour l'hôte
+      const ghost = document.createElement('div');
+      ghost.className = 'player-ghost player-ghost-active';
+      ghost.style.opacity = '0.6';
+      ghost.innerHTML = `
+        <div class="player-ghost-name">
+          <div class="player-ghost-avatar" style="background:rgba(205,127,50,0.15);border-color:rgba(205,127,50,0.3)">
+            <i class="fas fa-user" style="font-size:11px;color:rgba(205,127,50,0.5)"></i>
+          </div>
+          <div>
+            <span style="font-size:0.85rem;color:var(--text-muted);font-weight:600">${player}</span>
+            <div style="font-size:0.72rem;color:var(--text-muted);font-style:italic">Joueur de remplacement</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.4rem">
+          ${isHost ? `<button class="btn-add-ghost" onclick="focusInvite()" title="Inviter un vrai joueur à la place">↔ Remplacer</button>` : ''}
+          ${isHost ? `<button style="padding:0.3rem 0.6rem;border-radius:6px;border:1px solid rgba(231,76,60,0.4);background:rgba(231,76,60,0.1);color:#e74c3c;font-size:0.78rem;font-weight:600;cursor:pointer" onclick="removeGuest('${player}')">✕</button>` : ''}
+        </div>
+      `;
+      container.appendChild(ghost);
+    } else {
+      // Vrai joueur
+      const item = document.createElement('div');
+      item.className = 'player-item';
+      let buttons = '';
+      if (player !== currentUsername && canRequestSwap(player)) {
+        buttons += `<button onclick="requestSwap('${player}')" style="font-size:0.8rem;padding:0.3rem 0.7rem">↔️</button>`;
+      }
+      if (canKick(player)) {
+        buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')" style="font-size:0.8rem;padding:0.3rem 0.7rem">✕</button>`;
+      }
+      item.innerHTML = `
+        <span style="display:flex;align-items:center;gap:6px">
+          ${onlineUsers.has(player) ? '<span class="online-dot-lobby" title="En ligne"></span>' : ''}
+          <span style="font-weight:700">${player}${player === lobbyData.host ? ' <span style="color:var(--bronze);font-size:0.75rem">★ hôte</span>' : ''}</span>
+        </span>
+        <div style="display:flex;gap:0.4rem">${buttons}</div>
+      `;
+      container.appendChild(item);
     }
-    if (canKick(player)) {
-      buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')" style="font-size:0.8rem;padding:0.3rem 0.7rem">✕</button>`;
-    }
-    item.innerHTML = `
-      <span style="display:flex;align-items:center;gap:6px">
-        ${onlineUsers.has(player) ? '<span class="online-dot-lobby" title="En ligne"></span>' : ''}
-        <span style="font-weight:700">${player}${player === lobbyData.host ? ' <span style="color:var(--bronze);font-size:0.75rem">★ hôte</span>' : ''}</span>
-      </span>
-      <div style="display:flex;gap:0.4rem">${buttons}</div>
-    `;
-    container.appendChild(item);
   });
 
-  // Slots fantômes (complètent jusqu'à maxSlots)
-  const ghosts = maxSlots - players.length;
-  for (let i = 0; i < ghosts; i++) {
+  // ── Slots vides : afficher les guests dispo avec bouton "+ Ajouter"
+  const emptySlots = MAX_SLOTS - players.length;
+  // Guests pas encore dans AUCUNE équipe (team1 + team2 combinées)
+  const usedAlready = usedGuests();
+  const guestsForDisplay = GUEST_POOL.filter(g => !usedAlready.includes(g));
+  for (let i = 0; i < emptySlots; i++) {
+    const displayGuest = guestsForDisplay[i] || null;
+
     const ghost = document.createElement('div');
     ghost.className = 'player-ghost';
-    const slotNum = players.length + i + 1;
-    ghost.innerHTML = `
-      <div class="player-ghost-name">
-        <div class="player-ghost-avatar"><i class="fas fa-user" style="font-size:11px;color:rgba(255,255,255,0.2)"></i></div>
-        <span>Joueur ${slotNum} <span style="font-size:0.75rem">(slot libre)</span></span>
-      </div>
-      ${isHost ? `<button class="btn-add-ghost" onclick="focusInvite()">+ Inviter</button>` : ''}
-    `;
+    if (displayGuest) {
+      ghost.innerHTML = `
+        <div class="player-ghost-name">
+          <div class="player-ghost-avatar">
+            <i class="fas fa-user" style="font-size:11px;color:rgba(255,255,255,0.2)"></i>
+          </div>
+          <div>
+            <span style="font-size:0.85rem;font-style:italic">${displayGuest}</span>
+            <div style="font-size:0.72rem;color:var(--text-muted)">Appuyer pour ajouter</div>
+          </div>
+        </div>
+        ${isHost ? `<button class="btn-add-ghost" onclick="addGuest('${displayGuest}')">+ Ajouter</button>` : '<span style="font-size:0.75rem;color:var(--text-muted)">Slot libre</span>'}
+      `;
+    } else {
+      ghost.innerHTML = `
+        <div class="player-ghost-name">
+          <div class="player-ghost-avatar">
+            <i class="fas fa-user" style="font-size:11px;color:rgba(255,255,255,0.1)"></i>
+          </div>
+          <span style="font-size:0.82rem;color:var(--text-muted)">Slot libre</span>
+        </div>
+      `;
+    }
     container.appendChild(ghost);
   }
+}
+
+// Ajouter un guest dans le lobby (le serveur le place dans la bonne équipe)
+function addGuest(guestName) {
+  if (!canInvite()) return;
+  socket.emit('invite_to_lobby', { user: guestName });
+}
+
+// Retirer un guest du lobby
+function removeGuest(guestName) {
+  if (!canInvite()) return;
+  socket.emit('kick_from_lobby', { user: guestName });
 }
 
 function focusInvite() {
@@ -531,14 +599,14 @@ function updateLobbyUI() {
   const inviteSection = document.getElementById('invite-section');
   inviteSection.style.display = canInvite() ? 'block' : 'none';
 
-  // Mode de jeu détecté
-  const mode = getGameMode();
-  const slotsPerTeam = mode === '2v2' ? 2 : 1;
-  document.getElementById('team1Mode').textContent = mode === '2v2' ? '(2v2)' : '(1v1)';
-  document.getElementById('team2Mode').textContent = mode === '2v2' ? '(2v2)' : '(1v1)';
+  // Mode affiché : 2v2 si chaque équipe a 2 vrais joueurs, sinon 1v1
+  const realPlayers = (lobbyData.accepted || []).filter(p => !GUEST_POOL.includes(p));
+  const mode = realPlayers.length >= 3 ? '2v2' : '1v1';
+  if (document.getElementById('team1Mode')) document.getElementById('team1Mode').textContent = '(2v2)';
+  if (document.getElementById('team2Mode')) document.getElementById('team2Mode').textContent = '(2v2)';
 
-  renderTeam('team1List', lobbyData.team1 || [], '#cd7f32', slotsPerTeam);
-  renderTeam('team2List', lobbyData.team2 || [], '#ffd700', slotsPerTeam);
+  renderTeam('team1List', lobbyData.team1 || [], '#cd7f32');
+  renderTeam('team2List', lobbyData.team2 || [], '#ffd700');
 
   if ((lobbyData.declined || []).length > 0) {
     document.getElementById('declinedSection').style.display = 'block';
