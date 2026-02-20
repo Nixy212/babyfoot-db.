@@ -1608,11 +1608,10 @@ def babyfoot_status():
     })
 
 # ── ELO helpers ───────────────────────────────────────────────────────────
-def compute_elo(winner_elo, loser_elo, k=40):
+def compute_elo(winner_elo, loser_elo, k=16):
     """
     Formule ELO adaptée au baby-foot.
-    K=40 (plus dynamique qu'aux échecs) pour que les ELO bougent vite.
-    En 1v1 classique babyfoot sur 10 buts : chaque victoire compte vraiment.
+    K=16 → gains typiques de 5 à 10 pts par partie selon le niveau des adversaires.
     """
     expected_w = 1 / (1 + 10 ** ((loser_elo - winner_elo) / 400))
     return (
