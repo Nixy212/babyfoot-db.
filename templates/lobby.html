@@ -489,26 +489,20 @@ function renderTeam(containerId, players, teamColor) {
     const isGuest = GUEST_POOL.includes(player);
 
     if (isGuest) {
-      // Joueur guest : affiché grisé, bouton "Remplacer" pour l'hôte
-      const ghost = document.createElement('div');
-      ghost.className = 'player-ghost player-ghost-active';
-      ghost.style.opacity = '0.6';
-      ghost.innerHTML = `
-        <div class="player-ghost-name">
-          <div class="player-ghost-avatar" style="background:rgba(205,127,50,0.15);border-color:rgba(205,127,50,0.3)">
-            <i class="fas fa-user" style="font-size:11px;color:rgba(205,127,50,0.5)"></i>
-          </div>
-          <div>
-            <span style="font-size:0.85rem;color:var(--text-muted);font-weight:600">${player}</span>
-            <div style="font-size:0.72rem;color:var(--text-muted);font-style:italic">Joueur de remplacement</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:0.4rem">
-          ${isHost ? `<button class="btn-add-ghost" onclick="focusInvite()" title="Inviter un vrai joueur à la place">↔ Remplacer</button>` : ''}
-          ${isHost ? `<button style="padding:0.3rem 0.6rem;border-radius:6px;border:1px solid rgba(231,76,60,0.4);background:rgba(231,76,60,0.1);color:#e74c3c;font-size:0.78rem;font-weight:600;cursor:pointer" onclick="removeGuest('${player}')">✕</button>` : ''}
-        </div>
+      // Joueur guest : affiché comme un vrai joueur
+      const item = document.createElement('div');
+      item.className = 'player-item';
+      let buttons = '';
+      if (isHost) {
+        buttons += `<button style="padding:0.3rem 0.6rem;border-radius:6px;border:1px solid rgba(231,76,60,0.4);background:rgba(231,76,60,0.1);color:#e74c3c;font-size:0.78rem;font-weight:600;cursor:pointer" onclick="removeGuest('${player}')">✕</button>`;
+      }
+      item.innerHTML = `
+        <span style="display:flex;align-items:center;gap:6px">
+          <span style="font-weight:700">${player}</span>
+        </span>
+        <div style="display:flex;gap:0.4rem">${buttons}</div>
       `;
-      container.appendChild(ghost);
+      container.appendChild(item);
     } else {
       // Vrai joueur
       const item = document.createElement('div');

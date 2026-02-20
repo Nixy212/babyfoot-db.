@@ -580,7 +580,8 @@ async function checkResaExpiry() {
   if (!lastGame || !lastGame.active) return;
   const t1 = parsePlayers(lastGame ? lastGame.team1_players : []);
   const t2 = parsePlayers(lastGame ? lastGame.team2_players : []);
-  if (!t1.includes(currentUser) && !t2.includes(currentUser) && !isAdmin) return;
+  if (!t1.includes(currentUser) && !t2.includes(currentUser)) return;
+  if (isAdmin) return; // Pas de popup pour les admins
   try {
     const res = await fetch('/api/babyfoot_status');
     const status = await res.json();

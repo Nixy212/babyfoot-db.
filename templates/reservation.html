@@ -67,14 +67,25 @@
     /* Timeline */
     .timeline-wrap{background:var(--bg-secondary);border:1px solid var(--border-normal);border-radius:16px;padding:1.25rem 1.5rem;margin-bottom:1.25rem}
     .tl-title{color:var(--text-secondary);font-size:.875rem;text-transform:uppercase;letter-spacing:.07em;margin:0 0 1rem}
+    /* Conteneur scrollable */
     .tl-outer{
+      overflow-x: auto;
+      overflow-y: hidden;
       border: 2px solid var(--border-accent);
       border-radius: 10px;
       padding: 3px;
       background: rgba(205,127,50,0.04);
       margin-bottom:.5rem;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(205,127,50,0.4) transparent;
     }
-    .tl-bar{position:relative;height:68px;background:rgba(255,255,255,.04);border-radius:7px;overflow:hidden;margin-bottom:0}
+    .tl-outer::-webkit-scrollbar{height:4px}
+    .tl-outer::-webkit-scrollbar-track{background:transparent}
+    .tl-outer::-webkit-scrollbar-thumb{background:rgba(205,127,50,0.4);border-radius:2px}
+    /* Inner container with fixed width: 80px per hour × 13 hours = 1040px */
+    .tl-inner{width:1040px;position:relative}
+    .tl-bar{position:relative;height:68px;background:rgba(255,255,255,.04);border-radius:7px;overflow:visible;margin-bottom:0}
     /* Graduations verticales toutes les heures */
     .tl-bar::before{
       content:'';
@@ -82,17 +93,19 @@
       background: repeating-linear-gradient(
         90deg,
         transparent,
-        transparent calc(100%/13 - 1px),
-        rgba(255,255,255,0.06) calc(100%/13 - 1px),
-        rgba(255,255,255,0.06) calc(100%/13)
+        transparent 79px,
+        rgba(255,255,255,0.08) 79px,
+        rgba(255,255,255,0.08) 80px
       );
-      pointer-events:none;z-index:1;
+      pointer-events:none;z-index:1;border-radius:7px;
     }
     .tl-block{position:absolute;top:4px;bottom:4px;border-radius:6px;display:flex;align-items:center;padding:0 10px;font-size:.82rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;z-index:2}
     .tl-block.mine{background:linear-gradient(135deg,#cd7f32,#b8732f);color:#fff;box-shadow:0 2px 8px rgba(205,127,50,0.35)}
     .tl-block.theirs{background:rgba(231,76,60,.4);border:1px solid rgba(231,76,60,.6);color:#ff8080}
     .tl-block.past{opacity:.35;filter:grayscale(.6)}
-    .tl-labels{display:flex;justify-content:space-between;font-size:.75rem;color:var(--text-muted);margin-top:6px;padding:0 2px;font-weight:500}
+    /* Labels sous la barre, alignés sur les heures */
+    .tl-labels{display:flex;font-size:.75rem;color:var(--text-muted);margin-top:5px;padding:0;font-weight:500;width:1040px}
+    .tl-labels span{width:80px;flex-shrink:0;text-align:center}
     .tl-now{position:absolute;top:0;bottom:0;width:2px;background:#cd7f32;z-index:3;display:none}
     .tl-now::before{content:'▼';position:absolute;top:-2px;left:50%;transform:translateX(-50%);font-size:8px;color:#cd7f32;line-height:1}
     .tl-now::after{content:'';position:absolute;bottom:-3px;left:-3px;width:8px;height:8px;border-radius:50%;background:#cd7f32;box-shadow:0 0 6px rgba(205,127,50,0.7)}
@@ -249,10 +262,12 @@
     <!-- Timeline -->
     <div class="timeline-wrap">
       <div class="tl-title" id="tlTitle">Aujourd'hui</div>
-      <div class="tl-outer">
-        <div class="tl-bar" id="tlBar"><div class="tl-now" id="tlNow"></div></div>
+      <div class="tl-outer" id="tlOuter">
+        <div class="tl-inner">
+          <div class="tl-bar" id="tlBar"><div class="tl-now" id="tlNow"></div></div>
+          <div class="tl-labels"><span>8h</span><span>9h</span><span>10h</span><span>11h</span><span>12h</span><span>13h</span><span>14h</span><span>15h</span><span>16h</span><span>17h</span><span>18h</span><span>19h</span><span>20h</span><span>21h</span></div>
+        </div>
       </div>
-      <div class="tl-labels"><span>8h</span><span>9h</span><span>10h</span><span>11h</span><span>12h</span><span>13h</span><span>14h</span><span>15h</span><span>16h</span><span>17h</span><span>18h</span><span>19h</span><span>20h</span><span>21h</span></div>
       <div style="margin-top:.75rem">
         <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:.4rem">Prochains créneaux libres :</div>
         <div class="free-row" id="freeRow"></div>
@@ -387,23 +402,26 @@ function renderTL(){
   const key=dayOff===0?'all_today':'all_tomorrow';
   const resas=STATUS[key]||[];
   const bar=document.getElementById('tlBar'),nowEl=document.getElementById('tlNow');
+  const outer=document.getElementById('tlOuter');
   document.getElementById('tlTitle').textContent=dayOff===0?"Aujourd'hui":'Demain';
-  const SH=8,EH=21,TOT=(EH-SH)*60;
-  function pct(iso){const d=new Date(iso);return Math.max(0,Math.min(100,((d.getHours()-SH)*60+d.getMinutes())/TOT*100));}
+  // 80px par heure, 13 heures (8h→21h)
+  const SH=8,EH=21,PX_PER_HOUR=80,TOTAL_PX=(EH-SH)*PX_PER_HOUR;
+  function px(iso){const d=new Date(iso);return Math.max(0,Math.min(TOTAL_PX,((d.getHours()-SH)*60+d.getMinutes())/60*PX_PER_HOUR));}
   Array.from(bar.children).forEach(c=>{if(c!==nowEl)c.remove();});
   const now=new Date();
-  const nm=(now.getHours()-SH)*60+now.getMinutes();
-  if(dayOff===0&&nm>=0&&nm<=TOT){nowEl.style.display='block';nowEl.style.left=(nm/TOT*100)+'%';}
-  else nowEl.style.display='none';
+  const nowPx=((now.getHours()-SH)*60+now.getMinutes())/60*PX_PER_HOUR;
+  if(dayOff===0&&nowPx>=0&&nowPx<=TOTAL_PX){
+    nowEl.style.display='block';nowEl.style.left=nowPx+'px';
+  } else nowEl.style.display='none';
   const GUEST_RE = /^Joueur\d+$/i;
   resas.forEach(r=>{
     if(GUEST_RE.test(r.reserved_by) && r.reserved_by!==ME) return;
-    const l=pct(r.start_time),w=pct(r.end_time)-l;
-    if(w<=0)return;
+    const l=px(r.start_time),w=px(r.end_time)-l;
+    if(w<=2)return;
     const b=document.createElement('div');b.className='tl-block';
     if(new Date(r.end_time)<now&&dayOff===0)b.classList.add('past');
     b.classList.add(r.reserved_by===ME?'mine':'theirs');
-    b.style.left=l+'%';b.style.width=w+'%';
+    b.style.left=l+'px';b.style.width=w+'px';
     b.title=r.reserved_by+' · '+hm(r.start_time)+'–'+hm(r.end_time);
     b.textContent=r.reserved_by===ME?'Vous':r.reserved_by;
     b.onclick=()=>{
@@ -415,6 +433,11 @@ function renderTL(){
     };
     bar.appendChild(b);
   });
+  // Centrer sur l'heure actuelle (seulement aujourd'hui au 1er rendu)
+  if(dayOff===0&&nowPx>0){
+    const visibleW=outer.clientWidth;
+    outer.scrollLeft=Math.max(0,nowPx-visibleW/2);
+  }
 }
 
 // ── Prochains créneaux libres
