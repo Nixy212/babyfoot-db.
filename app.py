@@ -28,7 +28,6 @@ if not _secret_key:
     logger.warning("SECRET_KEY non definie — cle aleatoire generee (sessions invalidees au redemarrage). Definissez SECRET_KEY dans Railway !")
 
 app.secret_key = _secret_key
-app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50 Mo max par requête
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = (
@@ -39,6 +38,7 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_PATH'] = '/'
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 31536000
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 Mo max request body
 
 # ── SocketIO ──────────────────────────────────────────────────
 
@@ -53,7 +53,7 @@ socketio = SocketIO(
     async_mode="eventlet",
     manage_session=True,
     allow_upgrades=True,
-    max_http_buffer_size=50_000_000,
+    max_http_buffer_size=1_000_000,
 )
 
 # ── Service Worker ────────────────────────────────────────────
@@ -395,6 +395,7 @@ def migrate_teams_to_text():
 
 def seed_accounts():
     # (username, password, role) — role: 0=user, 1=super_admin, 2=admin
+    # Seuls les vrais comptes du club + guests physiques (pas de comptes test)
     accounts = [
         ("Imran", "imran2024", 1), ("Apoutou", "admin123", 2), ("Hamara", "admin123", 2), ("MDA", "admin123", 2),
         ("Joueur1", "guest", 0), ("Joueur2", "guest", 0), ("Joueur3", "guest", 0),
@@ -1051,9 +1052,6 @@ def delete_user():
         return jsonify({"success": False, "message": "Nom d'utilisateur requis"}), 400
     if username_to_delete == admin_username:
         return jsonify({"success": False, "message": "Vous ne pouvez pas vous supprimer vous-meme"}), 400
-    protected_accounts = []
-    if username_to_delete in protected_accounts:
-        return jsonify({"success": False, "message": f"Le compte '{username_to_delete}' est protege"}), 400
     conn = get_db_connection()
     cur = conn.cursor()
     q_check = "SELECT username FROM users WHERE username = %s" if USE_POSTGRES else "SELECT username FROM users WHERE username = ?"
@@ -1063,7 +1061,7 @@ def delete_user():
         cur.close()
         conn.close()
         return jsonify({"success": False, "message": "Utilisateur introuvable"}), 404
-    # Supprimer scores et reservations d'abord (ON DELETE CASCADE pour scores)
+    # Supprimer reservations d'abord (scores supprimés par CASCADE)
     q_res = "DELETE FROM reservations WHERE reserved_by = %s" if USE_POSTGRES else "DELETE FROM reservations WHERE reserved_by = ?"
     cur.execute(q_res, (username_to_delete,))
     q_delete = "DELETE FROM users WHERE username = %s" if USE_POSTGRES else "DELETE FROM users WHERE username = ?"
@@ -1610,20 +1608,35 @@ def babyfoot_status():
     })
 
 # ── ELO helpers ───────────────────────────────────────────────────────────
-def compute_elo(winner_elo, loser_elo, k=32):
+def compute_elo(winner_elo, loser_elo, k=40):
+    """
+    Formule ELO adaptée au baby-foot.
+    K=40 (plus dynamique qu'aux échecs) pour que les ELO bougent vite.
+    En 1v1 classique babyfoot sur 10 buts : chaque victoire compte vraiment.
+    """
     expected_w = 1 / (1 + 10 ** ((loser_elo - winner_elo) / 400))
     return (
-        max(0, round(winner_elo + k * (1 - expected_w))),
-        max(0, round(loser_elo  + k * (0 - (1 - expected_w))))
+        max(800, round(winner_elo + k * (1 - expected_w))),
+        max(800, round(loser_elo  + k * (0 - (1 - expected_w))))
     )
 
 def elo_tier(elo):
-    if elo >= 1400: return ("Légende", "👑")
-    if elo >= 1200: return ("Expert", "💎")
-    if elo >= 1100: return ("Confirmé", "🔥")
-    if elo >= 1000: return ("Intermédiaire", "⚡")
-    if elo >= 900:  return ("Débutant+", "🌱")
-    return ("Débutant", "🎮")
+    """Niveaux ELO adaptés au baby-foot (départ à 1000, K=40)."""
+    if elo >= 1500: return ("Maître 🏆", "🏆", 1500, 9999)
+    if elo >= 1350: return ("Expert 💎", "💎", 1350, 1499)
+    if elo >= 1200: return ("Confirmé ⚡", "⚡", 1200, 1349)
+    if elo >= 1050: return ("Intermédiaire 🔥", "🔥", 1050, 1199)
+    if elo >= 950:  return ("Débutant+ 🌱", "🌱", 950, 1049)
+    return ("Débutant 🎮", "🎮", 800, 949)
+
+ELO_TIERS_FRONTEND = [
+    {"name": "Débutant 🎮",        "icon": "🎮", "min": 800,  "max": 949,  "desc": "Tu apprends les bases, chaque partie compte !"},
+    {"name": "Débutant+ 🌱",       "icon": "🌱", "min": 950,  "max": 1049, "desc": "La technique commence à se voir, continue !"},
+    {"name": "Intermédiaire 🔥",   "icon": "🔥", "min": 1050, "max": 1199, "desc": "Tu contrôles le jeu et tu gagnes régulièrement."},
+    {"name": "Confirmé ⚡",         "icon": "⚡", "min": 1200, "max": 1349, "desc": "Adversaire redoutable — tout le monde le sait."},
+    {"name": "Expert 💎",           "icon": "💎", "min": 1350, "max": 1499, "desc": "Top 5 du club, sérieusement."},
+    {"name": "Maître 🏆",           "icon": "🏆", "min": 1500, "max": 9999, "desc": "Imbattable. La table te appartient."},
+]
 
 @app.route("/api/profile", methods=["GET"])
 def api_get_profile():
@@ -1639,7 +1652,7 @@ def api_get_profile():
     if not user:
         return jsonify({"error": "Introuvable"}), 404
     elo = user.get("elo") or 1000
-    tier_name, tier_icon = elo_tier(elo)
+    tier_name, tier_icon, tier_min, tier_max = elo_tier(elo)
     return jsonify({
         "username": user["username"],
         "nickname": user.get("nickname") or "",
@@ -1649,6 +1662,9 @@ def api_get_profile():
         "elo": elo,
         "elo_tier": tier_name,
         "elo_icon": tier_icon,
+        "elo_tier_min": tier_min,
+        "elo_tier_max": tier_max,
+        "elo_tiers": ELO_TIERS_FRONTEND,
     })
 
 @app.route("/api/profile", methods=["POST"])
@@ -1681,9 +1697,11 @@ def api_upload_avatar():
     img_data = data.get("image", "")
     if not img_data.startswith("data:image/"):
         return jsonify({"error": "Image invalide"}), 400
-    # Pas de limite de taille côté serveur
-    # Pas de limite de taille — toutes les photos acceptées
+    # Validation taille côté serveur (max 2 Mo en base64 ≈ 2.7 Mo de string)
+    MAX_B64_LEN = 13_600_000  # 10 Mo en base64 ≈ 13.3 Mo string
     header, b64 = img_data.split(",", 1)
+    if len(b64) > MAX_B64_LEN:
+        return jsonify({"error": "Image trop grande (max 10 Mo)"}), 413
     # Vérifier type autorisé
     if not any(t in header for t in ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']):
         return jsonify({"error": "Format non supporté (jpg, png, webp, gif)"}), 400
@@ -2492,30 +2510,7 @@ def save_game_results(game):
 
             for player in real_players:
                 player_score = t1_score if player in t1_players else t2_score
-                old_elo = elos.get(player, 1000)
-                new_elo = new_elos.get(player, old_elo)
-
-                # Détecter changement de palier ELO
-                def elo_tier_name(e):
-                    if e >= 1400: return "Légende"
-                    if e >= 1200: return "Expert"
-                    if e >= 1100: return "Confirmé"
-                    if e >= 1000: return "Intermédiaire"
-                    if e >= 900:  return "Débutant+"
-                    return "Débutant"
-                old_tier = elo_tier_name(old_elo)
-                new_tier_n = elo_tier_name(new_elo)
-                if new_elo > old_elo and new_tier_n != old_tier:
-                    tier_icons = {"Légende":"👑","Expert":"💎","Confirmé":"🔥","Intermédiaire":"⚡","Débutant+":"🌱","Débutant":"🎮"}
-                    icon = tier_icons.get(new_tier_n, "🎉")
-                    socketio.emit('elo_tier_up', {
-                        'player': player,
-                        'old_tier': old_tier,
-                        'new_tier': new_tier_n,
-                        'new_elo': new_elo,
-                        'icon': icon,
-                    }, namespace='/')
-
+                new_elo = new_elos.get(player, elos.get(player, 1000))
                 if USE_POSTGRES:
                     cur.execute("UPDATE users SET total_games = total_games + 1, elo = %s WHERE username = %s", (new_elo, player))
                     if player_score > 0:
@@ -2540,6 +2535,29 @@ def save_game_results(game):
                 )
             conn.commit()
             logger.info("Resultats sauvegardes (users + scores + games)")
+
+            # ── Émettre les changements ELO + message félicitations ──
+            elo_changes = []
+            for player in real_players:
+                old_elo = elos.get(player, 1000)
+                new_elo = new_elos.get(player, old_elo)
+                delta = new_elo - old_elo
+                old_tier = elo_tier(old_elo)[0]
+                new_tier = elo_tier(new_elo)[0]
+                tier_up = (old_tier != new_tier and delta > 0)
+                tier_down = (old_tier != new_tier and delta < 0)
+                is_winner = player in winners
+                elo_changes.append({
+                    "player": player,
+                    "old_elo": old_elo,
+                    "new_elo": new_elo,
+                    "delta": delta,
+                    "is_winner": is_winner,
+                    "tier_up": tier_up,
+                    "tier_down": tier_down,
+                    "new_tier": new_tier,
+                })
+            socketio.emit('elo_updated', {"changes": elo_changes}, namespace='/')
         finally:
             cur.close()
             conn.close()
