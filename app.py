@@ -120,6 +120,7 @@ active_lobby = {
 
 team_swap_requests = {}
 rematch_votes = {"team1": [], "team2": []}
+rematch_no_votes = []         # Joueurs qui ont voté NON
 servo_commands = {"servo1": [], "servo2": []}
 rematch_pending = False       # True entre game_ended et le lancement du rematch
 pending_invitations = {}      # username -> {from, timestamp}
@@ -178,7 +179,12 @@ def init_database():
                 password VARCHAR(200) NOT NULL,
                 total_goals INTEGER DEFAULT 0,
                 total_games INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                nickname VARCHAR(50) DEFAULT NULL,
+                bio VARCHAR(200) DEFAULT NULL,
+                avatar_preset VARCHAR(10) DEFAULT NULL,
+                avatar_url TEXT DEFAULT NULL,
+                elo INTEGER DEFAULT 1000
             )
         """)
         cur.execute("""
@@ -225,7 +231,12 @@ def init_database():
                 password TEXT NOT NULL,
                 total_goals INTEGER DEFAULT 0,
                 total_games INTEGER DEFAULT 0,
-                created_at TEXT DEFAULT (datetime('now'))
+                created_at TEXT DEFAULT (datetime('now')),
+                nickname TEXT DEFAULT NULL,
+                bio TEXT DEFAULT NULL,
+                avatar_preset TEXT DEFAULT NULL,
+                avatar_url TEXT DEFAULT NULL,
+                elo INTEGER DEFAULT 1000
             )
         """)
         cur.execute("""
@@ -356,6 +367,21 @@ def migrate_teams_to_text():
             cur.execute("ALTER TABLE reservations ALTER COLUMN mode TYPE VARCHAR(20)")
             logger.info("Migration mode VARCHAR -> VARCHAR(20) OK")
 
+        # --- Fix 4 : nouvelles colonnes profil utilisateur ---
+        for col, definition in [
+            ('nickname', 'VARCHAR(50)'),
+            ('bio', 'VARCHAR(200)'),
+            ('avatar_preset', 'VARCHAR(10)'),
+            ('avatar_url', 'TEXT'),
+            ('elo', 'INTEGER DEFAULT 1000'),
+        ]:
+            try:
+                cur.execute(f"ALTER TABLE users ADD COLUMN {col} {definition}")
+                conn.commit()
+                logger.info(f"Migration: colonne users.{col} ajoutée")
+            except Exception:
+                conn.rollback()  # colonne existe déjà
+
         conn.commit()
         cur.close()
         conn.close()
@@ -459,7 +485,8 @@ def _reset_game_state():
 
 def _launch_rematch(game):
     """Lance un rematch. Centralise le code de relance."""
-    global current_game, rematch_votes, servo_commands, rematch_pending
+    global current_game, rematch_votes, rematch_no_votes, servo_commands, rematch_pending
+    rematch_no_votes.clear()
     current_game = {
         "team1_score": 0, "team2_score": 0,
         "team1_players": game['team1_players'],
@@ -1463,6 +1490,95 @@ def babyfoot_status():
         "server_time": now_str,
     })
 
+# ── ELO helpers ───────────────────────────────────────────────────────────
+def compute_elo(winner_elo, loser_elo, k=32):
+    expected_w = 1 / (1 + 10 ** ((loser_elo - winner_elo) / 400))
+    return (
+        max(0, round(winner_elo + k * (1 - expected_w))),
+        max(0, round(loser_elo  + k * (0 - (1 - expected_w))))
+    )
+
+def elo_tier(elo):
+    if elo >= 1400: return ("Légende", "👑")
+    if elo >= 1200: return ("Expert", "💎")
+    if elo >= 1100: return ("Confirmé", "🔥")
+    if elo >= 1000: return ("Intermédiaire", "⚡")
+    if elo >= 900:  return ("Débutant+", "🌱")
+    return ("Débutant", "🎮")
+
+@app.route("/api/profile", methods=["GET"])
+def api_get_profile():
+    username = session.get("username")
+    if not username:
+        return jsonify({"error": "Non connecté"}), 401
+    conn = get_db_connection()
+    cur = conn.cursor()
+    q = "SELECT * FROM users WHERE username = %s" if USE_POSTGRES else "SELECT * FROM users WHERE username = ?"
+    cur.execute(q, (username,))
+    user = row_to_dict(cur.fetchone())
+    cur.close(); conn.close()
+    if not user:
+        return jsonify({"error": "Introuvable"}), 404
+    elo = user.get("elo") or 1000
+    tier_name, tier_icon = elo_tier(elo)
+    return jsonify({
+        "username": user["username"],
+        "nickname": user.get("nickname") or "",
+        "bio": user.get("bio") or "",
+        "avatar_preset": user.get("avatar_preset") or "",
+        "avatar_url": user.get("avatar_url") or "",
+        "elo": elo,
+        "elo_tier": tier_name,
+        "elo_icon": tier_icon,
+    })
+
+@app.route("/api/profile", methods=["POST"])
+def api_update_profile():
+    username = session.get("username")
+    if not username:
+        return jsonify({"error": "Non connecté"}), 401
+    data = request.get_json()
+    nickname = (data.get("nickname") or "").strip()[:50]
+    bio = (data.get("bio") or "").strip()[:200]
+    avatar_preset = (data.get("avatar_preset") or "").strip()[:10]
+    conn = get_db_connection()
+    cur = conn.cursor()
+    if USE_POSTGRES:
+        cur.execute("UPDATE users SET nickname=%s, bio=%s, avatar_preset=%s WHERE username=%s",
+                    (nickname or None, bio or None, avatar_preset or None, username))
+    else:
+        cur.execute("UPDATE users SET nickname=?, bio=?, avatar_preset=? WHERE username=?",
+                    (nickname or None, bio or None, avatar_preset or None, username))
+    conn.commit(); cur.close(); conn.close()
+    return jsonify({"success": True, "message": "Profil mis à jour"})
+
+@app.route("/api/upload_avatar", methods=["POST"])
+def api_upload_avatar():
+    import base64, os, uuid as _uuid
+    username = session.get("username")
+    if not username:
+        return jsonify({"error": "Non connecté"}), 401
+    data = request.get_json()
+    img_data = data.get("image", "")
+    if not img_data.startswith("data:image/"):
+        return jsonify({"error": "Image invalide"}), 400
+    avatars_dir = os.path.join(os.path.dirname(__file__), "static", "avatars")
+    os.makedirs(avatars_dir, exist_ok=True)
+    header, b64 = img_data.split(",", 1)
+    ext = "png" if "png" in header else "jpg"
+    filename = f"{username}_{_uuid.uuid4().hex[:8]}.{ext}"
+    with open(os.path.join(avatars_dir, filename), "wb") as f:
+        f.write(base64.b64decode(b64))
+    avatar_url = f"/static/avatars/{filename}"
+    conn = get_db_connection()
+    cur = conn.cursor()
+    if USE_POSTGRES:
+        cur.execute("UPDATE users SET avatar_url=%s, avatar_preset=NULL WHERE username=%s", (avatar_url, username))
+    else:
+        cur.execute("UPDATE users SET avatar_url=?, avatar_preset=NULL WHERE username=?", (avatar_url, username))
+    conn.commit(); cur.close(); conn.close()
+    return jsonify({"success": True, "avatar_url": avatar_url})
+
 @app.route("/settings")
 def settings_page():
     if "username" not in session:
@@ -2056,33 +2172,71 @@ def handle_score(data):
 
 @socketio.on('vote_rematch')
 def handle_vote_rematch(data):
-    global rematch_votes, current_game, servo_commands, rematch_pending
+    global rematch_votes, rematch_no_votes, current_game, servo_commands, rematch_pending
     username = get_socket_user()
+    all_players = list(current_game.get('team1_players', [])) + list(current_game.get('team2_players', []))
+    host = current_game.get('started_by')
+
     if data.get('vote') == 'no':
-        socketio.emit('rematch_cancelled', {}, namespace='/')
-        rematch_votes = {"team1": [], "team2": []}
-        rematch_pending = False
+        # Enregistrer le NON
+        if username not in rematch_no_votes:
+            rematch_no_votes.append(username)
+        yes_count = len(rematch_votes['team1']) + len(rematch_votes['team2'])
+        no_count = len(rematch_no_votes)
+        # Envoyer update des votes à tout le monde
+        socketio.emit('rematch_vote_update', {
+            'yes': yes_count, 'no': no_count,
+            'total': len(all_players),
+            'no_player': username
+        }, namespace='/')
+        # Notifier l'hôte pour qu'il décide : remplacer ou quitter
+        socketio.emit('host_replace_or_quit', {
+            'declined_player': username,
+            'host': host
+        }, namespace='/')
         return
-    # Admin ou hote → force le rematch directement
-    if is_admin(username) or username == current_game.get('started_by'):
-        _launch_rematch(current_game)
-        return
+
+    # Vote OUI
     team = None
     if username in current_game.get('team1_players', []):
         team = 'team1'
     elif username in current_game.get('team2_players', []):
         team = 'team2'
+    elif is_admin(username) or username == host:
+        # Admin/hôte forcent le rematch
+        _launch_rematch(current_game)
+        return
     if not team:
         emit('error', {'message': 'Pas dans cette partie'})
         return
     if username not in rematch_votes[team]:
         rematch_votes[team].append(username)
-    t1_needed = len(current_game['team1_players'])
-    t2_needed = len(current_game['team2_players'])
-    t1_voted = len(rematch_votes['team1'])
-    t2_voted = len(rematch_votes['team2'])
-    if t1_voted >= t1_needed and t2_voted >= t2_needed:
+    yes_count = len(rematch_votes['team1']) + len(rematch_votes['team2'])
+    no_count = len(rematch_no_votes)
+    socketio.emit('rematch_vote_update', {
+        'yes': yes_count, 'no': no_count,
+        'total': len(all_players)
+    }, namespace='/')
+    # Lancer si tous les OUI sont là (en excluant ceux qui ont dit NON)
+    remaining = [p for p in all_players if p not in rematch_no_votes]
+    t1_remaining = [p for p in current_game.get('team1_players', []) if p not in rematch_no_votes]
+    t2_remaining = [p for p in current_game.get('team2_players', []) if p not in rematch_no_votes]
+    if (len(rematch_votes['team1']) >= len(current_game.get('team1_players', [])) and
+            len(rematch_votes['team2']) >= len(current_game.get('team2_players', []))):
+        rematch_no_votes.clear()
         _launch_rematch(current_game)
+
+@socketio.on('host_quit_rematch')
+def handle_host_quit_rematch():
+    global rematch_votes, rematch_no_votes, rematch_pending
+    username = get_socket_user()
+    host = current_game.get('started_by')
+    if username != host and not is_admin(username):
+        return
+    rematch_votes = {"team1": [], "team2": []}
+    rematch_no_votes = []
+    rematch_pending = False
+    socketio.emit('rematch_cancelled', {}, namespace='/')
 
 @socketio.on('reset_game')
 def handle_reset():
@@ -2133,12 +2287,8 @@ def handle_arduino_goal(data):
             except Exception as e:
                 logger.error(f"Erreur sauvegarde: {e}")
             socketio.emit('game_ended', current_game, namespace='/')
-            def ask_rematch_delayed():
-                global rematch_pending
-                eventlet.sleep(4)
-                rematch_pending = True
-                socketio.emit('rematch_prompt', {}, namespace='/')
-            eventlet.spawn(ask_rematch_delayed)
+            rematch_pending = True
+            socketio.emit('rematch_prompt', {}, namespace='/')
         else:
             socketio.emit('score_updated', current_game, namespace='/')
     finally:
@@ -2184,15 +2334,37 @@ def save_game_results(game):
             t2_score = game.get("team2_score", 0)
             total_players = len(t1_players) + len(t2_players)
             mode = '2v2' if total_players >= 4 else '1v1'
+            # Charger les ELO actuels
+            elos = {}
+            for player in real_players:
+                q = "SELECT elo FROM users WHERE username = %s" if USE_POSTGRES else "SELECT elo FROM users WHERE username = ?"
+                cur.execute(q, (player,))
+                row = cur.fetchone()
+                elos[player] = (row_to_dict(row) or {}).get('elo') or 1000
+
+            # Calculer les nouveaux ELO (gagnants vs perdants, paire par paire)
+            winners = [p for p in real_players if (p in t1_players and winner_team == 'team1') or (p in t2_players and winner_team == 'team2')]
+            losers  = [p for p in real_players if p not in winners]
+            new_elos = dict(elos)
+            if winners and losers:
+                avg_w = sum(elos.get(p, 1000) for p in winners) / len(winners)
+                avg_l = sum(elos.get(p, 1000) for p in losers)  / len(losers)
+                new_w, new_l = compute_elo(avg_w, avg_l)
+                delta_w = new_w - avg_w
+                delta_l = new_l - avg_l
+                for p in winners: new_elos[p] = max(0, round(elos.get(p, 1000) + delta_w))
+                for p in losers:  new_elos[p] = max(0, round(elos.get(p, 1000) + delta_l))
+
             for player in real_players:
                 player_score = t1_score if player in t1_players else t2_score
+                new_elo = new_elos.get(player, elos.get(player, 1000))
                 if USE_POSTGRES:
-                    cur.execute("UPDATE users SET total_games = total_games + 1 WHERE username = %s", (player,))
+                    cur.execute("UPDATE users SET total_games = total_games + 1, elo = %s WHERE username = %s", (new_elo, player))
                     if player_score > 0:
                         cur.execute("INSERT INTO scores (username, score) VALUES (%s, %s)", (player, player_score))
                         cur.execute("UPDATE users SET total_goals = total_goals + %s WHERE username = %s", (player_score, player))
                 else:
-                    cur.execute("UPDATE users SET total_games = total_games + 1 WHERE username = ?", (player,))
+                    cur.execute("UPDATE users SET total_games = total_games + 1, elo = ? WHERE username = ?", (new_elo, player))
                     if player_score > 0:
                         cur.execute("INSERT INTO scores (username, score) VALUES (?, ?)", (player, player_score))
                         cur.execute("UPDATE users SET total_goals = total_goals + ? WHERE username = ?", (player_score, player))
