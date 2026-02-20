@@ -124,8 +124,7 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
     const u=d.username; 
     if(!u) return;
     
-    document.getElementById('navAv').textContent=u[0].toUpperCase();
-    document.getElementById('navUsername').textContent=u;
+    ProfileUtils.updateNav({username: u});
     document.getElementById('subttl').textContent=`Statistiques de ${u}`;
     
     const s=await fetch(`/user_stats/${u}`).then(r=>r.json());
@@ -155,6 +154,7 @@ document.querySelectorAll(".mobile-menu a").forEach(a => {
 </script>
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
   <script src="/static/pwa.js" defer></script>
 </body>
 </html>

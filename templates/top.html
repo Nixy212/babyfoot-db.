@@ -285,11 +285,25 @@ function ratio(goals, games) {
 
 fetch('/current_user').then(r => r.json()).then(d => {
   if (d && d.username) {
-    document.getElementById('navAv').textContent = d.username[0].toUpperCase();
-    document.getElementById('navUsername').textContent = d.username;
+    ProfileUtils.updateNav(d);
     loadLeaderboard(d.username);
   }
 });
+
+const ELO_TIERS = [
+  { name:'Débutant',      icon:'🎮', min:0    },
+  { name:'Débutant+',     icon:'🌱', min:900  },
+  { name:'Intermédiaire', icon:'⚡', min:1000 },
+  { name:'Confirmé',      icon:'🔥', min:1100 },
+  { name:'Expert',        icon:'💎', min:1200 },
+  { name:'Légende',       icon:'👑', min:1400 },
+];
+function eloTier(elo) {
+  for (let i = ELO_TIERS.length - 1; i >= 0; i--) {
+    if (elo >= ELO_TIERS[i].min) return ELO_TIERS[i];
+  }
+  return ELO_TIERS[0];
+}
 
 async function loadLeaderboard(me) {
   const el = document.getElementById('leaderboard');
@@ -299,11 +313,10 @@ async function loadLeaderboard(me) {
       fetch('/api/online_users').then(r => r.json())
     ]);
     const onlineSet = new Set((onlineRes.online || []));
-    // Filtrer les comptes guest (Joueur1, Joueur2, etc.) du classement
-    const GUEST_PATTERN = /^Joueur\d+$/i;
-    lb = lb.filter(p => !GUEST_PATTERN.test(p.username));
+    // Filtre guest déjà fait côté serveur, mais sécurité supplémentaire
+    lb = (lb || []).filter(p => p && p.username);
 
-    if (!lb || lb.length === 0) {
+    if (!lb.length) {
       el.innerHTML = `<div style="padding:3rem;text-align:center">
         <p style="color:var(--text-tertiary)">Personne de classé pour l'instant — jouez une partie pour apparaître ici !</p>
       </div>`;
@@ -316,8 +329,22 @@ async function loadLeaderboard(me) {
       const isPodium = rank <= 3;
       const avClass = rank === 1 ? 'av1' : rank === 2 ? 'av2' : rank === 3 ? 'av3' : '';
       const games = p.total_games || 0;
-      const goals = p.total_goals || 0;
+      const wins = p.wins || 0;
+      const elo = p.elo || 1000;
+      const tier = eloTier(elo);
       const isOnline = onlineSet.has(p.username);
+      const name = (p.nickname && p.nickname.trim()) ? p.nickname.trim() : p.username;
+      const subName = (p.nickname && p.nickname.trim()) ? `<span style="font-size:0.7rem;color:var(--text-muted)">${p.username}</span>` : '';
+
+      // Avatar
+      let avContent;
+      if (p.avatar_url) {
+        avContent = `<img src="${p.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">`;
+      } else if (p.avatar_preset) {
+        avContent = p.avatar_preset;
+      } else {
+        avContent = p.username[0].toUpperCase();
+      }
 
       return `
         <div class="lb-item${isMe ? ' is-me' : ''}">
@@ -325,18 +352,24 @@ async function loadLeaderboard(me) {
             ${isPodium ? PODIUM_ICONS[i] : '#' + rank}
           </div>
           <div class="lb-av-wrap">
-            <div class="lb-av ${avClass}">${p.username[0].toUpperCase()}</div>
+            <div class="lb-av ${avClass}" style="overflow:hidden;display:flex;align-items:center;justify-content:center">${avContent}</div>
             ${isOnline ? '<span class="online-dot" title="En ligne"></span>' : ''}
           </div>
           <div class="lb-info">
             <div class="lb-name">
-              ${p.username}${isMe ? '<span class="tag-me">vous</span>' : ''}
+              ${name}${isMe ? '<span class="tag-me">vous</span>' : ''}
             </div>
-            <div class="lb-sub">${games} partie${games !== 1 ? 's' : ''} · ratio ${ratio(goals, games)}</div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:2px">
+              ${subName}
+              <span style="font-size:0.72rem;color:var(--text-muted)">${games} partie${games !== 1 ? 's' : ''} · ${wins} victoire${wins !== 1 ? 's' : ''}</span>
+            </div>
           </div>
-          <div class="lb-score">
-            <div class="lb-score-val">${goals}</div>
-            <div class="lb-score-label">buts</div>
+          <div class="lb-score" style="text-align:right">
+            <div style="display:flex;align-items:center;gap:4px;justify-content:flex-end">
+              <span style="font-size:1rem">${tier.icon}</span>
+              <div class="lb-score-val">${elo}</div>
+            </div>
+            <div class="lb-score-label">${tier.name}</div>
           </div>
         </div>
       `;
@@ -351,6 +384,7 @@ async function loadLeaderboard(me) {
 </script>
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
   <script src="/static/pwa.js" defer></script>
 </body>
 </html>

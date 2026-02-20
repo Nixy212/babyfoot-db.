@@ -511,12 +511,14 @@ function renderAvatarPreview() {
   } else {
     emoji.textContent = (window._me || '?')[0].toUpperCase(); emoji.style.display = 'block'; img.style.display = 'none';
   }
-  // Nav avatar
-  const nav = document.getElementById('navAv');
-  if (currentAvatarUrl) {
-    nav.innerHTML = `<img src="${currentAvatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-  } else {
-    nav.textContent = currentPreset || (window._me || '?')[0].toUpperCase();
+  // Mettre à jour la nav via ProfileUtils
+  if (window._me) {
+    ProfileUtils.updateNav({
+      username: window._me,
+      nickname: document.getElementById('nicknameInput')?.value || '',
+      avatar_url: currentAvatarUrl,
+      avatar_preset: currentPreset,
+    });
   }
 }
 
@@ -561,8 +563,16 @@ async function saveProfile() {
       body: JSON.stringify({ nickname, bio, avatar_preset: currentPreset })
     });
     const data = await res.json();
-    if (data.success) toast('✓ Profil sauvegardé', 'ok');
-    else toast('Erreur: ' + (data.error || '?'), 'err');
+    if (data.success) {
+      toast('✓ Profil sauvegardé', 'ok');
+      // Mettre à jour la nav immédiatement
+      renderAvatarPreview();
+      // Mettre à jour profileName si surnom renseigné
+      const profName = document.getElementById('profileName');
+      if (profName) profName.textContent = nickname || window._me;
+    } else {
+      toast('Erreur: ' + (data.error || '?'), 'err');
+    }
   } catch(e) { toast('Erreur réseau', 'err'); }
   finally { btn.disabled = false; btn.textContent = 'Sauvegarder le profil'; }
 }
@@ -609,17 +619,23 @@ async function init() {
   renderElo(prof.elo || 1000);
 
   // Profil header
+  // Update profile header avatar + nav after load
+  renderAvatarPreview();
+  // Also update profile header card
   const profAv = document.getElementById('profileAv');
-  if (currentAvatarUrl) {
-    profAv.innerHTML = `<img src="${currentAvatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
-  } else {
-    profAv.textContent = currentPreset || user.username[0].toUpperCase();
+  if (profAv) {
+    if (currentAvatarUrl) {
+      profAv.innerHTML = `<img src="${currentAvatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    } else {
+      profAv.textContent = currentPreset || user.username[0].toUpperCase();
+    }
   }
 }
 init();
 </script>
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 <script src="/static/pwa.js" defer></script>
 </body>
 </html>

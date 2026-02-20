@@ -106,8 +106,7 @@ function parsePlayers(players) {
 
 fetch('/current_user').then(r => r.json()).then(d => {
   if (d && d.username) {
-    document.getElementById('navAv').textContent = d.username[0].toUpperCase();
-    document.getElementById('navUsername').textContent = d.username;
+    ProfileUtils.updateNav(d);
   }
 });
 
@@ -201,6 +200,7 @@ loadScores();
 </script>
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
   <script src="/static/pwa.js" defer></script>
 </body>
 </html>

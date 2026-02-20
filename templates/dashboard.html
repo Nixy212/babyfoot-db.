@@ -453,8 +453,7 @@ async function loadCurrentUser() {
       isAdmin = user.is_admin;
       hasReservation = user.has_reservation;
       window._currentUsername = user.username;
-      document.getElementById('navUsername').textContent = user.username;
-      document.getElementById('navAv').textContent = user.username[0].toUpperCase();
+      ProfileUtils.updateNav(user);
       if (isAdmin) {
         document.getElementById('adminBtn').style.display = 'inline-block';
         document.getElementById('adminBtnMobile').style.display = 'block';
@@ -832,6 +831,7 @@ loadReservations();
 </script>
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 <script src="/static/pwa.js" defer></script>
 </body>
 </html>

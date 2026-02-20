@@ -380,8 +380,7 @@ async function loadCurrentUser() {
       currentUsername = user.username;
       isAdmin = user.is_admin;
       window._currentUsername = user.username;
-      document.getElementById('navUsername').textContent = user.username;
-      document.getElementById('navAv').textContent = user.username[0].toUpperCase();
+      ProfileUtils.updateNav(user);
     }
   } catch(e) {}
 }
@@ -389,9 +388,15 @@ async function loadCurrentUser() {
 async function loadPlayers() {
   try {
     const res = await fetch('/users_list');
-    const users = await res.json();
+    const rawUsers = await res.json();
+    // users_list retourne maintenant des objets {username, nickname, avatar_preset, avatar_url, elo}
     const GUEST_RE = /^Joueur\d+$/i;
-    allUsers = users.filter(u => u !== currentUsername && !GUEST_RE.test(u));
+    allUsers = rawUsers.filter(u => {
+      const name = typeof u === 'string' ? u : u.username;
+      return name !== currentUsername && !GUEST_RE.test(name);
+    });
+    // Mettre en cache les profils
+    rawUsers.forEach(u => { if (u && u.username) ProfileUtils._cache_set(u.username, u); });
     renderPlayerSelector();
   } catch(e) {}
 }
@@ -407,11 +412,18 @@ function renderPlayerSelector() {
     return;
   }
   filtered.forEach(u => {
+    const username = typeof u === 'string' ? u : u.username;
+    const prof = typeof u === 'object' ? u : { username };
+    const displayN = (prof.nickname && prof.nickname.trim()) ? prof.nickname.trim() : username;
     const chip = document.createElement('div');
-    chip.className = 'player-chip' + (selectedPlayers.includes(u) ? ' selected' : '');
-    const isOnline = onlineUsers.has(u);
-    chip.innerHTML = `${isOnline ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#2ecc71;margin-right:5px;vertical-align:middle"></span>' : ''}${u}`;
-    chip.onclick = () => togglePlayer(u, chip);
+    chip.className = 'player-chip' + (selectedPlayers.includes(username) ? ' selected' : '');
+    const isOnline = onlineUsers.has(username);
+    let avHtml = '';
+    if (prof.avatar_url) avHtml = `<img src="${prof.avatar_url}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;vertical-align:middle;margin-right:5px">`;
+    else if (prof.avatar_preset) avHtml = `<span style="margin-right:5px">${prof.avatar_preset}</span>`;
+    else avHtml = `<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--bg-tertiary);font-size:0.7rem;font-weight:700;margin-right:5px">${username[0].toUpperCase()}</span>`;
+    chip.innerHTML = `${isOnline ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#2ecc71;margin-right:4px;vertical-align:middle"></span>' : ''}${avHtml}<span>${displayN}</span>${displayN !== username ? `<span style="font-size:0.68rem;color:var(--text-muted);margin-left:4px">${username}</span>` : ''}`;
+    chip.onclick = () => togglePlayer(username, chip);
     selector.appendChild(chip);
   });
 }
@@ -514,10 +526,20 @@ function renderTeam(containerId, players, teamColor) {
       if (canKick(player)) {
         buttons += `<button class="btn-kick" onclick="kickPlayer('${player}')" style="font-size:0.8rem;padding:0.3rem 0.7rem">✕</button>`;
       }
+      const prof = (typeof allUsers.find === 'function' ? allUsers.find(u => (typeof u === 'object' ? u.username : u) === player) : null) || { username: player };
+      const displayN = (prof.nickname && prof.nickname.trim()) ? prof.nickname.trim() : player;
+      let avHtml2 = '';
+      if (prof.avatar_url) avHtml2 = `<img src="${prof.avatar_url}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">`;
+      else if (prof.avatar_preset) avHtml2 = `<span style="width:28px;height:28px;border-radius:50%;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;font-size:1rem">${prof.avatar_preset}</span>`;
+      else avHtml2 = `<span style="width:28px;height:28px;border-radius:50%;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700">${player[0].toUpperCase()}</span>`;
       item.innerHTML = `
-        <span style="display:flex;align-items:center;gap:6px">
+        <span style="display:flex;align-items:center;gap:8px">
           ${onlineUsers.has(player) ? '<span class="online-dot-lobby" title="En ligne"></span>' : ''}
-          <span style="font-weight:700">${player}${player === lobbyData.host ? ' <span style="color:var(--bronze);font-size:0.75rem">★ hôte</span>' : ''}</span>
+          ${avHtml2}
+          <span>
+            <span style="font-weight:700;font-size:0.9rem">${displayN}${player === lobbyData.host ? ' <span style="color:var(--bronze);font-size:0.72rem">★ hôte</span>' : ''}</span>
+            ${displayN !== player ? `<span style="display:block;font-size:0.68rem;color:var(--text-muted)">${player}</span>` : ''}
+          </span>
         </span>
         <div style="display:flex;gap:0.4rem">${buttons}</div>
       `;
@@ -741,5 +763,6 @@ initPage();
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
 <script src="/static/pwa.js" defer></script>
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 </body>
 </html>

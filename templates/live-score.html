@@ -444,13 +444,31 @@ async function checkActiveGame() {
   } catch(e) { showArea('noGameArea'); }
 }
 
+// Profils chargés en mémoire
+let _profilesCache = {};
+async function ensureProfiles() {
+  if (Object.keys(_profilesCache).length === 0) {
+    _profilesCache = await ProfileUtils.fetchAllProfiles();
+  }
+}
+function renderTeamPlayers(elId, players) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const parts = players.map(u => {
+    const p = _profilesCache[u] || { username: u };
+    const name = (p.nickname && p.nickname.trim()) ? p.nickname.trim() : u;
+    return `<span title="${u}">${name}</span>`;
+  });
+  el.innerHTML = parts.join('<span style="opacity:.5;margin:0 4px">&</span>');
+}
+
 function updateGameUI(game) {
   const old1 = parseInt(document.getElementById('score1').textContent) || 0;
   const old2 = parseInt(document.getElementById('score2').textContent) || 0;
   document.getElementById('score1').textContent = game.team1_score;
   document.getElementById('score2').textContent = game.team2_score;
-  document.getElementById('team1Players').textContent = game.team1_players.join(' & ');
-  document.getElementById('team2Players').textContent = game.team2_players.join(' & ');
+  renderTeamPlayers('team1Players', game.team1_players);
+  renderTeamPlayers('team2Players', game.team2_players);
   ['score1','score2'].forEach(id => {
     const el = document.getElementById(id);
     el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
@@ -465,8 +483,8 @@ function updateSpectatorUI(game) {
   const old2 = parseInt(document.getElementById('specScore2').textContent) || 0;
   document.getElementById('specScore1').textContent = game.team1_score;
   document.getElementById('specScore2').textContent = game.team2_score;
-  document.getElementById('specTeam1').textContent = game.team1_players.join(' & ');
-  document.getElementById('specTeam2').textContent = game.team2_players.join(' & ');
+  renderTeamPlayers('specTeam1', game.team1_players);
+  renderTeamPlayers('specTeam2', game.team2_players);
   ['specScore1','specScore2'].forEach(id => {
     const el = document.getElementById(id);
     el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
@@ -697,9 +715,9 @@ async function init() {
     currentUser = user.username;
     isAdmin = user.is_admin;
     window._currentUsername = user.username;
-    document.getElementById('navUsername').textContent = user.username;
-    document.getElementById('navAv').textContent = user.username[0].toUpperCase();
+    ProfileUtils.updateNav(user);
     if (isAdmin) { const sb = document.getElementById('btnUnlockServo'); if (sb) sb.style.display = 'block'; }
+    await ensureProfiles();
     await checkActiveGame();
     startResaExpiryWatch();
   } catch(e) {}
@@ -708,6 +726,7 @@ init();
 </script>
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 <script src="/static/pwa.js" defer></script>
 </body>
 </html>

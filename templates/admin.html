@@ -217,8 +217,7 @@ fetch('/current_user').then(r => {
   if (!d || !d.username) { location.href = '/login'; return; }
   if (!d.is_admin) { location.href = '/dashboard'; return; }
   if (d && d.username) {
-    document.getElementById('navAv').textContent = d.username[0].toUpperCase();
-    document.getElementById('navUsername').textContent = d.username;
+    ProfileUtils.updateNav(d);
     if (!d.is_admin) {
       location.href = '/dashboard';
       return;
@@ -308,6 +307,18 @@ socket.on('servo2_lock', () => {
 });
 
 // ── Liste utilisateurs AVEC BOUTON SUPPRESSION ──
+const ROLE_LABELS = { 0: { label: 'Joueur', color: 'var(--text-muted)', bg: 'rgba(255,255,255,0.05)' }, 1: { label: '⭐ Super Admin', color: '#ffd700', bg: 'rgba(255,215,0,0.12)' }, 2: { label: '🛡️ Admin', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)' } };
+
+async function setUserRole(username, role) {
+  if (!isSuperAdmin) { showToast('Réservé au super admin', 'err'); return; }
+  try {
+    const res = await fetch('/api/set_user_role', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ username, role }) });
+    const data = await res.json();
+    if (data.success) { showToast(`✓ Rôle de ${username} mis à jour`, 'ok'); setTimeout(loadUsers, 400); }
+    else showToast('✕ ' + data.message, 'err');
+  } catch(e) { showToast('Erreur réseau', 'err'); }
+}
+
 async function loadUsers() {
   try {
     const users = await fetch('/users_list').then(r => r.json());
@@ -319,28 +330,45 @@ async function loadUsers() {
       return;
     }
 
-    container.innerHTML = users.map(u => `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.875rem 1rem;background:var(--bg-tertiary);border-radius:10px;border:1px solid var(--border-subtle);transition:all 0.2s">
-        <div style="display:flex;align-items:center;gap:0.875rem">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--gradient-bronze);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;color:white;box-shadow:var(--shadow-sm)">
-            ${u[0].toUpperCase()}
+    container.innerHTML = users.map(u => {
+      const username = u.username || u;
+      const nickname = u.nickname || '';
+      const elo = u.elo || 1000;
+      const GUEST_RE = /^Joueur\d+$/i;
+      const isGuest = GUEST_RE.test(username);
+      // Avatar
+      let avHtml = '';
+      if (u.avatar_url) avHtml = `<img src="${u.avatar_url}" style="width:36px;height:36px;border-radius:50%;object-fit:cover">`;
+      else if (u.avatar_preset) avHtml = `<div style="width:36px;height:36px;border-radius:50%;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;font-size:1.2rem">${u.avatar_preset}</div>`;
+      else avHtml = `<div style="width:36px;height:36px;border-radius:50%;background:var(--gradient-bronze);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.875rem;color:white">${username[0].toUpperCase()}</div>`;
+
+      // Role selector (super admin only, can't change guests)
+      let roleSel = '';
+      if (isSuperAdmin && !isGuest) {
+        roleSel = `<select onchange="setUserRole('${username}', parseInt(this.value))" style="font-size:0.75rem;padding:0.3rem 0.5rem;border-radius:6px;border:1px solid var(--border-normal);background:var(--bg-secondary);color:var(--text-primary);cursor:pointer">
+          <option value="0">Joueur</option>
+          <option value="2">Admin</option>
+          <option value="1">Super Admin</option>
+        </select>`;
+      }
+
+      return `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.875rem 1rem;background:var(--bg-tertiary);border-radius:10px;border:1px solid var(--border-subtle);gap:0.5rem;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:0.75rem;flex:1;min-width:0">
+          ${avHtml}
+          <div style="min-width:0">
+            <div style="font-weight:700;font-size:0.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nickname || username}</div>
+            ${nickname ? `<div style="font-size:0.7rem;color:var(--text-muted)">${username}</div>` : ''}
+            <div style="font-size:0.7rem;color:var(--text-muted)">ELO ${elo}${isGuest ? ' · Guest' : ''}</div>
           </div>
-          <span style="font-weight:600;color:var(--text-primary);font-size:1rem">${u}</span>
         </div>
-        <div style="display:flex;align-items:center;gap:0.75rem">
-          <a href="/user_stats/${u}" class="btn btn-secondary" style="padding:0.5rem 1rem;font-size:0.8125rem;text-decoration:none">
-            <i class="fas fa-chart-bar"></i> Stats
-          </a>
-          <button 
-            onclick="deleteUser('${u}')" 
-            class="btn" 
-            style="padding:0.5rem 1rem;font-size:0.8125rem;background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);font-weight:600"
-            title="Supprimer ce compte">
-            🗑️ Supprimer
-          </button>
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+          ${roleSel}
+          <a href="/user_stats/${username}" class="btn btn-secondary" style="padding:0.4rem 0.8rem;font-size:0.78rem;text-decoration:none">📊 Stats</a>
+          ${!isGuest ? `<button onclick="deleteUser('${username}')" class="btn" style="padding:0.4rem 0.8rem;font-size:0.78rem;background:rgba(231,76,60,0.1);color:#e74c3c;border:1px solid rgba(231,76,60,0.3);font-weight:600">🗑️</button>` : ''}
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   } catch(e) {
     console.error('Erreur chargement users:', e);
   }
@@ -476,5 +504,6 @@ loadGameState();
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
   <script src="/static/pwa.js" defer></script>
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 </body>
 </html>
