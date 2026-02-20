@@ -366,7 +366,7 @@ def seed_accounts():
     accounts = [
         ("alice", "test123"), ("bob", "test123"), ("charlie", "test123"), ("diana", "test123"),
         ("Imran", "imran2024"), ("Apoutou", "admin123"), ("Hamara", "admin123"), ("MDA", "admin123"),
-        ("Joueur1", "guest"), ("Joueur2", "guest"), ("Joueur3", "guest"), ("Joueur4", "guest"),
+        ("Joueur1", "guest"), ("Joueur2", "guest"), ("Joueur3", "guest"),
     ]
     try:
         conn = get_db_connection()
@@ -488,7 +488,7 @@ def is_admin(username):
     return username in ["Imran", "Apoutou", "Hamara", "MDA"]
 
 def is_guest_player(username):
-    return username in ["Joueur1", "Joueur2", "Joueur3", "Joueur4"]
+    return username in ["Joueur1", "Joueur2", "Joueur3"]
 
 # ── Decorateurs utilitaires ───────────────────────────────────
 
@@ -1763,6 +1763,77 @@ def handle_decline_lobby():
         active_lobby['declined'].append(username)
     pending_invitations.pop(username, None)
     socketio.emit('lobby_update', active_lobby, namespace='/')
+
+@socketio.on('request_join_lobby')
+def handle_request_join_lobby():
+    global active_lobby
+    import uuid as _uuid
+    username = get_socket_user()
+    if not username:
+        return
+    if not active_lobby['active']:
+        emit('error', {'message': 'Aucun lobby actif'})
+        return
+    host = active_lobby['host']
+    if username == host:
+        return
+    already_in = (
+        username in active_lobby.get('invited', []) or
+        username in active_lobby.get('accepted', [])
+    )
+    if already_in:
+        emit('error', {'message': 'Vous etes deja dans ce lobby'})
+        return
+    request_id = str(_uuid.uuid4())[:8]
+    if 'join_requests' not in active_lobby:
+        active_lobby['join_requests'] = {}
+    active_lobby['join_requests'][request_id] = {'from': username}
+    socketio.emit('join_request', {
+        'from': username,
+        'host': host,
+        'request_id': request_id
+    }, namespace='/')
+
+@socketio.on('accept_join_request')
+def handle_accept_join_request(data):
+    global active_lobby
+    host = get_socket_user()
+    from_user = data.get('from')
+    request_id = data.get('request_id')
+    if not active_lobby['active']:
+        return
+    if host != active_lobby['host'] and not is_admin(host):
+        emit('error', {'message': 'Seul l hote peut accepter les demandes'})
+        return
+    join_requests = active_lobby.get('join_requests', {})
+    if request_id not in join_requests:
+        return
+    join_requests.pop(request_id, None)
+    if from_user not in active_lobby['invited'] and from_user not in active_lobby['accepted']:
+        active_lobby['invited'].append(from_user)
+        pending_invitations[from_user] = {'from': active_lobby['host'], 'timestamp': _time.time()}
+    socketio.emit('join_request_result', {
+        'accepted': True,
+        'host': host,
+        'from': from_user
+    }, namespace='/')
+    socketio.emit('lobby_update', active_lobby, namespace='/')
+
+@socketio.on('decline_join_request')
+def handle_decline_join_request(data):
+    global active_lobby
+    host = get_socket_user()
+    from_user = data.get('from')
+    request_id = data.get('request_id')
+    if not active_lobby['active']:
+        return
+    join_requests = active_lobby.get('join_requests', {})
+    join_requests.pop(request_id, None)
+    socketio.emit('join_request_result', {
+        'accepted': False,
+        'host': host,
+        'from': from_user
+    }, namespace='/')
 
 @socketio.on('request_team_swap')
 def handle_request_team_swap(data):
