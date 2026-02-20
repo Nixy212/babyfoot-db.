@@ -178,6 +178,7 @@
 
 <div class="toast-wrap" id="toast-wrap"></div>
 
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 <script>
 let socket;
 try { socket = io({
@@ -492,6 +493,5 @@ loadGameState();
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
   <script src="/static/pwa.js" defer></script>
-<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 </body>
 </html>

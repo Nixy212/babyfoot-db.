@@ -358,7 +358,7 @@
             <li>Tu <strong style="color:#e74c3c">perds des points</strong> si tu perds contre quelqu'un de moins bon</li>
             <li>Battre un expert vaut plus que battre un débutant</li>
           </ul>
-          <div>Un gain typique est de <strong style="color:#cd7f32">±20 à ±40 pts</strong> par partie selon le niveau des adversaires.</div>
+          <div>Un gain typique est de <strong style="color:#cd7f32">±5 à ±10 pts</strong> par partie selon le niveau des adversaires.</div>
         </div>
 
         <!-- Tableau de tous les niveaux -->
@@ -417,6 +417,7 @@
 
 <div class="toast-settings" id="toastWrap"></div>
 
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 <script>
 function toggleMenu() {
   document.getElementById('burger').classList.toggle('open');
@@ -714,7 +715,6 @@ init();
 </script>
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
-<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 <script src="/static/pwa.js" defer></script>
 </body>
 </html>

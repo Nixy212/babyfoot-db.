@@ -21,6 +21,7 @@
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
   <script src="{{ url_for('static', filename='animations.js') }}" defer></script>
   <script src="{{ url_for('static', filename='confetti.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
   <style>
     /* ── Zones d'état ─────────────────────────────────────────── */
     .state-badge {
@@ -403,39 +404,37 @@ async function checkActiveGame() {
     const data = await res.json();
     const userIsAdmin = data.is_admin || isAdmin;
     const hasResa = data.has_reservation;
+    // Admin voit TOUJOURS le setup (même sans résa)
     const canSetup = userIsAdmin || hasResa;
 
     if (data.has_active_game) {
       const game = data.game_data;
       const t1 = parsePlayers(game.team1_players);
       const t2 = parsePlayers(game.team2_players);
-      // Peut contrôler : admin OU hôte de la partie OU joueur dans la partie avec résa
       const isInGame = t1.includes(currentUser) || t2.includes(currentUser);
       canControl = userIsAdmin || game.started_by === currentUser || isInGame;
-      const canScore = userIsAdmin; // seul l'admin peut scorer manuellement
+      const canScore = userIsAdmin;
       lastGame = {...game, team1_players: t1, team2_players: t2};
 
       if (canControl) {
         showArea('gameArea');
-        document.getElementById('pageSub').textContent = 'Partie en cours — marquez les buts et tous voient le score instantanément';
+        document.getElementById('pageSub').textContent = 'Partie en cours — marquez les buts en temps réel';
         updateGameUI(lastGame);
         const s1 = document.getElementById('btnScore1');
         const s2 = document.getElementById('btnScore2');
         if (s1) s1.style.display = canScore ? '' : 'none';
         if (s2) s2.style.display = canScore ? '' : 'none';
-        if (!canScore) {
-          const infoEl = document.querySelector('#gameArea .role-info span');
-          if (infoEl) infoEl.innerHTML = '<strong style="color:var(--text-primary)">Partie en cours</strong> — tu peux suivre le score. Les buts sont enregistrés par le capteur ou par un responsable.';
-        }
       } else {
         showArea('spectatorArea');
-        document.getElementById('pageSub').textContent = 'Partie en direct — le score se met à jour automatiquement';
+        document.getElementById('pageSub').textContent = 'Partie en direct — score mis à jour automatiquement';
         updateSpectatorUI(lastGame);
       }
     } else {
       if (canSetup) {
         showArea('setupArea');
-        document.getElementById('pageSub').textContent = 'Prêt à jouer — configurez votre partie ci-dessous';
+        document.getElementById('pageSub').textContent = hasResa
+          ? 'Réservation active — configurez et lancez la partie'
+          : 'Configurez la partie ci-dessous';
         await loadUsers();
       } else {
         showArea('noGameArea');
@@ -776,7 +775,6 @@ init();
 </script>
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
-<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 <script src="/static/pwa.js" defer></script>
 </body>
 </html>

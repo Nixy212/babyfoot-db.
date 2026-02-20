@@ -253,6 +253,7 @@
   <a href="#" onclick="logout()">🚪 Déconnexion</a>
 </div>
 
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 <script>
 function toggleMenu() {
   document.getElementById("burger").classList.toggle("open");
@@ -345,6 +346,7 @@ function toggleMenu() {
 
 <div class="toast-wrap" id="toast-lobby"></div>
 
+<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 <script>
 let socket;
 try {
@@ -409,7 +411,10 @@ function renderPlayerSelector() {
   const searchTerm = document.getElementById('searchInput').value.toLowerCase();
   selector.innerHTML = '';
   const inLobby = [...(lobbyData.invited||[]), ...(lobbyData.accepted||[])];
-  const filtered = allUsers.filter(u => !inLobby.includes(u) && u.toLowerCase().includes(searchTerm));
+  const filtered = allUsers.filter(u => {
+    const name = typeof u === 'object' ? u.username : u;
+    return !inLobby.includes(name) && name.toLowerCase().includes(searchTerm);
+  });
   if (filtered.length === 0) {
     selector.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:1rem;font-size:0.875rem">Tous les joueurs disponibles sont déjà dans le lobby</p>';
     return;
@@ -766,6 +771,5 @@ initPage();
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
 <script src="/static/pwa.js" defer></script>
-<script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
 </body>
 </html>
