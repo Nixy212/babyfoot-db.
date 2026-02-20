@@ -289,11 +289,38 @@
 <div id="rematchPopup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(8px)">
   <div style="background:var(--bg-elevated);padding:2.5rem;border-radius:20px;max-width:420px;width:90%;text-align:center;border:1px solid var(--border-accent)">
     <div style="display:flex;justify-content:center;margin-bottom:1rem"><span data-bficon="replay" data-size="56" style="color:var(--bronze)"></span></div>
-    <h2 style="color:var(--text-primary);margin-bottom:0.5rem">Rejouer ?</h2>
-    <p style="color:var(--text-tertiary);margin:0.5rem 0 1.5rem">Même configuration, nouvelle partie ?</p>
-    <div style="display:flex;gap:1rem">
-      <button class="btn btn-primary" style="flex:1" onclick="voteRematch('yes')">✓ OUI, rejouer !</button>
+    <h2 style="color:var(--text-primary);margin-bottom:0.25rem">Rejouer ?</h2>
+    <p style="color:var(--text-tertiary);margin:0.25rem 0 1.25rem;font-size:0.85rem">Même configuration, nouvelle partie ?</p>
+    <!-- Compteurs de votes -->
+    <div style="display:flex;justify-content:center;gap:2rem;margin-bottom:1.5rem">
+      <div style="text-align:center">
+        <div id="voteYesCount" style="font-size:2rem;font-weight:800;color:#2ecc71">0</div>
+        <div style="font-size:0.75rem;color:var(--text-muted)">OUI</div>
+      </div>
+      <div style="font-size:1.5rem;color:var(--text-muted);align-self:center">/</div>
+      <div style="text-align:center">
+        <div id="voteNoCount" style="font-size:2rem;font-weight:800;color:#e74c3c">0</div>
+        <div style="font-size:0.75rem;color:var(--text-muted)">NON</div>
+      </div>
+    </div>
+    <div id="voteStatus" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:1.25rem"></div>
+    <div id="myVoteButtons" style="display:flex;gap:1rem">
+      <button class="btn btn-primary" style="flex:1" onclick="voteRematch('yes')">✓ OUI</button>
       <button class="btn" style="flex:1;background:rgba(231,76,60,0.15);color:#e74c3c;border:1px solid rgba(231,76,60,0.3)" onclick="voteRematch('no')">✕ Non</button>
+    </div>
+    <div id="myVoteConfirm" style="display:none;font-size:0.9rem;color:var(--text-muted);margin-top:0.5rem">Vote enregistré — en attente des autres...</div>
+  </div>
+</div>
+
+<!-- ── POPUP HÔTE : Remplacer ou Quitter ─────────────────────────────────── -->
+<div id="hostDecisionPopup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;align-items:center;justify-content:center;backdrop-filter:blur(8px)">
+  <div style="background:var(--bg-elevated);padding:2.5rem;border-radius:20px;max-width:420px;width:90%;text-align:center;border:1px solid rgba(231,76,60,0.4)">
+    <div style="font-size:2rem;margin-bottom:0.75rem">⚠️</div>
+    <h2 style="color:var(--text-primary);margin-bottom:0.5rem">Joueur refuse</h2>
+    <p id="hostDecisionMsg" style="color:var(--text-tertiary);margin:0.5rem 0 1.5rem;font-size:0.9rem"></p>
+    <div style="display:flex;flex-direction:column;gap:0.75rem">
+      <button class="btn btn-primary" style="width:100%" onclick="hostReplacePlayer()">👤 Remplacer par un joueur</button>
+      <button class="btn" style="width:100%;background:rgba(231,76,60,0.15);color:#e74c3c;border:1px solid rgba(231,76,60,0.3)" onclick="hostQuitRematch()">✕ Annuler — tout le monde quitte</button>
     </div>
   </div>
 </div>
@@ -488,7 +515,39 @@ function stopGame() {
 function unlockServo() { socket.emit('unlock_servo1'); setTimeout(() => socket.emit('unlock_servo2'), 100); }
 
 let winnerOverlayTimer = null;
-function voteRematch(vote) { socket.emit('vote_rematch', {vote}); document.getElementById('rematchPopup').style.display = 'none'; }
+let myRematchVote = null;
+let declinedPlayer = null;
+
+function voteRematch(vote) {
+  if (myRematchVote) return; // déjà voté
+  myRematchVote = vote;
+  socket.emit('vote_rematch', {vote});
+  // Cacher les boutons, montrer confirmation
+  document.getElementById('myVoteButtons').style.display = 'none';
+  document.getElementById('myVoteConfirm').style.display = 'block';
+  document.getElementById('myVoteConfirm').textContent = vote === 'yes' ? '✓ Vote OUI enregistré — en attente des autres...' : '✕ Vote NON enregistré — en attente de l'hôte...';
+}
+
+function hostReplacePlayer() {
+  document.getElementById('hostDecisionPopup').style.display = 'none';
+  // Ouvrir la recherche d'un joueur (rediriger vers lobby ou afficher un champ)
+  showToast('Invitez un joueur via le lobby pour le remplacer', 'info');
+}
+
+function hostQuitRematch() {
+  document.getElementById('hostDecisionPopup').style.display = 'none';
+  socket.emit('host_quit_rematch');
+}
+
+function showRematchPopup() {
+  myRematchVote = null;
+  document.getElementById('voteYesCount').textContent = '0';
+  document.getElementById('voteNoCount').textContent = '0';
+  document.getElementById('voteStatus').textContent = '';
+  document.getElementById('myVoteButtons').style.display = 'flex';
+  document.getElementById('myVoteConfirm').style.display = 'none';
+  document.getElementById('rematchPopup').style.display = 'flex';
+}
 
 function showWinner(game) {
   const t1 = parsePlayers(game.team1_players);
@@ -551,17 +610,32 @@ socket.on('game_stopped', () => { location.href = '/dashboard'; });
 socket.on('game_reset', () => { checkActiveGame(); });
 socket.on('rematch_prompt', () => {
   if (winnerOverlayTimer) { clearTimeout(winnerOverlayTimer); winnerOverlayTimer = null; }
-  setTimeout(() => {
-    document.getElementById('winnerOverlay').style.display = 'none';
-    const t1 = parsePlayers(lastGame ? lastGame.team1_players : []);
-    const t2 = parsePlayers(lastGame ? lastGame.team2_players : []);
-    const isInGame = t1.includes(currentUser) || t2.includes(currentUser) || canControl || isAdmin;
-    if (isInGame) document.getElementById('rematchPopup').style.display = 'flex';
-    else { showToast('Partie terminée — retour dashboard...', 'info'); setTimeout(() => location.href = '/dashboard', 2000); }
-  }, 2000);
+  // Pas de délai — afficher le vote immédiatement
+  document.getElementById('winnerOverlay').style.display = 'none';
+  const t1 = parsePlayers(lastGame ? lastGame.team1_players : []);
+  const t2 = parsePlayers(lastGame ? lastGame.team2_players : []);
+  const isInGame = t1.includes(currentUser) || t2.includes(currentUser) || canControl || isAdmin;
+  if (isInGame) showRematchPopup();
+  else { showToast('Partie terminée — retour dashboard...', 'info'); setTimeout(() => location.href = '/dashboard', 2000); }
+});
+socket.on('rematch_vote_update', (data) => {
+  document.getElementById('voteYesCount').textContent = data.yes;
+  document.getElementById('voteNoCount').textContent = data.no;
+  const remaining = data.total - data.yes - data.no;
+  document.getElementById('voteStatus').textContent = remaining > 0 ? `En attente de ${remaining} joueur${remaining > 1 ? 's' : ''}...` : '';
+  if (data.no_player) {
+    showToast(`${data.no_player} a voté NON`, 'err');
+  }
+});
+socket.on('host_replace_or_quit', (data) => {
+  const isHost = currentUser === data.host || isAdmin;
+  if (!isHost) return;
+  document.getElementById('hostDecisionMsg').textContent = `${data.declined_player} ne veut pas rejouer. Que faire ?`;
+  document.getElementById('hostDecisionPopup').style.display = 'flex';
 });
 socket.on('rematch_cancelled', () => {
   document.getElementById('rematchPopup').style.display = 'none';
+  document.getElementById('hostDecisionPopup').style.display = 'none';
   document.getElementById('winnerOverlay').style.display = 'none';
   if (winnerOverlayTimer) { clearTimeout(winnerOverlayTimer); winnerOverlayTimer = null; }
   showToast('Pas de revanche — retour dashboard...', 'info');

@@ -150,6 +150,54 @@
     }
     .profile-name { font-size: 1.25rem; font-weight: 800; color: var(--text-primary); }
     .profile-role { font-size: 0.8rem; color: var(--text-tertiary); margin-top: 2px; }
+
+    /* Avatar picker */
+    .avatar-section { display:flex; align-items:center; gap:1.5rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+    .avatar-preview-wrap { position:relative; cursor:pointer; }
+    .avatar-preview-big {
+      width:80px; height:80px; border-radius:50%;
+      background:linear-gradient(135deg,#cd7f32,#b8732f);
+      display:flex; align-items:center; justify-content:center;
+      font-size:2rem; border:3px solid var(--border-accent);
+      overflow:hidden; position:relative;
+    }
+    .avatar-preview-big img { width:100%; height:100%; object-fit:cover; }
+    .avatar-preview-big .avatar-edit-overlay {
+      position:absolute; inset:0; background:rgba(0,0,0,0.5);
+      display:flex; align-items:center; justify-content:center;
+      opacity:0; transition:opacity .2s; font-size:1.2rem;
+    }
+    .avatar-preview-wrap:hover .avatar-edit-overlay { opacity:1; }
+    .avatar-presets { display:flex; gap:0.6rem; flex-wrap:wrap; }
+    .avatar-preset-btn {
+      width:44px; height:44px; border-radius:50%; border:2px solid transparent;
+      background:var(--bg-tertiary); font-size:1.3rem; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      transition:all .15s; flex-shrink:0;
+    }
+    .avatar-preset-btn:hover { border-color:var(--border-accent); transform:scale(1.1); }
+    .avatar-preset-btn.selected { border-color:#cd7f32; background:rgba(205,127,50,0.15); }
+    /* ELO badge */
+    .elo-badge {
+      display:inline-flex; align-items:center; gap:0.5rem;
+      padding:0.6rem 1.2rem; border-radius:12px;
+      background:linear-gradient(135deg,rgba(205,127,50,0.15),rgba(205,127,50,0.05));
+      border:1px solid rgba(205,127,50,0.3);
+    }
+    .elo-value { font-size:1.8rem; font-weight:800; color:#cd7f32; line-height:1; }
+    .elo-info { display:flex; flex-direction:column; }
+    .elo-tier { font-size:0.9rem; font-weight:700; color:var(--text-primary); }
+    .elo-label { font-size:0.72rem; color:var(--text-muted); }
+    /* Input perso */
+    .perso-input {
+      width:100%; padding:0.75rem 1rem; border-radius:10px;
+      border:1px solid var(--border-normal); background:var(--bg-tertiary);
+      color:var(--text-primary); font-size:0.9rem; font-family:inherit;
+      transition:border-color .15s; box-sizing:border-box;
+    }
+    .perso-input:focus { outline:none; border-color:#cd7f32; }
+    .perso-label { font-size:0.8rem; font-weight:600; color:var(--text-secondary); margin-bottom:0.4rem; }
+    .char-count { font-size:0.72rem; color:var(--text-muted); text-align:right; margin-top:0.3rem; }
   </style>
 </head>
 <body style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
@@ -212,8 +260,98 @@
       </div>
     </div>
 
-    <!-- Changement de mot de passe -->
+    <!-- ── PERSONNALISATION ───────────────────────────────────── -->
     <div class="settings-card fade-up" style="animation-delay:.06s">
+      <div class="settings-section-title">🎨 Personnaliser mon profil</div>
+      <div class="settings-row">
+
+        <!-- Avatar -->
+        <div class="perso-label" style="margin-bottom:0.75rem">Photo de profil</div>
+        <div class="avatar-section">
+          <div class="avatar-preview-wrap" onclick="document.getElementById('avatarFileInput').click()">
+            <div class="avatar-preview-big" id="avatarPreviewBig">
+              <span id="avatarPreviewEmoji">?</span>
+              <img id="avatarPreviewImg" src="" style="display:none">
+              <div class="avatar-edit-overlay">✏️</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.6rem">Choisir un avatar</div>
+            <div class="avatar-presets" id="avatarPresets">
+              <button class="avatar-preset-btn" data-preset="⚽" onclick="selectPreset('⚽')">⚽</button>
+              <button class="avatar-preset-btn" data-preset="🏆" onclick="selectPreset('🏆')">🏆</button>
+              <button class="avatar-preset-btn" data-preset="🔥" onclick="selectPreset('🔥')">🔥</button>
+              <button class="avatar-preset-btn" data-preset="⚡" onclick="selectPreset('⚡')">⚡</button>
+              <button class="avatar-preset-btn" data-preset="👑" onclick="selectPreset('👑')">👑</button>
+              <button class="avatar-preset-btn" data-preset="💎" onclick="selectPreset('💎')">💎</button>
+              <button class="avatar-preset-btn" data-preset="🎯" onclick="selectPreset('🎯')">🎯</button>
+              <button class="avatar-preset-btn" data-preset="🦁" onclick="selectPreset('🦁')">🦁</button>
+            </div>
+            <div style="margin-top:0.6rem">
+              <button class="btn btn-ghost" style="font-size:0.8rem;padding:0.4rem 0.8rem" onclick="document.getElementById('avatarFileInput').click()">
+                📷 Uploader une photo
+              </button>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="avatarFileInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)">
+
+        <!-- Surnom -->
+        <div style="margin-bottom:1rem">
+          <div class="perso-label">Surnom affiché en jeu</div>
+          <input type="text" class="perso-input" id="nicknameInput" maxlength="30"
+                 placeholder="Ton surnom (laisser vide = username)"
+                 oninput="document.getElementById('nicknameCount').textContent=this.value.length+'/30'">
+          <div class="char-count" id="nicknameCount">0/30</div>
+        </div>
+
+        <!-- Citation -->
+        <div style="margin-bottom:1.5rem">
+          <div class="perso-label">Citation / statut</div>
+          <textarea class="perso-input" id="bioInput" maxlength="120" rows="2"
+                    placeholder="Ta devise de joueur..."
+                    oninput="document.getElementById('bioCount').textContent=this.value.length+'/120'"
+                    style="resize:none"></textarea>
+          <div class="char-count" id="bioCount">0/120</div>
+        </div>
+
+        <button class="btn btn-primary btn-full" onclick="saveProfile()" id="btnSaveProfile">
+          Sauvegarder le profil
+        </button>
+      </div>
+    </div>
+
+    <!-- ── ELO / NIVEAU ───────────────────────────────────────── -->
+    <div class="settings-card fade-up" style="animation-delay:.09s">
+      <div class="settings-section-title">📊 Mon niveau</div>
+      <div class="settings-row">
+        <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap">
+          <div class="elo-badge">
+            <span id="eloIcon" style="font-size:2rem">🎮</span>
+            <div class="elo-info">
+              <span class="elo-value" id="eloValue">1000</span>
+              <span class="elo-tier" id="eloTier">Débutant</span>
+              <span class="elo-label">Points ELO</span>
+            </div>
+          </div>
+          <div style="flex:1;min-width:180px">
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.5rem">Progression vers le niveau suivant</div>
+            <div style="background:var(--bg-tertiary);border-radius:8px;height:8px;overflow:hidden">
+              <div id="eloProgressBar" style="height:100%;border-radius:8px;background:linear-gradient(90deg,#cd7f32,#ffd700);transition:width .5s" ></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-top:0.4rem">
+              <span id="eloMin"></span><span id="eloMax"></span>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:1rem;font-size:0.8rem;color:var(--text-muted)">
+          L'ELO est calculé automatiquement après chaque partie (formule standard K=32). Une victoire contre un adversaire plus fort rapporte plus de points.
+        </div>
+      </div>
+    </div>
+
+    <!-- Changement de mot de passe -->
+    <div class="settings-card fade-up" style="animation-delay:.12s">
       <div class="settings-section-title">🔒 Changer le mot de passe</div>
       <div class="settings-row">
         <div class="pw-group">
@@ -348,16 +486,137 @@ async function changePassword() {
   }
 }
 
-// Init
-fetch('/current_user').then(r => r.json()).then(user => {
+// ── ELO tiers ─────────────────────────────────────────────────────────────
+const ELO_TIERS = [
+  { name:'Débutant',      icon:'🎮', min:0,    max:899  },
+  { name:'Débutant+',     icon:'🌱', min:900,  max:999  },
+  { name:'Intermédiaire', icon:'⚡', min:1000, max:1099 },
+  { name:'Confirmé',      icon:'🔥', min:1100, max:1199 },
+  { name:'Expert',        icon:'💎', min:1200, max:1399 },
+  { name:'Légende',       icon:'👑', min:1400, max:9999 },
+];
+function getEloTier(elo) { return ELO_TIERS.find(t => elo >= t.min && elo <= t.max) || ELO_TIERS[0]; }
+
+// ── Avatar state ───────────────────────────────────────────────────────────
+let currentPreset = '';
+let currentAvatarUrl = '';
+
+function renderAvatarPreview() {
+  const emoji = document.getElementById('avatarPreviewEmoji');
+  const img   = document.getElementById('avatarPreviewImg');
+  if (currentAvatarUrl) {
+    img.src = currentAvatarUrl; img.style.display = 'block'; emoji.style.display = 'none';
+  } else if (currentPreset) {
+    emoji.textContent = currentPreset; emoji.style.display = 'block'; img.style.display = 'none';
+  } else {
+    emoji.textContent = (window._me || '?')[0].toUpperCase(); emoji.style.display = 'block'; img.style.display = 'none';
+  }
+  // Nav avatar
+  const nav = document.getElementById('navAv');
+  if (currentAvatarUrl) {
+    nav.innerHTML = `<img src="${currentAvatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else {
+    nav.textContent = currentPreset || (window._me || '?')[0].toUpperCase();
+  }
+}
+
+function selectPreset(emoji) {
+  currentPreset = emoji; currentAvatarUrl = '';
+  document.querySelectorAll('.avatar-preset-btn').forEach(b => b.classList.toggle('selected', b.dataset.preset === emoji));
+  renderAvatarPreview();
+}
+
+async function handleAvatarUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('Image trop grande (max 2 Mo)', 'err'); return; }
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result;
+    try {
+      const res = await fetch('/api/upload_avatar', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({image: base64})
+      });
+      const data = await res.json();
+      if (data.success) {
+        currentAvatarUrl = data.avatar_url; currentPreset = '';
+        document.querySelectorAll('.avatar-preset-btn').forEach(b => b.classList.remove('selected'));
+        renderAvatarPreview();
+        toast('✓ Photo uploadée', 'ok');
+      } else { toast('Erreur upload: ' + (data.error || '?'), 'err'); }
+    } catch(e) { toast('Erreur réseau', 'err'); }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProfile() {
+  const nickname = document.getElementById('nicknameInput').value.trim();
+  const bio = document.getElementById('bioInput').value.trim();
+  const btn = document.getElementById('btnSaveProfile');
+  btn.disabled = true; btn.textContent = 'Sauvegarde…';
+  try {
+    const res = await fetch('/api/profile', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ nickname, bio, avatar_preset: currentPreset })
+    });
+    const data = await res.json();
+    if (data.success) toast('✓ Profil sauvegardé', 'ok');
+    else toast('Erreur: ' + (data.error || '?'), 'err');
+  } catch(e) { toast('Erreur réseau', 'err'); }
+  finally { btn.disabled = false; btn.textContent = 'Sauvegarder le profil'; }
+}
+
+function renderElo(elo) {
+  const tier = getEloTier(elo);
+  document.getElementById('eloValue').textContent = elo;
+  document.getElementById('eloTier').textContent = tier.name;
+  document.getElementById('eloIcon').textContent = tier.icon;
+  const pct = tier.max >= 9999 ? 100 : Math.round((elo - tier.min) / (tier.max - tier.min + 1) * 100);
+  document.getElementById('eloProgressBar').style.width = pct + '%';
+  document.getElementById('eloMin').textContent = tier.min + ' pts';
+  document.getElementById('eloMax').textContent = tier.max >= 9999 ? 'MAX' : tier.max + ' pts';
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init() {
+  const userRes = await fetch('/current_user');
+  const user = await userRes.json();
   if (!user || !user.username) { location.href = '/login'; return; }
-  document.getElementById('navAv').textContent = user.username[0].toUpperCase();
+  window._me = user.username;
   document.getElementById('navUsername').textContent = user.username;
-  document.getElementById('profileAv').textContent = user.username[0].toUpperCase();
   document.getElementById('profileName').textContent = user.username;
   const role = user.is_super_admin ? '⭐ Super Admin' : user.is_admin ? '🛡️ Admin' : '🎮 Joueur';
   document.getElementById('profileRole').textContent = role;
-});
+
+  // Charger le profil
+  const profRes = await fetch('/api/profile');
+  const prof = await profRes.json();
+  currentPreset = prof.avatar_preset || '';
+  currentAvatarUrl = prof.avatar_url || '';
+  document.getElementById('nicknameInput').value = prof.nickname || '';
+  document.getElementById('nicknameCount').textContent = (prof.nickname || '').length + '/30';
+  document.getElementById('bioInput').value = prof.bio || '';
+  document.getElementById('bioCount').textContent = (prof.bio || '').length + '/120';
+
+  // Preset sélectionné
+  if (currentPreset) {
+    document.querySelectorAll('.avatar-preset-btn').forEach(b => {
+      if (b.dataset.preset === currentPreset) b.classList.add('selected');
+    });
+  }
+  renderAvatarPreview();
+  renderElo(prof.elo || 1000);
+
+  // Profil header
+  const profAv = document.getElementById('profileAv');
+  if (currentAvatarUrl) {
+    profAv.innerHTML = `<img src="${currentAvatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+  } else {
+    profAv.textContent = currentPreset || user.username[0].toUpperCase();
+  }
+}
+init();
 </script>
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
