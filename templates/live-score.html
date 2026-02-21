@@ -21,7 +21,8 @@
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
   <script src="{{ url_for('static', filename='animations.js') }}" defer></script>
   <script src="{{ url_for('static', filename='confetti.js') }}" defer></script>
-  <script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
+  <script src="{{ url_for('static', filename='icons.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='profile-utils.js') }}" defer></script>
   <style>
     /* ── Zones d'état ─────────────────────────────────────────── */
     .state-badge {
@@ -330,7 +331,15 @@
 </div>
 
 <script>
+// Variables globales accessibles partout
 let socket;
+let currentUser = null;
+let isAdmin = false;
+let canControl = false;
+let lastGame = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+// Initialiser socket après chargement complet
 try {
   socket = io({
     reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 10000,
@@ -339,13 +348,8 @@ try {
   });
   if (window.initReconnectIndicator) initReconnectIndicator(socket);
 } catch(e) {
-  socket = { emit: (ev) => {}, on: () => {}, once: () => {}, connected: false };
+  socket = { emit: () => {}, on: () => {}, once: () => {}, connected: false };
 }
-
-let currentUser = null;
-let isAdmin = false;
-let canControl = false;
-let lastGame = null;
 
 function toggleMenu() {
   document.getElementById('burger').classList.toggle('open');
@@ -774,8 +778,19 @@ async function init() {
     const navUser = document.getElementById('navUsername');
     if (navUser) navUser.textContent = user.nickname || user.username;
     if (navAv) {
-      if (user.avatar_url) {
-        navAv.innerHTML = `<img src="${user.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+      if (user.avatar_url && user.avatar_url.startsWith('data:')) {
+        // Créer l'img via createElement (plus stable que innerHTML avec grosse data URL)
+        navAv.innerHTML = '';
+        const img = document.createElement('img');
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
+        img.src = user.avatar_url;
+        navAv.appendChild(img);
+      } else if (user.avatar_url) {
+        navAv.innerHTML = '';
+        const img = document.createElement('img');
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
+        img.src = user.avatar_url;
+        navAv.appendChild(img);
       } else if (user.avatar_preset) {
         navAv.textContent = user.avatar_preset;
       } else {
@@ -817,9 +832,9 @@ async function init() {
   }
 }
 init();
+}); // fin DOMContentLoaded
 </script>
 
-<script src="{{ url_for('static', filename='icons.js') }}"></script>
 <script src="/static/pwa.js" defer></script>
 </body>
 </html>
