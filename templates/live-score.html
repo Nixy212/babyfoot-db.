@@ -133,6 +133,13 @@
       <p id="pageSub">Scores en direct — mis à jour instantanément pour tous les joueurs</p>
     </div>
 
+    <!-- Indicateur de chargement visible immédiatement -->
+    <div id="loadingIndicator" style="text-align:center;padding:3rem 1rem;color:var(--text-tertiary)">
+      <div style="font-size:2rem;margin-bottom:1rem;animation:spin 1s linear infinite;display:inline-block">⟳</div>
+      <div style="font-size:0.9rem">Chargement...</div>
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
 <!-- ── ADMIN / CRÉATEUR : Configuration ───────────────────────────────────── -->
 <div id="setupArea" style="display:none" class="fade-up">
   <div class="card">
@@ -338,8 +345,7 @@ let isAdmin = false;
 let canControl = false;
 let lastGame = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-// Initialiser socket après chargement complet
+// Init socket
 try {
   socket = io({
     reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 10000,
@@ -359,6 +365,9 @@ function toggleMenu() {
 function logout() { fetch('/api/logout', {method:'POST'}).then(() => location.href = '/'); }
 
 function showArea(name) {
+  // Cacher l'indicateur de chargement
+  const loader = document.getElementById('loadingIndicator');
+  if (loader) loader.style.display = 'none';
   ['setupArea','spectatorArea','gameArea','noGameArea'].forEach(id => {
     document.getElementById(id).style.display = 'none';
   });
@@ -408,7 +417,6 @@ async function checkActiveGame() {
     const data = await res.json();
     const userIsAdmin = data.is_admin || isAdmin;
     const hasResa = data.has_reservation;
-    // Admin voit TOUJOURS le setup (même sans résa)
     const canSetup = userIsAdmin || hasResa;
 
     if (data.has_active_game) {
@@ -448,7 +456,7 @@ async function checkActiveGame() {
   } catch(e) {
     console.error('checkActiveGame error:', e);
     showArea('noGameArea');
-    showToast('Erreur de connexion : ' + (e.message || e), 'err');
+    showToast('Erreur : ' + (e.message || e), 'err');
   }
 }
 
@@ -811,8 +819,8 @@ async function init() {
       }
     }
 
-    // Charger les profils (non-bloquant)
-    try { await ensureProfiles(); } catch(e) { console.warn('ensureProfiles:', e); }
+    // Charger les profils en arrière-plan (non-bloquant)
+    ensureProfiles().catch(e => console.warn('ensureProfiles:', e));
 
     await checkActiveGame();
     startResaExpiryWatch();
@@ -831,8 +839,12 @@ async function init() {
     }
   }
 }
-init();
-}); // fin DOMContentLoaded
+// Lancer init quand le DOM est prêt
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 </script>
 
 <script src="/static/pwa.js" defer></script>
