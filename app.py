@@ -5,6 +5,11 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from datetime import datetime, timedelta
 from functools import wraps
+import zoneinfo
+TZ_PARIS = zoneinfo.ZoneInfo("Europe/Paris")
+def now_local():
+    """Retourne l'heure actuelle en heure de Paris (UTC+1 hiver / UTC+2 été)."""
+    return datetime.now(tz=TZ_PARIS).replace(tzinfo=None)
 import json
 import bcrypt
 import os
@@ -470,7 +475,7 @@ def schedule_zombie_game_cleanup():
             try:
                 if current_game.get('active') and current_game.get('started_at'):
                     started = datetime.fromisoformat(current_game['started_at'])
-                    if datetime.now() - started > timedelta(hours=2):
+                    if now_local() - started > timedelta(hours=2):
                         logger.warning("Partie zombie detectee (>2h) — nettoyage automatique")
                         _reset_game_state()
                         socketio.emit('game_stopped', {'reason': 'timeout'}, namespace='/')
@@ -505,7 +510,7 @@ def _launch_rematch(game):
         "active": True,
         "started_by": game.get('started_by'),
         "reserved_by": game.get('reserved_by'),
-        "started_at": datetime.now().isoformat()
+        "started_at": now_local().isoformat()
     }
     rematch_votes = {"team1": [], "team2": []}
     rematch_pending = False
@@ -601,7 +606,7 @@ def has_active_reservation(username):
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        now_iso = datetime.now().isoformat()
+        now_iso = now_local().isoformat()
         if USE_POSTGRES:
             cur.execute(
                 "SELECT id FROM reservations WHERE reserved_by = %s AND start_time <= %s AND end_time >= %s LIMIT 1",
@@ -707,7 +712,7 @@ def health_check():
         cur.execute("SELECT 1")
         cur.close()
         conn.close()
-        return jsonify({"status": "healthy", "database": "connected", "timestamp": datetime.now().isoformat()}), 200
+        return jsonify({"status": "healthy", "database": "connected", "timestamp": now_local().isoformat()}), 200
     except Exception as e:
         return jsonify({"status": "unhealthy", "error": str(e)}), 500
 
@@ -1135,7 +1140,7 @@ def save_reservation():
         'Lundi': 0, 'Mardi': 1, 'Mercredi': 2, 'Jeudi': 3,
         'Vendredi': 4, 'Samedi': 5, 'Dimanche': 6
     }
-    today_wd = datetime.now().weekday()
+    today_wd = now_local().weekday()
     tomorrow_wd = (today_wd + 1) % 7
     target_wd = days_map.get(day)
     if target_wd is None or target_wd not in [today_wd, tomorrow_wd]:
@@ -1182,7 +1187,7 @@ def save_reservation():
             match = _re.search(r'(\d{1,2}):(\d{2})', time_val)
             if match:
                 h, m = int(match.group(1)), int(match.group(2))
-                base = datetime.now()
+                base = now_local()
                 diff = (target_wd - base.weekday()) % 7
                 base = base + timedelta(days=diff)
                 start_dt = base.replace(hour=h, minute=m, second=0, microsecond=0)
@@ -1280,7 +1285,7 @@ def reserve_and_lobby():
     username = session["username"]
     if duration not in [5, 10, 15]:
         return jsonify({"success": False, "message": "Duree invalide (5, 10 ou 15 min)"}), 400
-    now = datetime.now()
+    now = now_local()
     start_time = now
     end_time = now + timedelta(minutes=duration)
     result = _do_reservation(username, start_time, end_time, duration, mode)
@@ -1316,7 +1321,7 @@ def reserve_now():
     username = session["username"]
     if duration not in [5, 10, 15]:
         return jsonify({"success": False, "message": "Duree invalide (5, 10 ou 15 min)"}), 400
-    now = datetime.now()
+    now = now_local()
     start_time = now
     end_time = now + timedelta(minutes=duration)
     return _do_reservation(username, start_time, end_time, duration, mode)
@@ -1343,11 +1348,11 @@ def reserve_plan():
         if 'T' in start_str:
             start_time = datetime.fromisoformat(start_str)
         else:
-            date_str = data.get("date", datetime.now().date().isoformat())
+            date_str = data.get("date", now_local().date().isoformat())
             start_time = datetime.fromisoformat(f"{date_str}T{start_str}:00")
     except Exception:
         return jsonify({"success": False, "message": "Format d'heure invalide"}), 400
-    now = datetime.now()
+    now = now_local()
     # Refuser les reservations dans le passe (sauf admin)
     if not is_admin(username) and start_time < now - timedelta(minutes=1):
         return jsonify({"success": False, "message": "Impossible de reserver dans le passe"}), 400
@@ -1361,7 +1366,7 @@ def reserve_plan():
 
 def _do_reservation(username, start_time, end_time, duration, mode):
     """Logique commune de reservation avec verification anti-chevauchement."""
-    now = datetime.now()
+    now = now_local()
     # Double verification : seulement aujourd'hui et demain (sauf admin)
     if not is_admin(username):
         max_date = (now + timedelta(days=2)).date()
@@ -1527,13 +1532,13 @@ def reservations_today():
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        today = datetime.now().strftime('%A')
+        today = now_local().strftime('%A')
         days_fr = {
             'Monday': 'Lundi', 'Tuesday': 'Mardi', 'Wednesday': 'Mercredi',
             'Thursday': 'Jeudi', 'Friday': 'Vendredi', 'Saturday': 'Samedi', 'Sunday': 'Dimanche'
         }
         day_fr = days_fr.get(today, today)
-        tomorrow = (datetime.now() + timedelta(days=1)).strftime('%A')
+        tomorrow = (now_local() + timedelta(days=1)).strftime('%A')
         day_fr_tomorrow = days_fr.get(tomorrow, tomorrow)
         if USE_POSTGRES:
             cur.execute(
@@ -1571,7 +1576,7 @@ def babyfoot_status():
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        now = datetime.now()
+        now = now_local()
         today = now.date()
         tomorrow = (now + timedelta(days=1)).date()
         if USE_POSTGRES:
@@ -2207,7 +2212,7 @@ def handle_start_game_from_lobby():
         "active": True,
         "started_by": username,
         "reserved_by": username if has_active_reservation(username) else None,
-        "started_at": datetime.now().isoformat()
+        "started_at": now_local().isoformat()
     }
     active_lobby = {
         "host": None, "invited": [], "accepted": [],
@@ -2244,7 +2249,7 @@ def handle_start_game(data):
             "team1_players": team1, "team2_players": team2,
             "active": True, "started_by": username,
             "reserved_by": username if has_active_reservation(username) else None,
-            "started_at": datetime.now().isoformat()
+            "started_at": now_local().isoformat()
         }
         rematch_votes = {"team1": [], "team2": []}
         servo_commands["servo1"].append("open")
