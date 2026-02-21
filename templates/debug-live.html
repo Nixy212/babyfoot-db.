@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Live-Score</title>
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+  <script src="/static/profile-utils.js"></script>
+  <style>
+    body { font-family: monospace; background: #0a0a0a; color: #f5f5f5; padding: 1rem; margin: 0; }
+    h2 { color: #cd7f32; margin-bottom: 1rem; }
+    .step { padding: 0.6rem 0.8rem; border-radius: 8px; margin-bottom: 0.5rem; font-size: 0.875rem; }
+    .ok  { background: rgba(46,204,113,0.15); border-left: 3px solid #2ecc71; color: #2ecc71; }
+    .err { background: rgba(231,76,60,0.15);  border-left: 3px solid #e74c3c; color: #e74c3c; }
+    .info{ background: rgba(52,152,219,0.15); border-left: 3px solid #3498db; color: #aad4f5; }
+    .warn{ background: rgba(231,152,0,0.15);  border-left: 3px solid #e79800; color: #f5c542; }
+    pre  { margin: 0; white-space: pre-wrap; word-break: break-all; }
+    a    { color: #cd7f32; }
+  </style>
+</head>
+<body>
+<h2>🔍 Diagnostic Live-Score</h2>
+<div id="log"></div>
+<br>
+<a href="/live-score">← Aller sur Live-Score</a>
+&nbsp;|&nbsp;
+<a href="/dashboard">Dashboard</a>
+
+<script>
+const log = document.getElementById('log');
+
+function add(msg, type = 'info') {
+  const d = document.createElement('div');
+  d.className = 'step ' + type;
+  d.innerHTML = '<pre>' + msg + '</pre>';
+  log.appendChild(d);
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
+// Intercepter toutes les erreurs JS globales
+window.onerror = function(msg, src, line, col, err) {
+  add('❌ ERREUR JS GLOBALE\n' + msg + '\nFichier: ' + src + '\nLigne: ' + line + ':' + col + '\n' + (err ? err.stack : ''), 'err');
+};
+window.onunhandledrejection = function(e) {
+  add('❌ PROMISE REJETÉE\n' + (e.reason ? (e.reason.stack || e.reason) : e), 'err');
+};
+
+async function runDiag() {
+  add('▶ Démarrage du diagnostic...', 'info');
+
+  // 1. ProfileUtils
+  try {
+    if (typeof window.ProfileUtils === 'undefined') throw new Error('ProfileUtils non défini');
+    add('✅ profile-utils.js chargé — ProfileUtils disponible', 'ok');
+  } catch(e) { add('❌ profile-utils.js : ' + e.message, 'err'); }
+
+  // 2. socket.io
+  try {
+    if (typeof io === 'undefined') throw new Error('io() non défini — socket.io non chargé');
+    add('✅ socket.io chargé', 'ok');
+  } catch(e) { add('❌ socket.io : ' + e.message, 'err'); }
+
+  // 3. /current_user
+  try {
+    add('⏳ Appel /current_user...', 'info');
+    const res = await fetch('/current_user');
+    add('   Status HTTP: ' + res.status, res.ok ? 'ok' : 'err');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const user = await res.json();
+    if (!user || !user.username) throw new Error('user null ou sans username — réponse: ' + JSON.stringify(user));
+    add('✅ /current_user OK\n' + JSON.stringify(user, null, 2), 'ok');
+  } catch(e) { add('❌ /current_user ÉCHEC : ' + e.message, 'err'); return; }
+
+  // 4. /api/has_active_game
+  try {
+    add('⏳ Appel /api/has_active_game...', 'info');
+    const res = await fetch('/api/has_active_game');
+    add('   Status HTTP: ' + res.status, res.ok ? 'ok' : 'err');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    add('✅ /api/has_active_game OK\n' + JSON.stringify(data, null, 2), 'ok');
+  } catch(e) { add('❌ /api/has_active_game ÉCHEC : ' + e.message, 'err'); }
+
+  // 5. /users_list
+  try {
+    add('⏳ Appel /users_list...', 'info');
+    const res = await fetch('/users_list');
+    add('   Status HTTP: ' + res.status, res.ok ? 'ok' : 'err');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error('Réponse pas un tableau: ' + JSON.stringify(data).slice(0, 100));
+    add('✅ /users_list OK — ' + data.length + ' utilisateurs', 'ok');
+  } catch(e) { add('❌ /users_list ÉCHEC : ' + e.message, 'err'); }
+
+  // 6. Socket.io connexion
+  try {
+    add('⏳ Test connexion WebSocket...', 'info');
+    const socket = io({ transports: ['websocket', 'polling'], timeout: 5000 });
+    await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Timeout 5s — pas de connexion')), 5000);
+      socket.on('connect', () => {
+        clearTimeout(t);
+        add('✅ WebSocket connecté — sid: ' + socket.id, 'ok');
+        socket.disconnect();
+        resolve();
+      });
+      socket.on('connect_error', (err) => {
+        clearTimeout(t);
+        reject(new Error('connect_error: ' + err.message));
+      });
+    });
+  } catch(e) { add('❌ WebSocket ÉCHEC : ' + e.message, 'err'); }
+
+  // 7. Test showArea (DOM)
+  try {
+    const ids = ['setupArea','spectatorArea','gameArea','noGameArea'];
+    // Ces éléments sont dans live-score.html pas ici — c'est normal
+    add('ℹ️ Éléments DOM live-score (testés sur /live-score, pas ici)', 'warn');
+  } catch(e) {}
+
+  add('✅ Diagnostic terminé — voir les erreurs en rouge ci-dessus', 'ok');
+}
+
+runDiag().catch(e => add('❌ ERREUR DIAGNOSTIC : ' + e.message + '\n' + e.stack, 'err'));
+</script>
+</body>
+</html>
