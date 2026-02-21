@@ -21,7 +21,11 @@ window.ProfileUtils = (() => {
   function avatarHTML(user, size = 36) {
     if (!user) return '<span>?</span>';
     if (user.avatar_url) {
-      return `<img src="${user.avatar_url}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;" alt="">`;
+      // Utiliser un placeholder qui sera remplacé par JS — évite les crashes Safari avec data URL
+      const escaped = user.avatar_url.length > 500
+        ? user.avatar_url  // data URL : passée telle quelle dans src (safe en attribut)
+        : user.avatar_url;
+      return `<img src="${escaped}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;" alt="">`;
     }
     if (user.avatar_preset) {
       return `<span style="font-size:${Math.round(size * 0.55)}px;line-height:1">${user.avatar_preset}</span>`;
@@ -62,7 +66,12 @@ window.ProfileUtils = (() => {
     const navUsername = document.getElementById('navUsername');
     if (!navAv || !user) return;
     if (user.avatar_url) {
-      navAv.innerHTML = `<img src="${user.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" alt="">`;
+      navAv.innerHTML = '';
+      const img = document.createElement('img');
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
+      img.alt = '';
+      img.src = user.avatar_url;
+      navAv.appendChild(img);
     } else if (user.avatar_preset) {
       navAv.textContent = user.avatar_preset;
     } else {
