@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style-extended.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='profile-utils.js') }}"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
@@ -291,17 +292,27 @@ function ratio(goals, games) {
 fetch('/current_user').then(r => r.json()).then(d => {
   if (d && d.username) {
     ProfileUtils.updateNav(d);
+    // Lien admin dans menu mobile (si admin)
+    if (d && d.is_admin) {
+      const mm = document.getElementById('mobileMenu');
+      if (mm && !mm.querySelector('a[href="/admin"]')) {
+        const a = document.createElement('a');
+        a.href = '/admin'; a.textContent = '🛡️ Admin';
+        const firstLink = mm.querySelector('a');
+        if (firstLink) mm.insertBefore(a, firstLink);
+      }
+    }
     loadLeaderboard(d.username);
   }
 });
 
 const ELO_TIERS = [
-  { name:'Débutant',      icon:'🎮', min:0    },
-  { name:'Débutant+',     icon:'🌱', min:900  },
-  { name:'Intermédiaire', icon:'⚡', min:1000 },
-  { name:'Confirmé',      icon:'🔥', min:1100 },
-  { name:'Expert',        icon:'💎', min:1200 },
-  { name:'Légende',       icon:'👑', min:1400 },
+  { name:'Débutant 🎮',      icon:'🎮', min:800,  max:949  },
+  { name:'Débutant+ 🌱',     icon:'🌱', min:950,  max:1049 },
+  { name:'Intermédiaire 🔥', icon:'🔥', min:1050, max:1199 },
+  { name:'Confirmé ⚡',       icon:'⚡', min:1200, max:1349 },
+  { name:'Expert 💎',         icon:'💎', min:1350, max:1499 },
+  { name:'Maître 🏆',         icon:'🏆', min:1500, max:9999 },
 ];
 function eloTier(elo) {
   for (let i = ELO_TIERS.length - 1; i >= 0; i--) {

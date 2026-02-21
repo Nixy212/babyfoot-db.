@@ -537,6 +537,16 @@ async function init(){
     if(!u){location.href='/login';return;}
     ME=u.username;IS_ADMIN=u.is_admin;
     ProfileUtils.updateNav(u);
+    // Lien admin dans menu mobile (si admin)
+    if (d && d.is_admin) {
+      const mm = document.getElementById('mobileMenu');
+      if (mm && !mm.querySelector('a[href="/admin"]')) {
+        const a = document.createElement('a');
+        a.href = '/admin'; a.textContent = '🛡️ Admin';
+        const firstLink = mm.querySelector('a');
+        if (firstLink) mm.insertBefore(a, firstLink);
+      }
+    }
   }catch(e){console.error(e);}
   // Heure par défaut = prochain multiple de 5
   const now=new Date();

@@ -258,10 +258,10 @@
           <div class="no-game-option-label">Réserver</div>
           <div class="no-game-option-sub">Bloquer un créneau</div>
         </a>
-        <a href="/dashboard" class="no-game-option">
+        <a href="/lobby" class="no-game-option">
           <div class="no-game-option-icon">🎮</div>
           <div class="no-game-option-label">Créer un Lobby</div>
-          <div class="no-game-option-sub">Depuis le dashboard</div>
+          <div class="no-game-option-sub">Inviter des joueurs</div>
         </a>
       </div>
     </div>
@@ -441,7 +441,11 @@ async function checkActiveGame() {
         document.getElementById('pageSub').textContent = 'Aucune partie en cours';
       }
     }
-  } catch(e) { console.error('checkActiveGame error:', e); showArea('noGameArea'); }
+  } catch(e) {
+    console.error('checkActiveGame error:', e);
+    showArea('noGameArea');
+    showToast('Erreur de connexion : ' + (e.message || e), 'err');
+  }
 }
 
 // Profils chargés en mémoire
@@ -760,16 +764,57 @@ async function init() {
     const res = await fetch('/current_user');
     if (!res.ok) { location.href = '/login'; return; }
     const user = await res.json();
-    if (!user) { location.href = '/login'; return; }
+    if (!user || !user.username) { location.href = '/login'; return; }
     currentUser = user.username;
-    isAdmin = user.is_admin;
+    isAdmin = user.is_admin || false;
     window._currentUsername = user.username;
-    ProfileUtils.updateNav(user);
-    if (isAdmin) { const sb = document.getElementById('btnUnlockServo'); if (sb) sb.style.display = 'block'; }
-    await ensureProfiles();
+
+    // Mettre à jour la nav manuellement sans dépendre de ProfileUtils
+    const navAv = document.getElementById('navAv');
+    const navUser = document.getElementById('navUsername');
+    if (navUser) navUser.textContent = user.nickname || user.username;
+    if (navAv) {
+      if (user.avatar_url) {
+        navAv.innerHTML = `<img src="${user.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+      } else if (user.avatar_preset) {
+        navAv.textContent = user.avatar_preset;
+      } else {
+        navAv.textContent = (user.username || '?')[0].toUpperCase();
+      }
+    }
+
+    if (isAdmin) {
+      const sb = document.getElementById('btnUnlockServo');
+      if (sb) sb.style.display = 'block';
+      // Ajouter lien admin dans menu mobile
+      const mm = document.getElementById('mobileMenu');
+      if (mm && !mm.querySelector('a[href="/admin"]')) {
+        const a = document.createElement('a');
+        a.href = '/admin'; a.textContent = '🛡️ Admin';
+        const firstLink = mm.querySelector('a');
+        if (firstLink) mm.insertBefore(a, firstLink);
+      }
+    }
+
+    // Charger les profils (non-bloquant)
+    try { await ensureProfiles(); } catch(e) { console.warn('ensureProfiles:', e); }
+
     await checkActiveGame();
     startResaExpiryWatch();
-  } catch(e) {}
+
+  } catch(e) {
+    console.error('Init error:', e);
+    // Afficher l'erreur à l'écran pour diagnostiquer
+    const container = document.querySelector('.container');
+    if (container) {
+      container.innerHTML += `
+        <div style="background:rgba(231,76,60,0.15);border:1px solid rgba(231,76,60,0.4);border-radius:12px;padding:1.5rem;margin-top:1rem;color:#e74c3c">
+          <strong>Erreur de chargement</strong><br>
+          <code style="font-size:0.8rem;color:var(--text-muted)">${e.message || e}</code><br><br>
+          <a href="/dashboard" style="color:#cd7f32">← Retour au dashboard</a>
+        </div>`;
+    }
+  }
 }
 init();
 </script>

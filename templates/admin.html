@@ -296,7 +296,7 @@ socket.on('servo2_lock', () => {
 });
 
 // ── Liste utilisateurs AVEC BOUTON SUPPRESSION ──
-const ROLE_LABELS = { 0: { label: 'Joueur', color: 'var(--text-muted)', bg: 'rgba(255,255,255,0.05)' }, 1: { label: '⭐ Super Admin', color: '#ffd700', bg: 'rgba(255,215,0,0.12)' }, 2: { label: '🛡️ Admin', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)' } };
+const ROLE_LABELS = { 0: { label: 'Joueur', color: 'var(--text-muted)', bg: 'rgba(255,255,255,0.05)' }, 1: { label: '⭐ Responsable+', color: '#ffd700', bg: 'rgba(255,215,0,0.12)' }, 2: { label: '🛡️ Responsable', color: '#cd7f32', bg: 'rgba(205,127,50,0.12)' } };
 
 async function setUserRole(username, role) {
   if (!isSuperAdmin) { showToast('Réservé au super admin', 'err'); return; }

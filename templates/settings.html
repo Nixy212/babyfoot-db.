@@ -672,16 +672,28 @@ function renderElo(elo) {
 
 // ── Init ───────────────────────────────────────────────────────────────────
 async function init() {
-  const userRes = await fetch('/current_user');
-  const user = await userRes.json();
-  if (!user || !user.username) { location.href = '/login'; return; }
-  window._me = user.username;
-  document.getElementById('navUsername').textContent = user.username;
-  document.getElementById('profileName').textContent = user.username;
+  try {
+    const userRes = await fetch('/current_user');
+    const user = await userRes.json();
+    if (!user || !user.username) { location.href = '/login'; return; }
+    window._me = user.username;
+    document.getElementById('navUsername').textContent = user.nickname || user.username;
+    document.getElementById('profileName').textContent = user.nickname || user.username;
+    ProfileUtils.updateNav(user);
+    // Lien admin dans menu mobile
+    if (user.is_admin) {
+      const mm = document.getElementById('mobileMenu');
+      if (mm && !mm.querySelector('a[href="/admin"]')) {
+        const a = document.createElement('a');
+        a.href = '/admin'; a.textContent = '🛡️ Admin';
+        const firstLink = mm.querySelector('a');
+        if (firstLink) mm.insertBefore(a, firstLink);
+      }
+    }
 
-  // Charger le profil
-  const profRes = await fetch('/api/profile');
-  const prof = await profRes.json();
+    const profRes = await fetch('/api/profile');
+    if (!profRes.ok) throw new Error('Profil introuvable');
+    const prof = await profRes.json();
   currentPreset = prof.avatar_preset || '';
   currentAvatarUrl = prof.avatar_url || '';
   document.getElementById('nicknameInput').value = prof.nickname || '';
@@ -709,6 +721,13 @@ async function init() {
     } else {
       profAv.textContent = currentPreset || user.username[0].toUpperCase();
     }
+  }
+  } catch(e) {
+    console.error('Init settings error:', e);
+    document.querySelector('.container').innerHTML += `
+      <div style="background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.3);border-radius:12px;padding:1rem;margin-top:1rem;color:#e74c3c">
+        Erreur de chargement — <a href="/dashboard" style="color:#cd7f32">retour au dashboard</a>
+      </div>`;
   }
 }
 init();
