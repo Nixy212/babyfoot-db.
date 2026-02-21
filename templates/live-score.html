@@ -18,7 +18,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='global-animations.css') }}">
   <script src="{{ url_for('static', filename='global-animations.js') }}" defer></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js" crossorigin="anonymous"></script>
+  <!-- Socket.IO servi localement par Flask-SocketIO -->
+  <script src="/socket.io/socket.io.js"></script>
   <script src="{{ url_for('static', filename='animations.js') }}" defer></script>
   <script src="{{ url_for('static', filename='confetti.js') }}" defer></script>
   <script src="{{ url_for('static', filename='icons.js') }}" defer></script>
@@ -845,6 +846,14 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
+// Sécurité : si init() ne termine pas en 8s, afficher une erreur
+setTimeout(() => {
+  const loader = document.getElementById('loadingIndicator');
+  if (loader && loader.style.display !== 'none') {
+    loader.innerHTML = '<div style="color:#e74c3c;font-size:0.9rem;padding:1rem">Erreur de chargement — <a href="/dashboard" style="color:#cd7f32">retour au dashboard</a><br><small style="color:#888">Si le problème persiste, essayez de vous reconnecter</small></div>';
+  }
+}, 8000);
 </script>
 
 <script src="/static/pwa.js" defer></script>
