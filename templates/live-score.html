@@ -344,16 +344,19 @@ let isAdmin = false;
 let canControl = false;
 let lastGame = null;
 
-// Init socket
-try {
-  socket = io({
-    reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 10000,
-    reconnectionAttempts: Infinity, timeout: 20000,
-    transports: ['websocket', 'polling'],
-  });
-  if (window.initReconnectIndicator) initReconnectIndicator(socket);
-} catch(e) {
-  socket = { emit: () => {}, on: () => {}, once: () => {}, connected: false };
+// Init socket — avec fallback si CDN pas encore chargé
+function initSocket() {
+  try {
+    if (typeof io === 'undefined') throw new Error('io not loaded');
+    socket = io({
+      reconnection: true, reconnectionDelay: 1000, reconnectionDelayMax: 10000,
+      reconnectionAttempts: Infinity, timeout: 20000,
+      transports: ['websocket', 'polling'],
+    });
+    if (window.initReconnectIndicator) initReconnectIndicator(socket);
+  } catch(e) {
+    socket = { emit: () => {}, on: () => {}, once: () => {}, connected: false };
+  }
 }
 
 function toggleMenu() {
@@ -462,8 +465,8 @@ async function checkActiveGame() {
 // Profils chargés en mémoire
 let _profilesCache = {};
 async function ensureProfiles() {
-  if (Object.keys(_profilesCache).length === 0) {
-    _profilesCache = await ProfileUtils.fetchAllProfiles();
+  if (Object.keys(_profilesCache).length === 0 && window.ProfileUtils) {
+    try { _profilesCache = await ProfileUtils.fetchAllProfiles(); } catch(e) {}
   }
 }
 function renderTeamPlayers(elId, players) {
@@ -780,23 +783,16 @@ async function init() {
     isAdmin = user.is_admin || false;
     window._currentUsername = user.username;
 
-    // Mettre à jour la nav manuellement sans dépendre de ProfileUtils
+    // Mettre à jour la nav (inline, sans dépendre de ProfileUtils)
     const navAv = document.getElementById('navAv');
     const navUser = document.getElementById('navUsername');
     if (navUser) navUser.textContent = user.nickname || user.username;
     if (navAv) {
-      if (user.avatar_url && user.avatar_url.startsWith('data:')) {
-        // Créer l'img via createElement (plus stable que innerHTML avec grosse data URL)
-        navAv.innerHTML = '';
+      if (user.avatar_url) {
         const img = document.createElement('img');
         img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
         img.src = user.avatar_url;
-        navAv.appendChild(img);
-      } else if (user.avatar_url) {
         navAv.innerHTML = '';
-        const img = document.createElement('img');
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
-        img.src = user.avatar_url;
         navAv.appendChild(img);
       } else if (user.avatar_preset) {
         navAv.textContent = user.avatar_preset;
@@ -808,7 +804,6 @@ async function init() {
     if (isAdmin) {
       const sb = document.getElementById('btnUnlockServo');
       if (sb) sb.style.display = 'block';
-      // Ajouter lien admin dans menu mobile
       const mm = document.getElementById('mobileMenu');
       if (mm && !mm.querySelector('a[href="/admin"]')) {
         const a = document.createElement('a');
@@ -818,27 +813,20 @@ async function init() {
       }
     }
 
-    // Charger les profils en arrière-plan (non-bloquant)
-    ensureProfiles().catch(e => console.warn('ensureProfiles:', e));
-
     await checkActiveGame();
     startResaExpiryWatch();
 
   } catch(e) {
     console.error('Init error:', e);
-    // Afficher l'erreur à l'écran pour diagnostiquer
-    const container = document.querySelector('.container');
-    if (container) {
-      container.innerHTML += `
-        <div style="background:rgba(231,76,60,0.15);border:1px solid rgba(231,76,60,0.4);border-radius:12px;padding:1.5rem;margin-top:1rem;color:#e74c3c">
-          <strong>Erreur de chargement</strong><br>
-          <code style="font-size:0.8rem;color:var(--text-muted)">${e.message || e}</code><br><br>
-          <a href="/dashboard" style="color:#cd7f32">← Retour au dashboard</a>
-        </div>`;
-    }
+    const loader = document.getElementById('loadingIndicator');
+    if (loader) loader.innerHTML = '<div style="color:#e74c3c;padding:1rem">Erreur : ' + (e.message || e) + '<br><a href="/dashboard" style="color:#cd7f32">← Dashboard</a></div>';
   }
 }
-init();
+// Lancer après que tous les scripts soient chargés
+window.addEventListener('load', function() {
+  initSocket();
+  init();
+});
 </script>
 
 <script src="{{ url_for('static', filename='icons.js') }}"></script>
