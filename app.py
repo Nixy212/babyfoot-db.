@@ -912,6 +912,9 @@ def leaderboard():
 @app.route("/user_stats/<username>")
 @handle_errors
 def user_stats(username):
+    # Bloquer l'accès aux stats des comptes invités physiques
+    if is_guest_player(username):
+        return redirect(url_for('dashboard'))
     conn = get_db_connection()
     cur = conn.cursor()
     q = "SELECT * FROM users WHERE username = %s" if USE_POSTGRES else "SELECT * FROM users WHERE username = ?"
