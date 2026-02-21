@@ -65,16 +65,20 @@ window.ProfileUtils = (() => {
     const navAv = document.getElementById('navAv');
     const navUsername = document.getElementById('navUsername');
     if (!navAv || !user) return;
-    if (user.avatar_url) {
-      navAv.innerHTML = '';
-      const img = document.createElement('img');
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
-      img.alt = '';
-      img.src = user.avatar_url;
-      navAv.appendChild(img);
-    } else if (user.avatar_preset) {
-      navAv.textContent = user.avatar_preset;
-    } else {
+    try {
+      if (user.avatar_url) {
+        const img = document.createElement('img');
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%';
+        img.alt = '';
+        img.src = user.avatar_url;
+        navAv.innerHTML = '';
+        navAv.appendChild(img);
+      } else if (user.avatar_preset) {
+        navAv.textContent = user.avatar_preset;
+      } else {
+        navAv.textContent = (user.username || '?')[0].toUpperCase();
+      }
+    } catch(e) {
       navAv.textContent = (user.username || '?')[0].toUpperCase();
     }
     if (navUsername) {
