@@ -727,6 +727,14 @@ def debug_static():
         files_info["static_files"] = os.listdir(static_path)
     return jsonify(files_info), 200
 
+@app.route("/debug/live")
+def debug_live():
+    """Page de diagnostic live-score — affiche les erreurs JS à l'écran."""
+    username = session.get('username')
+    if not username:
+        return redirect(url_for('login_page'))
+    return render_template("debug-live.html")
+
 @app.route("/debug/game")
 def debug_game():
     username = session.get('username')
